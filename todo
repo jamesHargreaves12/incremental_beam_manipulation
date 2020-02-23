@@ -1,0 +1,4 @@
+Run sqlbpe for different beam sizes and see what results we get.
+
+Tgen model to get similar results from paper
+Run Tgen modle to get results at different beam sizes.

@@ -1,0 +1,1 @@
+../run_tgen.py seq2seq_gen -w /Users/james_hargreaves/PycharmProjects/partIII-Project/tgen/e2e-challenge/out-text-dir/test.txt -a input/devel-abst.txt /Users/james_hargreaves/PycharmProjects/partIII-Project/tgen/models/model_e2e_2/model.pickle.gz input/devel-das.txt
