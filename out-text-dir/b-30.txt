@@ -1,0 +1,547 @@
+X-name in the city centre is not family - friendly .
+X-name near X-near in the city centre is not family - friendly .
+X-name is family - friendly in the city centre .
+X-name is a family - friendly restaurant in the city centre near X-near .
+X-name in riverside is not family - friendly .
+X-name in riverside near X-near is not family - friendly .
+X-name in riverside is kid friendly .
+X-name is located near X-near in the riverside area and is family friendly .
+X-name is a kid friendly chinese coffee shop in riverside with a customer rating of 1 out of 5 .
+X-name is a kid friendly chinese coffee shop in the riverside area with a customer rating of 3 out of 5 .
+X-name is a chinese restaurant in the city centre . It has a customer rating of 5 out of 5 and is not family friendly .
+X-name is a family friendly chinese restaurant in the city centre with a customer rating of 5 out of 5 .
+X-name is a non family friendly chinese coffee shop in the riverside area with a customer rating of 5 out of 5 .
+X-name is a family friendly chinese coffee shop in the riverside area with a customer rating of 5 out of 5 .
+X-name is a non family - friendly chinese coffee shop in the city centre with an average customer rating .
+X-name is a family friendly chinese restaurant in the city centre with an average customer rating .
+X-name is a chinese restaurant in the riverside area . It is not family friendly and has an average customer rating .
+X-name is a family friendly chinese coffee shop in the riverside area with an average customer rating .
+X-name is a children friendly chinese coffee shop in the riverside area with a high customer rating .
+X-name is a low rated chinese restaurant in the city centre . It is not family friendly .
+X-name is a family friendly chinese restaurant in the city centre with a low customer rating .
+X-name is a low rated , non family friendly chinese coffee shop in riverside .
+X-name is a family friendly chinese coffee shop in the riverside area with a low customer rating .
+X-name is a family friendly coffee shop in the riverside area . It serves english food and has a customer rating of 1 out of 5 .
+X-name is a kid friendly coffee shop in the riverside area that serves english food and has a customer rating of 3 out of 5 .
+X-name is a highly rated english coffee shop in the city centre . It is not family - friendly .
+X-name is a family - friendly coffee shop that serves english food in the city centre with a customer rating of 5 out of 5 .
+X-name is an english coffee shop in the riverside area . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a family friendly english coffee shop in the riverside area with a customer rating of 5 out of 5 .
+X-name is an average rated english coffee shop in the city centre . It is not family - friendly .
+X-name is a family - friendly coffee shop in the city centre that serves english food and has an average customer rating .
+X-name is an english coffee shop in the riverside area . It is not family - friendly and has an average customer rating .
+X-name is a family friendly coffee shop in the riverside area . It serves english food and has an average customer rating .
+X-name is an english coffee shop in the riverside area . It is child friendly and has a high customer rating .
+X-name is an english coffee shop in the city centre . It is not family - friendly and has a low customer rating .
+X-name is a family - friendly coffee shop in the city centre with a low customer rating .
+X-name is an english coffee shop in the riverside area with a low customer rating and is not family - friendly .
+X-name is a family friendly coffee shop in the riverside area . It serves english food and has a low customer rating .
+X-name is a place near X-near in the city centre .
+X-name is in the riverside area near X-near .
+X-name is a kid friendly chinese coffee shop with a customer rating of 1 out of 5 . It is located in the riverside area near X-near .
+X-name is a kid friendly chinese coffee shop in the riverside area near X-near . It has a customer rating of 3 out of 5 .
+X-name is a chinese coffee shop near X-near in the city centre . It has a customer rating of 5 out of 5 and is not family friendly .
+X-name is a family friendly chinese coffee shop in the city centre near X-near with a 5 out of 5 customer rating .
+X-name is a non family friendly chinese coffee shop near X-near in the riverside area with a customer rating of 5 out of 5 .
+X-name is a family friendly chinese coffee shop near X-near in riverside with a customer rating of 5 out of 5 .
+X-name is a non family friendly chinese coffee shop in the city centre near X-near .
+X-name is a family friendly , average rated chinese coffee shop in the city centre near X-near .
+X-name is a riverside chinese coffee shop near X-near . It has an average customer rating and is not family friendly .
+X-name is a family friendly coffee shop located near X-near .
+X-name is a highly rated , kid friendly coffee shop in the riverside area near X-near .
+X-name is a chinese coffee shop in the city centre near X-near . It is not family friendly and has a low customer rating .
+X-name is a family friendly chinese coffee shop near X-near in the city centre with a low customer rating .
+X-name is a low rated chinese coffee shop in the riverside area near X-near . It is not family friendly .
+X-name is a family friendly chinese coffee shop in the riverside area near X-near . It has a low customer rating .
+X-name is a family friendly coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 1 out of 5 .
+X-name is a kid friendly coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 3 out of 5 .
+X-name is an english coffee shop near X-near in the city centre . It has a customer rating of 5 out of 5 and is not family - friendly .
+X-name is a family - friendly coffee shop located in the city centre near X-near . It serves english food and has a customer rating of 5 out of 5 .
+X-name is an english coffee shop near X-near in riverside . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a family friendly coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 5 out of 5 .
+X-name is an english coffee shop near X-near in the city centre . It is not family - friendly and has an average customer rating .
+X-name is a family - friendly coffee shop in the city centre near X-near . It serves english food and has an average customer rating .
+X-name is an english coffee shop near X-near in riverside . It is not family - friendly and has an average customer rating .
+X-name is a family friendly coffee shop in the riverside area near X-near . It serves english food and has an average customer rating .
+X-name is an english coffee shop in the riverside area near X-near . It is child friendly and has a high customer rating .
+X-name is a non family - friendly coffee shop located in the city centre near X-near . They serve english food and have a low customer rating .
+X-name is a family - friendly coffee shop in the city centre near X-near . They serve english food and have a low customer rating .
+X-name is a low rated coffee shop near X-near in the riverside area . It serves english food and is not family - friendly .
+X-name is a family friendly coffee shop in the riverside area near X-near . It serves english food and has a low customer rating .
+X-name is a chinese coffee shop in the riverside area near X-near . It has a customer rating of 1 out of 5 .
+X-name is a riverside chinese coffee shop near X-near . It has a customer rating of 3 out of 5 .
+X-name is a chinese coffee shop in the city centre near X-near . It has a 5 out of 5 rating .
+X-name is a chinese coffee shop in the riverside area near X-near . It has a customer rating of 5 out of 5 .
+X-name is a chinese restaurant in the city centre near X-near . It has an average customer rating .
+X-name is an average rated chinese coffee shop in riverside near X-near .
+X-name is a highly rated chinese coffee shop in riverside near X-near .
+X-name is a low rated chinese coffee shop in the city centre near X-near .
+X-name is a low rated chinese coffee shop in riverside near X-near .
+X-name is a coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 1 out of 5 .
+X-name is a coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 3 out of 5 .
+X-name is a highly rated english coffee shop near X-near in the city centre .
+X-name is an english coffee shop near X-near in riverside with a customer rating of 5 out of 5 .
+X-name is an average rated english coffee shop in the city centre near X-near .
+X-name is an average rated english coffee shop in riverside near X-near .
+X-name is a highly rated english coffee shop in riverside near X-near .
+X-name is a low rated english coffee shop near X-near in the city centre .
+X-name is a coffee shop in the riverside area near X-near . It serves english food and has a low customer rating .
+X-name is a chinese coffee shop with a high customer rating with a price range of £ 20 - £ 25 and is not kid friendly .
+X-name is a kid friendly chinese coffee shop with a high customer rating with a price range of £ 20 - 25 .
+X-name is a cheap chinese coffee shop with a customer rating of 5 out of 5 . It is not family friendly .
+X-name is a cheap , family friendly coffee shop with a 5 out of 5 rating .
+X-name is a cheap , average rated chinese coffee shop that is not family friendly .
+X-name is a cheap , average rated chinese coffee shop that is family friendly .
+X-name provides chinese food in the high price range . It is not child friendly and has a customer rating of 1 out of 5 .
+X-name is a child friendly chinese coffee shop with a high price range and a customer rating of 1 out of 5 .
+X-name provides chinese food in the high price range . It is not child friendly and has an average customer rating .
+X-name provides chinese food in the high price range . It is children friendly and has an average customer rating .
+X-name is a low rated , low - priced chinese coffee shop .
+X-name is a low rated , family friendly coffee shop that serves chinese food for less than £ 20 .
+X-name is a moderately priced coffee shop that serves chinese food .
+X-name is a moderately priced , kid friendly coffee shop with a customer rating of 1 out of 5 .
+X-name is a moderately priced coffee shop that serves chinese food .
+X-name is a kid friendly chinese coffee shop with a moderate price range and a customer rating of 3 out of 5 .
+X-name is a highly rated chinese coffee shop with a price range of more than £ 30 . It is not child friendly .
+X-name is a child friendly chinese coffee shop with a high customer rating . The price range is more than £ 30 .
+X-name is an english coffee shop with a high customer rating and a price range of £ 20 - 25 . It is not kid friendly .
+X-name is a kid friendly coffee shop that serves english food with a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap english coffee shop with a customer rating of 5 out of 5 . It is not family - friendly .
+X-name is a cheap , family friendly coffee shop that serves english food . It has a 5 out of 5 rating .
+X-name is a cheap , average rated coffee shop that serves english food and is not family - friendly .
+X-name is a cheap family friendly coffee shop that serves english food . It has an average customer rating .
+X-name is an english coffee shop with a high price range and a customer rating of 1 out of 5 . It is not child friendly .
+X-name is a child friendly coffee shop serving english food in the high price range with a customer rating of 1 out of 5 .
+X-name is an expensive coffee shop that serves english food . It is not child friendly and has an average customer rating .
+X-name is a child friendly coffee shop that serves english food and has an average customer rating .
+X-name is an english coffee shop with a price range of less than £ 20 . It has a low customer rating and is not family - friendly .
+X-name is a family friendly coffee shop that serves english food for less than £ 20 . It has a low customer rating .
+X-name is a moderately priced english coffee shop with a customer rating of 1 out of 5 . It is not kid friendly .
+X-name is a kid friendly coffee shop that serves moderately priced english food . It has a customer rating of 1 out of 5 .
+X-name is a moderately priced english coffee shop with a customer rating of 3 out of 5 . It is not kid friendly .
+X-name is a kid friendly coffee shop with a moderate price range . It serves english food and has a customer rating of 3 out of 5 .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the city centre near X-near . Its customer rating is high .
+X-name is a coffee shop providing chinese food in the £ 20 - 25 price range . It is located in the riverside . It is near X-near . Its customer rating is high .
+X-name is a cheap chinese coffee shop near X-near in the city centre with a customer rating of 5 out of 5 .
+X-name is a cheap chinese coffee shop in the riverside area near X-near . It has a customer rating of 5 out of 5 .
+X-name provides chinese food in the cheap price range . It is located in the city centre . It is near X-near . Its customer rating is average .
+X-name is a cheap , average rated chinese coffee shop located near X-near in the riverside area .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the riverside . It is near X-near . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near . Its customer rating is average .
+X-name provides chinese food in the high price range . It is located in the riverside . It is near X-near . Its customer rating is average .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city centre . It is near X-near . Its customer rating is low .
+X-name is a low rated chinese coffee shop near X-near in the riverside area . The price range is less than £ 20 .
+X-name provides chinese food in the moderate price range . It is located in the city centre near X-near . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the riverside . It is near X-near . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the city centre near X-near . Its customer rating is 3 out of 5 .
+X-name is a moderately priced chinese coffee shop in the riverside area near X-near . It has a customer rating of 3 out of 5 .
+X-name is a highly rated , high priced chinese coffee shop in the city centre near X-near .
+X-name is a high priced chinese coffee shop in the riverside area near X-near . It has a high customer rating .
+X-name is an english coffee shop near X-near in the city centre with a high customer rating and a price range of £ 20 - 25 .
+X-name is an english coffee shop in the riverside area near X-near . It has a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap coffee shop near X-near in the city centre with a customer rating of 5 out of 5 . They serve english food .
+X-name is a cheap coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 5 out of 5 .
+X-name is a cheap coffee shop in the city centre near X-near . It serves english food and has an average customer rating .
+X-name is a cheap coffee shop in the riverside area near X-near . It serves english food and has an average customer rating .
+X-name is a coffee shop providing english food in the high price range . It has a customer rating of 1 out of 5 . It is located in the city centre near X-near .
+X-name is an expensive coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 1 out of 5 .
+X-name is an expensive english coffee shop near X-near in the city centre with an average customer rating .
+X-name is an expensive coffee shop in the riverside area near X-near . It serves english food and has an average customer rating .
+X-name is an english coffee shop near X-near in the city centre . The price range is less than £ 20 and has a low customer rating .
+X-name is an english coffee shop near X-near in the riverside area . The price range is less than £ 20 and has a low customer rating .
+X-name is a moderately priced english coffee shop with a customer rating of 1 out of 5 . It is located in the city centre near X-near .
+X-name is an english coffee shop near X-near in the riverside area with a moderate price range and a customer rating of 1 out of 5 .
+X-name is a moderately priced coffee shop in the city centre near X-near . It serves english food and has a customer rating of 3 out of 5 .
+X-name is a moderately priced coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 3 out of 5 .
+X-name is a highly rated english coffee shop near X-near in the city centre with a price range of more than £ 30 .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the city centre . Its customer rating is high .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the city centre . Its customer rating is high .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the riverside . Its customer rating is high .
+X-name is a kid friendly chinese coffee shop in the riverside area with a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap chinese coffee shop in the city centre with a customer rating of 5 out of 5 . It is not family friendly .
+X-name is a cheap , family friendly chinese coffee shop in the city centre with a customer rating of 5 out of 5 .
+X-name is a cheap , non family friendly chinese coffee shop in the riverside area with a customer rating of 5 out of 5 .
+X-name is a cheap , family friendly chinese coffee shop in the riverside area with a customer rating of 5 out of 5 .
+X-name is a cheap , average rated chinese coffee shop in the city centre . It is not family friendly .
+X-name is a cheap , average rated chinese coffee shop in the city centre . It is family friendly .
+X-name is a cheap , average rated chinese coffee shop in riverside . It is not family friendly .
+X-name provides chinese food in the cheap price range . It is located in the riverside . It is family friendly and has an average customer rating .
+X-name provides chinese food in the high price range . It is located in the city centre . It is not child friendly and has a customer rating of 1 out of 5 .
+X-name is a child friendly chinese coffee shop in the city centre with a customer rating of 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the riverside . It is not child friendly and has a customer rating of 1 out of 5 .
+X-name is a family friendly chinese coffee shop in the riverside area with a high price range and a customer rating of 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the city centre . It is not child friendly and has an average customer rating .
+X-name provides chinese food in the high price range . It is located in the city centre and its customer rating is average .
+X-name provides chinese food in the high price range . It is located in the riverside . It is not child friendly and has an average customer rating .
+X-name provides chinese food in the high price range . It is located in the riverside . It is children friendly and has an average customer rating .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city center . Its customer rating is low .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city centre . It is family friendly and has a low customer rating .
+X-name provides chinese food in the less than £ 20 price range . It is located in the riverside . It is not family friendly and has a low customer rating .
+X-name is a cheap family friendly chinese coffee shop in the riverside area with a low customer rating .
+X-name provides chinese food in the moderate price range . It is located in the city centre . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the city centre . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the riverside . Its customer rating is 1 out of 5 .
+X-name is a family friendly chinese coffee shop in the riverside area with a moderate price range and a customer rating of 1 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the city centre . Its customer rating is 3 out of 5 .
+X-name is a moderately priced , kid friendly chinese coffee shop in the city centre with a customer rating of 3 out of 5 .
+X-name is a moderately priced chinese coffee shop in the riverside area . It has a customer rating of 3 out of 5 and is not kids friendly .
+X-name is a kid friendly chinese coffee shop in the riverside area . It has a moderate price range and a customer rating of 3 out of 5 .
+X-name is a coffee shop providing chinese food in the more than £ 30 price range . It is located in the city centre . Its customer rating is high .
+X-name is a highly rated , child friendly chinese coffee shop in the city centre . The price range is more than £ 30 .
+X-name is a coffee shop providing chinese food in the more than £ 30 price range . It is located in the riverside . Its customer rating is high .
+X-name is a child friendly chinese coffee shop in riverside with a high customer rating .
+X-name is an english coffee shop in the city centre . It is not child friendly and has a high customer rating .
+X-name is a kid friendly english coffee shop in the city centre with a high customer rating .
+X-name is an english coffee shop in the riverside area . It is not child friendly and has a high customer rating .
+X-name is an english coffee shop in the riverside area . It is child friendly and has a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap english coffee shop in the city centre with a customer rating of 5 out of 5 . It is not family - friendly .
+X-name is a cheap , family - friendly coffee shop located in the city centre .
+X-name is a cheap coffee shop in the riverside area that serves english food and has a customer rating of 5 out of 5 and is not family - friendly .
+X-name is a cheap , family friendly coffee shop in the riverside area . It serves english food and has a customer rating of 5 out of 5 .
+X-name is a cheap english coffee shop in the city centre . It is not family - friendly and has an average customer rating .
+X-name is a cheap , family - friendly coffee shop in the city centre that serves english food and has an average customer rating .
+X-name is a cheap english coffee shop in the riverside area . It is not family - friendly and has an average customer rating .
+X-name is a family friendly coffee shop in the riverside area . It serves english food and has a cheap price range and an average customer rating .
+X-name is a coffee shop providing english food in the high price range . It is located in the city centre . It is not child friendly and has a customer rating of 1 out of 5 .
+X-name is a child friendly coffee shop in the city centre . It serves english food and has a customer rating of 1 out of 5 .
+X-name is an english coffee shop in the riverside area with a high price range and a customer rating of 1 out of 5 . It is not child friendly .
+X-name is a child friendly coffee shop in the riverside area . It serves english food and has a customer rating of 1 out of 5 .
+X-name is an english coffee shop in the city centre . It is not child friendly and has an average customer rating and a high price range .
+X-name is a child friendly coffee shop in the city centre . It serves english food and has an average customer rating .
+X-name is an english coffee shop in the riverside area . It is not children friendly and has an average customer rating .
+X-name is a child friendly coffee shop in the riverside area . It serves english food and has an average customer rating .
+X-name is an english coffee shop in the city centre with a price range of less than £ 20 . It is not family - friendly and has a low customer rating .
+X-name is a family - friendly coffee shop in the city centre that serves english food for less than £ 20 . It has a low customer rating .
+X-name is an english coffee shop in the riverside area with a price range of less than £ 20 . It is not family - friendly and has a low customer rating .
+X-name is a family friendly coffee shop in the riverside area that serves english food for less than £ 20 . It has a low customer rating .
+X-name is a moderately priced english coffee shop in the city centre . It has a customer rating of 1 out of 5 . It is not kid friendly .
+X-name is a kid friendly english coffee shop in the city centre with a moderate price range and a customer rating of 1 out of 5 .
+X-name is a moderately priced english coffee shop in the riverside area . It has a customer rating of 1 out of 5 and is not kid friendly .
+X-name is a kid friendly coffee shop in the riverside area . It serves moderately priced english food and has a customer rating of 1 out of 5 .
+X-name is a moderately priced english coffee shop in the city centre . It has a customer rating of 3 out of 5 and is not kid friendly .
+X-name is a moderately priced english coffee shop in the city centre . It is kid friendly and has a customer rating of 3 out of 5 .
+X-name is a moderately priced english coffee shop in the riverside area with a customer rating of 3 out of 5 and is not kid friendly .
+X-name is a kid friendly coffee shop in the riverside area . It serves moderately priced english food and has a customer rating of 3 out of 5 .
+X-name is an english coffee shop in the city centre with a high customer rating . The price range is more than £ 30 and is not child friendly .
+X-name is a child friendly english coffee shop in the city centre with a high customer rating and a price range of more than £ 30 .
+X-name is an english coffee shop in the riverside area . It is not child friendly and has a high customer rating and a price range of more than £ 30 .
+X-name is near X-near . It has a customer rating of 1 out of 5 .
+X-name is near X-near and has a customer rating of 3 out of 5 .
+X-name is near X-near and has a customer rating of 5 out of 5 .
+X-name is near X-near and has an average customer rating .
+X-name is near X-near with a high customer rating .
+X-name is near X-near and has a low customer rating .
+X-name is a non family friendly chinese coffee shop in the city centre near X-near .
+X-name is a family friendly chinese restaurant in the city centre near X-near .
+X-name is a chinese restaurant in the riverside area near X-near . It is not family friendly .
+X-name is a family friendly chinese coffee shop in the riverside area near X-near .
+X-name is an english coffee shop near X-near in the city centre . It is not family - friendly .
+X-name is a family - friendly coffee shop serving english food near X-near in the city centre .
+X-name is an english coffee shop near X-near in the riverside area . It is not family - friendly .
+X-name is a family friendly english coffee shop near X-near in the riverside area .
+X-name is a kid friendly coffee shop near X-near in riverside with a customer rating of 1 out of 5 .
+X-name is a kid friendly coffee shop in the riverside area near X-near . It has a customer rating of 3 out of 5 .
+X-name is a coffee shop in the city centre near X-near . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a family - friendly coffee shop near X-near in the city centre with a customer rating of 5 out of 5 .
+X-name is a coffee shop in the riverside area near X-near . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a family friendly coffee shop near X-near in the riverside area with a customer rating of 5 out of 5 .
+X-name is a coffee shop in the city centre near X-near . It is not family - friendly and has an average customer rating .
+X-name is a family - friendly coffee shop in the city centre near X-near . It has an average customer rating .
+X-name is a coffee shop in the riverside area near X-near . It is not family - friendly and has an average customer rating .
+X-name is a family friendly coffee shop near X-near in the riverside area with an average customer rating .
+X-name is a child friendly coffee shop near X-near in riverside with a high customer rating .
+X-name is a coffee shop in the city centre near X-near . It is not family - friendly and has a low customer rating .
+X-name is a family - friendly coffee shop in the city centre near X-near . It has a low customer rating .
+X-name is a coffee shop in the riverside area near X-near . It is not family - friendly and has a low customer rating .
+X-name is a family friendly coffee shop in the riverside area near X-near . It has a low customer rating .
+X-name is a kid friendly chinese coffee shop with a customer rating of 1 out of 5 . It is located near X-near .
+X-name is a kid friendly chinese coffee shop near X-near . It has a customer rating of 3 out of 5 .
+X-name is a non family friendly chinese coffee shop near X-near with a customer rating of 5 out of 5 .
+X-name is a highly rated , family friendly coffee shop located near X-near .
+X-name is a non family friendly chinese coffee shop near X-near with an average customer rating .
+X-name is a family friendly , average rated chinese coffee shop near X-near .
+X-name is a highly rated , kid friendly coffee shop located near X-near .
+X-name is a chinese restaurant near X-near . It is not family friendly and has a low customer rating .
+X-name is a low rated , family friendly coffee shop located near X-near .
+X-name is a kid friendly coffee shop near X-near . It serves english food and has a customer rating of 1 out of 5 .
+X-name is a kid friendly coffee shop near X-near . It serves english food and has a customer rating of 3 out of 5 .
+X-name is an english coffee shop near X-near . It has a customer rating of 5 out of 5 and is not family - friendly .
+X-name is a family friendly english coffee shop near X-near with a customer rating of 5 out of 5 .
+X-name is an english coffee shop near X-near . It is not family - friendly and has an average rating .
+X-name is a family friendly coffee shop near X-near . It serves english food and has an average customer rating .
+X-name is an english coffee shop near X-near . It is child friendly and has a high customer rating .
+X-name is a low rated coffee shop near X-near . It serves english food and is not family - friendly .
+X-name is a family friendly coffee shop near X-near . It serves english food and has a low customer rating .
+X-name is in the riverside area near X-near . It is kid friendly and has a customer rating of 1 out of 5 .
+X-name is located in the riverside area near X-near . It is kid friendly and has a customer rating of 3 out of 5 .
+X-name is located near X-near in the city centre . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is located in the city centre near X-near . It is family - friendly and has a customer rating of 5 out of 5 .
+X-name is located in riverside near X-near . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is located near X-near in the riverside area . It is family friendly and has a customer rating of 5 out of 5 .
+X-name is located in the city centre near X-near . It is not family - friendly and has an average customer rating .
+X-name is located in the city centre near X-near . It is family - friendly and has an average customer rating .
+X-name is located in riverside near X-near . It is not family - friendly and has an average customer rating .
+X-name is located in the riverside area near X-near . It is family friendly and has an average customer rating .
+X-name is located in riverside near X-near . It is child friendly and has a high customer rating .
+X-name is located in the city centre near X-near . It is not family - friendly and has a low customer rating .
+X-name is located in the city centre near X-near . It is family - friendly and has a low customer rating .
+X-name is located in riverside near X-near . It is not family - friendly and has a low customer rating .
+X-name is located near X-near in the riverside area . It is family friendly and has a low customer rating .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the city centre near X-near . Its customer rating is high .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the city centre near X-near . Its customer rating is high .
+X-name is a chinese coffee shop in the riverside area near X-near . It is not kid friendly and has a high customer rating .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the riverside near X-near . Its customer rating is high .
+X-name is a cheap chinese coffee shop in the city centre near X-near . It has a customer rating of 5 out of 5 and is not family friendly .
+X-name is a cheap chinese coffee shop in the city centre near X-near . It has a customer rating of 5 out of 5 and is family friendly .
+X-name is a cheap chinese coffee shop in the riverside area near X-near . It has a customer rating of 5 out of 5 and is not family friendly .
+X-name is a cheap chinese coffee shop near X-near in the riverside area . It has a customer rating of 5 out of 5 and is family friendly .
+X-name is a cheap , average rated chinese coffee shop near X-near in the city centre . It is not family friendly .
+X-name provides chinese food in the cheap price range . It is located in the city centre near X-near . It is family friendly and has an average customer rating .
+X-name is a cheap , average rated chinese coffee shop in riverside near X-near . It is not family friendly .
+X-name provides chinese food in the cheap price range . It is located in the riverside . It is near X-near . It is family friendly and has an average rating .
+X-name is a chinese coffee shop near X-near in the city centre . It has a customer rating of 1 out of 5 and is not children friendly .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near . Its customer rating is 1 out of 5 .
+X-name is a high priced chinese coffee shop in the riverside area near X-near . It is not child friendly and has a customer rating of 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the riverside . It is near X-near . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near . Its customer rating is average . It is not child friendly .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near . It is children friendly and has an average customer rating .
+X-name provides chinese food in the high price range . It is located in the riverside . It is near X-near . It is not child friendly and has an average customer rating .
+X-name provides chinese food in the high price range . It is located in the riverside . It is near X-near . It is children friendly and has an average customer rating .
+X-name is a cheap chinese coffee shop near X-near in the city centre . It is not family friendly and has a low customer rating .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city centre near X-near . It is family friendly and has a low customer rating .
+X-name is a cheap chinese coffee shop in the riverside area near X-near . It is not family friendly and has a low customer rating .
+X-name is a cheap , family friendly chinese coffee shop in the riverside area near X-near . It has a low customer rating .
+X-name provides chinese food in the moderate price range . It is located in the city centre near X-near . Its customer rating is 1 out of 5 .
+X-name is a kid friendly chinese coffee shop in the moderate price range with a customer rating of 1 out of 5 . It is located in the city centre near X-near .
+X-name provides chinese food in the moderate price range . It is located in the riverside . It is near X-near . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the riverside . It is near X-near . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the city centre near X-near . Its customer rating is 3 out of 5 .
+X-name is a moderately priced , kid friendly chinese coffee shop in the city centre near X-near . It has a customer rating of 3 out of 5 .
+X-name provides chinese food in the moderate price range . It is located in the riverside . It is near X-near . Its customer rating is 3 out of 5 .
+X-name is a coffee shop providing chinese food in the moderate price range . It is located in the riverside . It is near X-near . Its customer rating is 3 out of 5 .
+X-name is a chinese coffee shop near X-near in the city centre . It is not child friendly and has a high customer rating .
+X-name is a child friendly chinese coffee shop in the city centre near X-near . It has a high customer rating and a price range of more than £ 30 .
+X-name is a coffee shop providing chinese food in the more than £ 30 price range . It is located in the riverside . It is near X-near . Its customer rating is high .
+X-name is a high rated , child friendly chinese coffee shop near X-near in riverside .
+X-name is an english coffee shop near X-near in the city centre . It has a high customer rating and is not kid friendly .
+X-name is an english coffee shop near X-near in the city centre . It is child friendly and has a high customer rating and a price range of £ 20 - 25 .
+X-name is an english coffee shop in the riverside area near X-near . It has a high customer rating and is not kid friendly .
+X-name is an english coffee shop in the riverside area near X-near . It is child friendly and has a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap english coffee shop near X-near in the city centre . It has a customer rating of 5 out of 5 and is not family - friendly .
+X-name is a cheap , family - friendly coffee shop in the city centre near X-near . It has a customer rating of 5 out of 5 and serves english food .
+X-name is an english coffee shop in the riverside area near X-near . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a cheap , family friendly coffee shop near X-near in the riverside area . It serves english food and has a customer rating of 5 out of 5 .
+X-name is a cheap english coffee shop near X-near in the city centre . It is not family - friendly and has average customer ratings .
+X-name is a family - friendly coffee shop in the city centre near X-near . It serves cheap english food and has an average customer rating .
+X-name is a cheap english coffee shop in riverside near X-near . It is not family - friendly and has an average customer rating .
+X-name is a cheap coffee shop near X-near in the riverside area . It serves english food and has an average customer rating and is family friendly .
+X-name is an english coffee shop near X-near in the city centre . It is not child friendly and has a high price range and a customer rating of 1 out of 5 .
+X-name is a child friendly english coffee shop near X-near in the city centre with a customer rating of 1 out of 5 .
+X-name is an english coffee shop near X-near in riverside . It is not child friendly and has a high price range and a customer rating of 1 out of 5 .
+X-name is a child friendly coffee shop in the riverside area near X-near . It serves english food and has a high customer rating of 1 out of 5 .
+X-name is an english coffee shop near X-near in the city centre . It is not child friendly and has an average customer rating and a high price range .
+X-name is an english coffee shop near X-near in the city centre . It is child friendly and has an average customer rating and a high price range .
+X-name is an english coffee shop near X-near in the riverside area . It is not child friendly and has an average customer rating and a high price range .
+X-name is a children friendly coffee shop in the riverside area near X-near . It serves english food and has an average customer rating and a high price range .
+X-name is a coffee shop providing english food in the less than £ 20 price range . It is located in the city centre near X-near . It has a low customer rating and is not family - friendly .
+X-name is a family - friendly coffee shop in the city centre near X-near . It has a low customer rating and serves english food for less than £ 20 .
+X-name is an english coffee shop near X-near in the riverside area . The price range is less than £ 20 and has a low customer rating and is not family - friendly .
+X-name is a family friendly coffee shop in the riverside area near X-near . It serves english food for less than £ 20 and has a low customer rating .
+X-name is a moderately priced english coffee shop near X-near in the city centre . It has a customer rating of 1 out of 5 and is not kid friendly .
+X-name is a kid friendly coffee shop in the city centre near X-near . It serves english food and has a moderate price range and a customer rating of 1 out of 5 .
+X-name is an english coffee shop near X-near in the riverside area with a moderate price range and a customer rating of 1 out of 5 . It is not kid friendly .
+X-name is a kid friendly coffee shop in the riverside area near X-near . It serves moderately priced english food and has a customer rating of 1 out of 5 .
+X-name is a moderately priced english coffee shop near X-near in the city centre . It has a customer rating of 3 out of 5 and is not kid friendly .
+X-name is a moderately priced , kid friendly coffee shop in the city centre near X-near . They serve english food and have a customer rating of 3 out of 5 .
+X-name is a moderately priced coffee shop in the riverside area near X-near . It serves english food and has a customer rating of 3 out of 5 and is not kid friendly .
+X-name is a kid friendly coffee shop in the riverside area near X-near . It serves moderately priced english food and has a customer rating of 3 out of 5 .
+X-name is an english coffee shop near X-near in the city centre . It is not child friendly and has a high customer rating and a price range of more than £ 30 .
+X-name is a highly rated , child friendly coffee shop in the city centre near X-near . It serves english food and has a price range of more than £ 30 .
+X-name is a highly rated english coffee shop near X-near in the riverside area . The price range is more than £ 30 and is not child friendly .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the city centre . Its customer rating is high .
+X-name is a coffee shop providing chinese food in the £ 20 - 25 price range . It is located in the riverside . Its customer rating is high .
+X-name is a cheap chinese coffee shop in the city centre with a customer rating of 5 out of 5 .
+X-name is a cheap chinese coffee shop in the riverside area with a customer rating of 5 out of 5 .
+X-name provides chinese food in the cheap price range . It is located in the city centre . Its customer rating is average .
+X-name is a cheap , average rated chinese coffee shop located in the riverside area .
+X-name provides chinese food in the high price range . It is located in the city centre . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the riverside . Its customer rating is 1 out of 5 .
+X-name provides chinese food in the high price range . It is located in the city centre . Its customer rating is average .
+X-name provides chinese food in the high price range . It is located in the riverside . Its customer rating is average .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city centre . Its customer rating is low .
+X-name is a cheap , low rated chinese coffee shop in the riverside area .
+X-name provides chinese food in the moderate price range . It is located in the city centre . Its customer rating is 1 out of 5 .
+X-name is a moderately priced chinese coffee shop in the riverside area with a customer rating of 1 out of 5 .
+X-name is a moderately priced , average rated chinese coffee shop in the city centre .
+X-name is a moderately priced , average rated chinese coffee shop in riverside .
+X-name is a high rated chinese restaurant in the city centre . The price range is more than £ 30 .
+X-name is a highly rated chinese coffee shop in the riverside area . The price range is more than £ 30 .
+X-name is a highly rated english coffee shop in the city centre with a price range of £ 20 - 25 .
+X-name is an english coffee shop in the riverside area with a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap coffee shop in the city centre that serves english food and has a customer rating of 5 out of 5 .
+X-name is a cheap coffee shop in the riverside area . It serves english food and has a customer rating of 5 out of 5 .
+X-name is a cheap english coffee shop in the city centre with an average rating .
+X-name is a cheap english coffee shop in the riverside area with an average customer rating .
+X-name is a coffee shop providing english food in the high price range . It has a customer rating of 1 out of 5 and is located in the city centre .
+X-name is an english coffee shop in the riverside area with a high price range and a customer rating of 1 out of 5 .
+X-name is an expensive english coffee shop in the city centre with an average customer rating .
+X-name is an expensive coffee shop in the riverside area . It serves english food and has an average customer rating .
+X-name is a cheap english coffee shop in the city centre with a low customer rating .
+X-name is an english coffee shop in the riverside area with a low customer rating and a price range of less than £ 20 .
+X-name is a moderately priced coffee shop that serves english food . It is located in the city centre and has a customer rating of 1 out of 5 .
+X-name is a moderately priced english coffee shop in the riverside area with a customer rating of 1 out of 5 .
+X-name is a moderately priced coffee shop in the city centre . It serves english food and has a customer rating of 3 out of 5 .
+X-name is a moderately priced coffee shop in the riverside area . It serves english food and has a customer rating of 3 out of 5 .
+X-name is an english coffee shop in the city centre with a high customer rating . The price range is more than £ 30 .
+X-name is an expensive coffee shop in the riverside area . It serves english food and has a high customer rating .
+X-name provides chinese food in the £ 20 - 25 price range . It is located in the riverside near X-near .
+X-name serves cheap chinese food in the riverside area near X-near .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near .
+X-name provides chinese food in the high price range . It is located in the riverside near X-near .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city centre . It is near X-near .
+X-name provides chinese food in the less than £ 20 price range . It is located in the riverside . It is near X-near .
+X-name provides chinese food in the moderate price range . It is located in the city centre near X-near .
+X-name provides chinese food in the moderate price range . It is located in the riverside near X-near .
+X-name is a chinese coffee shop in riverside near X-near . The price range is more than £ 30 .
+X-name is an english coffee shop near X-near in the riverside area . The price range is £ 20 - 25 .
+X-name is a cheap english coffee shop in riverside near X-near .
+X-name is a high priced english coffee shop located in the city centre near X-near .
+X-name is a high priced coffee shop in the riverside area near X-near . It serves english food .
+X-name is a coffee shop that serves english food for less than £ 20 . It is located in the city centre near X-near .
+X-name is an english coffee shop near X-near in the riverside area with a price range of less than £ 20 .
+X-name is a moderately priced english coffee shop in the city centre near X-near .
+X-name is a moderately priced english coffee shop near X-near in the riverside area .
+X-name is an english coffee shop near X-near in the riverside area . The price range is more than £ 30 .
+X-name is in riverside with a customer rating of 1 out of 5 .
+X-name in riverside has a customer rating of 3 out of 5 .
+X-name is located in the city centre and has a customer rating of 5 out of 5 .
+X-name in riverside has a customer rating of 5 out of 5 .
+X-name is located in the city centre and has an average customer rating .
+X-name in riverside has an average customer rating .
+X-name in riverside has a high customer rating .
+X-name is located in the city centre and has a low customer rating .
+X-name is located in the riverside area and has a low customer rating .
+X-name is a kid friendly restaurant in the riverside area with a customer rating of 1 out of 5 .
+X-name in riverside is kid friendly and has a customer rating of 3 out of 5 .
+X-name is located in the city centre . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a family - friendly restaurant in the city centre with a customer rating of 5 out of 5 .
+X-name in riverside is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a family friendly restaurant in the riverside area with a customer rating of 5 out of 5 .
+X-name is located in the city centre . It is not family - friendly and has an average customer rating .
+X-name is located in the city centre . It is family - friendly and has an average customer rating .
+X-name in riverside is not family - friendly and has an average customer rating .
+X-name in riverside is family friendly and has an average customer rating .
+X-name in riverside has a high customer rating and is child friendly .
+X-name is located in the city centre . It is not family - friendly and has a low customer rating .
+X-name is located in the city centre . It is family - friendly and has a low customer rating .
+X-name is located in the riverside area . It is not family - friendly and has a low customer rating .
+X-name is a family friendly restaurant in the riverside area with a low customer rating .
+X-name provides chinese food in the £ 20 - 25 price range . It is near X-near . Its customer rating is high .
+X-name provides chinese food in the £ 20 - 25 price range . It is near X-near . Its customer rating is high .
+X-name is a cheap , non - family friendly chinese coffee shop near X-near with a customer rating of 5 out of 5 .
+X-name is a cheap , family friendly chinese coffee shop near X-near with a customer rating of 5 out of 5 .
+X-name is a cheap , average rated chinese coffee shop near X-near . It is not family friendly .
+X-name is a cheap , family friendly , average rated chinese coffee shop near X-near .
+X-name is a chinese coffee shop near X-near . It is not child friendly and has a customer rating of 1 out of 5 .
+X-name is a child friendly chinese coffee shop near X-near with a high price range and a customer rating of 1 out of 5 .
+X-name provides chinese food in the high price range . It is near X-near . It is not child friendly and has an average customer rating .
+X-name provides chinese food in the high price range . It is near X-near . Its customer rating is average .
+X-name is a cheap chinese coffee shop near X-near . It is not family friendly and has a low customer rating .
+X-name is a cheap , family friendly chinese coffee shop near X-near . It has a low customer rating .
+X-name provides chinese food in the moderate price range . It is near X-near . Its customer rating is 1 out of 5 .
+X-name is a moderately priced family friendly chinese coffee shop near X-near with a customer rating of 1 out of 5 .
+X-name is a chinese coffee shop near X-near . It is not kid friendly and has a moderate price range and a customer rating of 3 out of 5 .
+X-name is a moderately priced , family friendly coffee shop located near X-near .
+X-name is a coffee shop providing chinese food in the more than £ 30 price range . It is near X-near . It is not child friendly and has a high customer rating .
+X-name is a highly rated , child friendly coffee shop located near X-near .
+X-name is an english coffee shop near X-near . It has a high customer rating and is not kid friendly .
+X-name is an english coffee shop near X-near . It is child friendly and has a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap english coffee shop near X-near . It is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is a family friendly coffee shop that serves english food . It is located near X-near and has a cheap price range and a customer rating of 5 out of 5 .
+X-name is a cheap , non family - friendly coffee shop near X-near . It serves english food and has an average customer rating .
+X-name is a cheap , family friendly coffee shop near X-near . It serves english food and has an average customer rating .
+X-name is an expensive coffee shop near X-near . It is not child friendly and has a customer rating of 1 out of 5 .
+X-name is a child friendly coffee shop near X-near that serves english food and has a customer rating of 1 out of 5 .
+X-name is an expensive english coffee shop near X-near . It is not child friendly and has an average customer rating .
+X-name is a child friendly coffee shop near X-near . It serves english food and has an average customer rating .
+X-name is a coffee shop providing english food in the less than £ 20 price range . It is near X-near and has a low customer rating .
+X-name is a family friendly coffee shop near X-near that serves english food for less than £ 20 . It has a low customer rating .
+X-name is an english coffee shop near X-near with a moderate price range and a customer rating of 1 out of 5 . It is not kid friendly .
+X-name is a kid friendly coffee shop near X-near . It serves english food and has a moderate price range and a customer rating of 1 out of 5 .
+X-name is a moderately priced english coffee shop near X-near . It has a customer rating of 3 out of 5 and is not kid friendly .
+X-name is a kid friendly coffee shop near X-near with a moderate price range . It serves english food and has a customer rating of 3 out of 5 .
+X-name is kid friendly and has a customer rating of 1 out of 5 .
+X-name is located near X-near . It is kid friendly and has a customer rating of 1 out of 5 .
+X-name is kid friendly and has a customer rating of 3 out of 5 .
+X-name near X-near is kid friendly and has a customer rating of 3 out of 5 .
+X-name is not family - friendly and has a customer rating of 5 out of 5 .
+X-name near X-near is not family - friendly and has a customer rating of 5 out of 5 .
+X-name is family friendly and has a customer rating of 5 out of 5 .
+X-name is located near X-near . It is family friendly and has a customer rating of 5 out of 5 .
+X-name is not family - friendly and has an average customer rating .
+X-name near X-near is not family - friendly and has an average customer rating .
+X-name is family friendly and has an average customer rating .
+X-name is located near X-near . It is family friendly and has an average customer rating .
+X-name has a high customer rating and is child friendly .
+X-name near X-near has a high customer rating and is child friendly .
+X-name is not family - friendly and has a low customer rating .
+X-name near X-near is not family - friendly and has a low customer rating .
+X-name is family friendly and has a low customer rating .
+X-name is located near X-near . It is family friendly and has a low customer rating .
+X-name provides chinese food in the £ 20 - £ 25 price range . It is located in the riverside . It is near X-near .
+X-name is a cheap family friendly chinese coffee shop in riverside near X-near .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near . It is not child friendly .
+X-name provides chinese food in the high price range . It is located in the city centre near X-near . It is child friendly .
+X-name provides chinese food in the high price range . It is located in the riverside near X-near . It is not child friendly .
+X-name provides chinese food in the high price range . It is located in the riverside near X-near . It is children friendly .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city centre near X-near .
+X-name provides chinese food in the less than £ 20 price range . It is located in the city centre near X-near . It is family friendly .
+X-name provides chinese food in the less than £ 20 price range . It is located in the riverside . It is near X-near . It is not family friendly .
+X-name provides chinese food in the less than £ 20 price range . It is located in the riverside . It is near X-near .
+X-name provides chinese food in the moderate price range . It is located in the city centre near X-near . It is not kids friendly .
+X-name is a kid friendly chinese coffee shop in the moderate price range . It is located in the city centre near X-near .
+X-name is a moderately priced chinese coffee shop in the riverside area near X-near . It is not kid friendly .
+X-name is a moderately priced family friendly chinese coffee shop in the riverside area near X-near .
+X-name is a children friendly chinese coffee shop in the riverside area near X-near . The price range is more than £ 30 .
+X-name is an english coffee shop near X-near in the riverside area . It is kid friendly and has a price range of £ 20 - 25 .
+X-name is a cheap coffee shop in the riverside area near X-near . It serves english food and is family friendly .
+X-name is an english coffee shop near X-near in the city centre . It has a high price range and is not child friendly .
+X-name is a child friendly coffee shop serving english food near X-near in the city centre .
+X-name is an english coffee shop near X-near in riverside . It is not child friendly and has a high price range .
+X-name is a child friendly coffee shop in the riverside area near X-near . It serves english food and has a high price range .
+X-name is an english coffee shop near X-near in the city centre . The price range is less than £ 20 and is not family - friendly .
+X-name is a family - friendly coffee shop in the city centre near X-near that serves english food for less than £ 20 .
+X-name is an english coffee shop near X-near in the riverside area . The price range is less than £ 20 and is not family - friendly .
+X-name is a family friendly coffee shop near X-near in the riverside area that serves english food for less than £ 20 .
+X-name is a moderately priced english coffee shop near X-near in the city centre . It is not kid friendly .
+X-name is a kid friendly coffee shop that serves english food in the moderate price range . It is located in the city centre near X-near .
+X-name is a moderately priced english coffee shop in riverside near X-near . It is not kid friendly .
+X-name is a kid friendly coffee shop in the riverside area near X-near . It serves english food and has a moderate price range .
+X-name is a child friendly coffee shop in the riverside area near X-near . It serves english food and has a price range of more than £ 30 .
+X-name is in the riverside area near X-near . It has a customer rating of 1 out of 5 .
+X-name is located in the riverside area near X-near . It has a customer rating of 3 out of 5 .
+X-name is located in the city centre near X-near . It has a customer rating of 5 out of 5 .
+X-name is near X-near in the riverside area and has a customer rating of 5 out of 5 .
+X-name is located in the city centre near X-near . It has an average customer rating .
+X-name is located in the riverside area near X-near . It has an average customer rating .
+X-name is located in riverside near X-near . It has a high customer rating .
+X-name is located in the city centre near X-near . It has a low customer rating .
+X-name is in the riverside area near X-near . It has a low customer rating .
+X-name provides chinese food in the £ 20 - 25 price range . It is near X-near . Its customer rating is high .
+X-name is a cheap chinese coffee shop near X-near with a customer rating of 5 out of 5 .
+X-name is a cheap , average rated chinese coffee shop near X-near .
+X-name is a chinese coffee shop near X-near . It has a high price range and a customer rating of 1 out of 5 .
+X-name is a high priced , average rated chinese coffee shop near X-near .
+X-name is a cheap , low rated chinese coffee shop near X-near .
+X-name is a moderately priced chinese coffee shop near X-near . It has a customer rating of 1 out of 5 .
+X-name is a moderately priced , average rated chinese coffee shop near X-near .
+X-name is a high rated , high priced chinese coffee shop near X-near .
+X-name is an english coffee shop near X-near . It has a high customer rating and a price range of £ 20 - 25 .
+X-name is a cheap english coffee shop near X-near with a customer rating of 5 out of 5 .
+X-name is a cheap english coffee shop near X-near with an average customer rating .
+X-name is a high priced coffee shop near X-near . It has a customer rating of 1 out of 5 and serves english food .
+X-name is an expensive english coffee shop near X-near . It has an average customer rating .
+X-name is a low rated coffee shop near X-near . It serves english food for less than £ 20 .
+X-name is a moderately priced english coffee shop near X-near with a customer rating of 1 out of 5 .
+X-name is a moderately priced english coffee shop near X-near with a customer rating of 3 out of 5 .
