@@ -1,0 +1,3 @@
+- delete tgen folder
+- git clone https://github.com/UFAL-DSG/tgen.git 
+- pip install -r requirements.txt
