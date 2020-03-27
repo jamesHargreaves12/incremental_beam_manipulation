@@ -1,2 +1,0 @@
-./convert.py -a name,near -n /Users/james_hargreaves/PycharmProjects/partIII-Project/e2e-dataset/trainset.csv train
-

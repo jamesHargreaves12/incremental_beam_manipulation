@@ -2,3 +2,8 @@ venv/*
 .idea/*
 sqlbpe/*
 data/*
+__pycache__*
+models/*
+old/*
+output_files/*
+old_files2/*

@@ -1,1 +1,0 @@
-./run_tgen.py seq2seq_train /Users/james_hargreaves/PycharmProjects/partIII-Project/tgen/bagel-data/config/seq2seq.py /Users/james_hargreaves/PycharmProjects/partIII-Project/tgen/bagel-data/input/cv00/train-das.txt /Users/james_hargreaves/PycharmProjects/partIII-Project/tgen/bagel-data/input/cv00/train-text.txt model.pickle.gz
