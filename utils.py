@@ -2,8 +2,6 @@ import os
 import sys
 
 import nltk
-import tensorflow as tf
-from keras.engine.saving import model_from_yaml
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from enum import Enum

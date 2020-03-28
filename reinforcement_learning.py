@@ -8,13 +8,13 @@ from gensim.models import Word2Vec
 from torch import nn
 from tqdm import tqdm
 
+from beam_search_edit import _init_beam_search
 from e2e_metrics.metrics.pymteval import BLEUScore
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from utils import construct_logs, RERANK, get_truth_training
 from getopt import getopt
 
-from beam_search_edit import _beam_search, lexicalize_beam, save_training_data, rolling_beam_search, _init_beam_search
 from e2e_metrics.measure_scores import load_data, evaluate, run_pymteval
 
 import nltk
@@ -167,4 +167,4 @@ def reinforce_learning(beam_size, epoch, seq2seq_model_file="models/model_e2e_2/
 
 
 if __name__ == "__main__":
-    reinforce_learning(3, 5)
+    reinforce_learning(3, 5, seq2seq_model_file="models/model_e2e_3/model.pickle.gz")

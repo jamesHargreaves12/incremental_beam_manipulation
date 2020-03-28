@@ -157,10 +157,11 @@ def test_res_official(beam_size, reranker=RERANK.VANILLA):
 
 
 if __name__ == "__main__":
+    train("models/model_e2e_3/model.pickle.gz")
     reranker = RERANK.ORACLE
     generate_results = False
     get_results = False
-    training_data = True
+    training_data = False
 
     print(reranker, generate_results, get_results)
     # approx generation times:
