@@ -95,7 +95,7 @@ def get_features(path, tgen, w2v):
                            [path.logprob]))
 
 
-def reinforce_learning(beam_size, epoch, seq2seq_model_file="models/model_e2e_2/model.pickle.gz"):
+def reinforce_learning(beam_size, epoch, seq2seq_model_file="models/model_e2e_2/model.pickle.gz", data_save_path="reinforce_data.txt"):
     tf.reset_default_graph()
     w2v = Word2Vec.load("models/word2vec_30.model")
 
@@ -112,6 +112,7 @@ def reinforce_learning(beam_size, epoch, seq2seq_model_file="models/model_e2e_2/
     classifier = nn.DataParallel(classifier, list(range(ngpu)))
     initialise(classifier, classif_path)
     # might be good to initialise with features
+    data_save_file = open(data_save_path, "w+")
     for i in range(epoch):
         for d, (da, true) in tqdm(enumerate(zip(das, truth))):
             tgen_time_spent = 0
@@ -157,6 +158,7 @@ def reinforce_learning(beam_size, epoch, seq2seq_model_file="models/model_e2e_2/
                     bleu.append(out_sent, [true_toks])
                     ref_score = bleu.score()
                     D.append((features, ref_score))
+                    data_save_file.write("{},{}\n".format(",".join([str(x) for x in features]),ref_score))
                 paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
 
                 if all([p.dec_inputs[-1] in [tgen.tree_embs.VOID, tgen.tree_embs.STOP] for p in paths]):
@@ -167,4 +169,4 @@ def reinforce_learning(beam_size, epoch, seq2seq_model_file="models/model_e2e_2/
 
 
 if __name__ == "__main__":
-    reinforce_learning(3, 5, seq2seq_model_file="models/model_e2e_3/model.pickle.gz")
+    reinforce_learning(3, 5, seq2seq_model_file="models/model_e2e_2/model.pickle.gz")
