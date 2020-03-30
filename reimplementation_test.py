@@ -4,8 +4,9 @@ from time import time
 
 import numpy as np
 from keras.utils import to_categorical
+
 from tensorflow.python.keras.models import Model
-from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding
+from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
 
 from attention_keras.layers.attention import AttentionLayer
 
@@ -22,13 +23,13 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
     decoder_inputs = Input(batch_shape=(batch_size, out_max_len - 1), name='decoder_inputs')
 
     embed_enc = Embedding(input_dim=in_vsize, output_dim=embedding_size)
-    encoder_lstm = LSTM(hidden_size, return_sequences=True, return_state=True, name='encoder_lstm')
+    encoder_lstm = CuDNNLSTM(hidden_size, return_sequences=True, return_state=True, name='encoder_lstm')
     en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
     encoder_out = en_lstm_out[0]
     encoder_state = en_lstm_out[1:]
 
     embed_dec = Embedding(input_dim=out_vsize, output_dim=embedding_size)
-    decoder_lstm = LSTM(hidden_size, return_sequences=True, return_state=True, name='decoder_lstm')
+    decoder_lstm = CuDNNLSTM(hidden_size, return_sequences=True, return_state=True, name='decoder_lstm')
     decoder_input_embeddings = embed_dec(decoder_inputs)
     # Attention layer
     attn_layer_Ws = AttentionLayer(name='attention_layer_t')
@@ -116,7 +117,7 @@ def train(full_model, en_seq, fr_seq, batch_size, n_epochs, fr_vsize):
 
             losses.append(l)
         if (ep + 1) % 1 == 0:
-            print("Time: {} Loss in epoch {}: {}".format(time() - start, ep + 1, np.mean(losses)))
+            print("Time: {:.2f} Loss in epoch {}: {:.2f}".format(time() - start, ep + 1, np.mean(losses)))
 
 
 use_size = 42000
