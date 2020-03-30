@@ -15,6 +15,11 @@
 ./convert.py -a name,near -n ../../../e2e-dataset/trainset.csv train
 ./convert.py -a name,near -n -m ../../../e2e-dataset/devset.csv devel
  cd ../../.. 
+ git clone https://github.com/thushv89/attention_keras.git
+ python3 reimplementation_test.py
+ 
+ 
  python3 build_word2vec.py 
  python3 run_tests_v2.py (to create the model)
  python3 reinforcement_learning.py
+ 
