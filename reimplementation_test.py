@@ -1,3 +1,4 @@
+import random
 import sys
 import os
 from time import time
@@ -103,28 +104,43 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
     return full_model, encoder_model, decoder_model
 
 
-def train(full_model, en_seq, fr_seq, batch_size, n_epochs, fr_vsize):
+def train(full_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size, valid_da_seq, valid_text_seq, early_stop_point=5):
     """ Training the model """
+    valid_onehot_seq = to_categorical(valid_text_seq, num_classes=text_vocab_size)
+    text_onehot_seq = to_categorical(text_seq, num_classes=text_vocab_size)
 
+    valid_losses = []
     for ep in range(n_epochs):
-        losses = []
+        losses = 0
         start = time()
-        for bi in range(0, en_seq.shape[0] - batch_size, batch_size):
-            en_batch = en_seq[bi:bi + batch_size, :]
-            fr_batch = fr_seq[bi:bi + batch_size, :]
-            fr_onehot_seq = to_categorical(fr_batch, num_classes=fr_vsize)
-
-            full_model.train_on_batch([en_batch, fr_batch[:, :-1]], fr_onehot_seq[:, 1:, :])
-
-            l = full_model.evaluate([en_batch, fr_batch[:, :-1]], fr_onehot_seq[:, 1:, :],
-                                    batch_size=batch_size, verbose=0)
-
-            losses.append(l)
+        batch_indexes = list(range(0, da_seq.shape[0] - batch_size, batch_size))
+        random.shuffle(batch_indexes)
+        for bi in batch_indexes:
+            da_batch = da_seq[bi:bi + batch_size, :]
+            text_batch = text_seq[bi:bi + batch_size, :]
+            text_onehot_batch = text_onehot_seq[bi:bi + batch_size, :]
+            full_model.train_on_batch([da_batch, text_batch[:, :-1]], text_onehot_batch[:, 1:, :])
+            losses += full_model.evaluate([da_batch, text_batch[:, :-1]], text_onehot_batch[:, 1:, :],
+                                          batch_size=batch_size, verbose=0)
         if (ep + 1) % 1 == 0:
-            print("({:.2f}s) Epoch {} Loss: {:.2f}".format(time() - start, ep + 1, np.mean(losses)))
-
+            valid_loss = 0
+            for bi in range(0, valid_da_seq.shape[0] - batch_size, batch_size):
+                valid_da_batch = da_seq[bi:bi + batch_size, :]
+                valid_text_batch = text_seq[bi:bi + batch_size, :]
+                valid_onehot_batch = valid_onehot_seq[bi:bi + batch_size, :, :]
+                valid_loss += full_model.evaluate([valid_da_batch, valid_text_batch[:, :-1]],
+                                                  valid_onehot_batch[:, 1:, :],
+                                                  batch_size=batch_size, verbose=0)
+            valid_losses.append(valid_loss)
+            print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f}".format(time() - start, ep + 1,
+                                                                         losses / da_seq.shape[0] * batch_size,
+                                                                         valid_loss / valid_da_seq.shape[
+                                                                             0] * batch_size))
+            if len(valid_losses) - np.argmin(valid_losses) > early_stop_point:
+                return
 
 use_size = 100
+valid_size = 100
 epoch = 100
 batch_size = 20
 hidden_size = 128
@@ -133,8 +149,8 @@ das = read_das("tgen/e2e-challenge/input/train-das.txt")
 trees = [[('<Start>', None)] + x + [("<End>", None)] for x in
          read_trees_or_tokens("tgen/e2e-challenge/input/train-text.txt", 'tokens', 'en', '')]
 print(das[0], trees[0])
-das = das[:use_size]
-trees = trees[:use_size]
+das = das[:use_size + valid_size]
+trees = trees[:use_size + valid_size]
 da_embs = DAEmbeddingSeq2SeqExtract(cfg={'sort_da_emb': True})
 tree_embs = TokenEmbeddingSeq2SeqExtract(cfg={'max_sent_len': 80})
 
@@ -144,40 +160,34 @@ da_max_len = da_embs.get_embeddings_shape()[0]
 text_max_len = tree_embs.get_embeddings_shape()[0]
 print(da_vsize, text_vsize, da_max_len, text_max_len)
 
-# prepare training batches
+
 train_enc = np.array([da_embs.get_embeddings(da) for da in das])
 train_dec = np.array([tree_embs.get_embeddings(tree) for tree in trees])
 
-full_model, infer_enc_model, infer_dec_model = get_model(batch_size, da_max_len, text_max_len, da_vsize, text_vsize, hidden_size, 50)
+full_model, infer_enc_model, infer_dec_model = get_model(batch_size, da_max_len, text_max_len, da_vsize, text_vsize,
+                                                         hidden_size, 50)
 
-full_model_save_path = 'models/reimp_save_test_.tf'
+full_model_save_path = 'models/reimp_save_test__.tf'
 if os.path.exists(full_model_save_path + '.index'):
     print("Loading model from file")
     full_model.load_weights(full_model_save_path)
 else:
     print("Training model")
-    train(full_model, train_enc, train_dec, batch_size, epoch, text_vsize)
-    full_model.save_weights(full_model_save_path, save_format='tf')
+    train(full_model, train_enc[:-valid_size], train_dec[:-valid_size], batch_size, epoch, text_vsize,
+          train_enc[-valid_size:], train_dec[-valid_size:])
+    # full_model.save_weights(full_model_save_path, save_format='tf')
 
-# Recreate the exact same model purely from the file
 
 
 """ Inferring with trained model """
-test_en = train_enc[:1]
+print("Testing greedy inference")
+test_en = np.array([train_enc[-valid_size]])
 test_fr = np.array([tree_embs.GO])
-print(tree_embs.GO)
-print(test_fr)
-print('Translating: {}'.format(test_en))
-# test_en_onehot_seq = to_categorical(test_en, num_classes=en_vsize)
 
-# print(test_en_onehot_seq.shape)
 inf_enc_out = infer_enc_model.predict(test_en)
 enc_outs = inf_enc_out[0]
 enc_last_state = inf_enc_out[1:]
-print("enc_out", enc_outs.shape)
-print("enc_1", enc_last_state[0].shape)
-print("enc_2", enc_last_state[1].shape)
-# print("dec_in", test_fr_onehot_seq.shape)
+
 dec_state = enc_last_state
 attention_weights = []
 fr_text = ''
@@ -187,12 +197,13 @@ for i in range(20):
     out = infer_dec_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
     dec_out, attention, dec_state = out[0], out[1], out[2:]
     dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
-    # print("Value", tree_embs.rev_dict[dec_ind])
+
     fr_in = np.array([dec_ind])
 
     attention_weights.append((dec_ind, attention))
     fr_text += tree_embs.rev_dict[dec_ind] + ' '
-print('\tOutput: {}'.format(fr_text))
+print('Aim:    {}'.format(" ".join([x[0] for x in trees[-valid_size]])))
+print('Output: {}'.format(fr_text))
 
 """ Attention plotting """
 # plot_attention_weights(test_en_seq, attn_weights, en_index2word, fr_index2word, base_dir=base_dir)
