@@ -5,10 +5,10 @@ from time import time
 import numpy as np
 from keras.utils import to_categorical
 
+from tensorflow.test import is_gpu_available
 from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
-from tensorflow_core.python.framework.config import list_physical_devices
 
 from attention_keras.layers.attention import AttentionLayer
 
@@ -20,7 +20,7 @@ from tgen.futil import read_das
 
 
 def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_size, embedding_size):
-    lstm_type = CuDNNLSTM if list_physical_devices('GPU') else LSTM
+    lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
     decoder_in_size = out_vsize
     encoder_inputs = Input(batch_shape=(batch_size, in_max_len), name='encoder_inputs')
     decoder_inputs = Input(batch_shape=(batch_size, out_max_len - 1), name='decoder_inputs')
