@@ -5,8 +5,10 @@ from time import time
 import numpy as np
 from keras.utils import to_categorical
 
+from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
+from tensorflow_core.python.framework.config import list_physical_devices
 
 from attention_keras.layers.attention import AttentionLayer
 
@@ -18,18 +20,19 @@ from tgen.futil import read_das
 
 
 def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_size, embedding_size):
+    lstm_type = CuDNNLSTM if list_physical_devices('GPU') else LSTM
     decoder_in_size = out_vsize
     encoder_inputs = Input(batch_shape=(batch_size, in_max_len), name='encoder_inputs')
     decoder_inputs = Input(batch_shape=(batch_size, out_max_len - 1), name='decoder_inputs')
 
     embed_enc = Embedding(input_dim=in_vsize, output_dim=embedding_size)
-    encoder_lstm = CuDNNLSTM(hidden_size, return_sequences=True, return_state=True, name='encoder_lstm')
+    encoder_lstm = lstm_type(hidden_size, return_sequences=True, return_state=True, name='encoder_lstm')
     en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
     encoder_out = en_lstm_out[0]
     encoder_state = en_lstm_out[1:]
 
     embed_dec = Embedding(input_dim=out_vsize, output_dim=embedding_size)
-    decoder_lstm = CuDNNLSTM(hidden_size, return_sequences=True, return_state=True, name='decoder_lstm')
+    decoder_lstm = lstm_type(hidden_size, return_sequences=True, return_state=True, name='decoder_lstm')
     decoder_input_embeddings = embed_dec(decoder_inputs)
     # Attention layer
     attn_layer_Ws = AttentionLayer(name='attention_layer_t')
@@ -57,7 +60,8 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
 
     # Full model
     full_model = Model(inputs=[encoder_inputs, decoder_inputs], outputs=decoder_pred)
-    full_model.compile(optimizer='adam', loss='categorical_crossentropy')
+    optimizer = Adam(lr=0.001)
+    full_model.compile(optimizer=optimizer, loss='categorical_crossentropy')
 
     full_model.summary()
 
@@ -117,11 +121,11 @@ def train(full_model, en_seq, fr_seq, batch_size, n_epochs, fr_vsize):
 
             losses.append(l)
         if (ep + 1) % 1 == 0:
-            print("Time: {:.2f} Loss in epoch {}: {:.2f}".format(time() - start, ep + 1, np.mean(losses)))
+            print("({:.2f}s) Epoch {} Loss: {:.2f}".format(time() - start, ep + 1, np.mean(losses)))
 
 
-use_size = 42000
-epoch = 20
+use_size = 100
+epoch = 100
 batch_size = 20
 hidden_size = 128
 
@@ -134,20 +138,29 @@ trees = trees[:use_size]
 da_embs = DAEmbeddingSeq2SeqExtract(cfg={'sort_da_emb': True})
 tree_embs = TokenEmbeddingSeq2SeqExtract(cfg={'max_sent_len': 80})
 
-en_vsize = da_embs.init_dict(das)
-fr_vsize = tree_embs.init_dict(trees)
-en_timesteps = da_embs.get_embeddings_shape()[0]
-fr_timesteps = tree_embs.get_embeddings_shape()[0]
-print(en_vsize, fr_vsize, en_timesteps, fr_timesteps)
+da_vsize = da_embs.init_dict(das)
+text_vsize = tree_embs.init_dict(trees)
+da_max_len = da_embs.get_embeddings_shape()[0]
+text_max_len = tree_embs.get_embeddings_shape()[0]
+print(da_vsize, text_vsize, da_max_len, text_max_len)
 
 # prepare training batches
 train_enc = np.array([da_embs.get_embeddings(da) for da in das])
 train_dec = np.array([tree_embs.get_embeddings(tree) for tree in trees])
 
-full_model, infer_enc_model, infer_dec_model = get_model(batch_size, en_timesteps, fr_timesteps, en_vsize, fr_vsize,
-                                                         hidden_size, 50)
+full_model, infer_enc_model, infer_dec_model = get_model(batch_size, da_max_len, text_max_len, da_vsize, text_vsize, hidden_size, 50)
 
-train(full_model, train_enc, train_dec, batch_size, 5, fr_vsize)
+full_model_save_path = 'models/reimp_save_test_.tf'
+if os.path.exists(full_model_save_path + '.index'):
+    print("Loading model from file")
+    full_model.load_weights(full_model_save_path)
+else:
+    print("Training model")
+    train(full_model, train_enc, train_dec, batch_size, epoch, text_vsize)
+    full_model.save_weights(full_model_save_path, save_format='tf')
+
+# Recreate the exact same model purely from the file
+
 
 """ Inferring with trained model """
 test_en = train_enc[:1]
@@ -172,13 +185,9 @@ fr_text = ''
 fr_in = test_fr
 for i in range(20):
     out = infer_dec_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
-    print(out[0].shape)
-    print(out[1].shape)
-    print(out[2].shape)
-    print(out[3].shape)
     dec_out, attention, dec_state = out[0], out[1], out[2:]
     dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
-    print("Value", tree_embs.rev_dict[dec_ind])
+    # print("Value", tree_embs.rev_dict[dec_ind])
     fr_in = np.array([dec_ind])
 
     attention_weights.append((dec_ind, attention))
