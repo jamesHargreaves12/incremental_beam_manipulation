@@ -104,7 +104,7 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
     return full_model, encoder_model, decoder_model
 
 
-def train(full_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size, valid_da_seq, valid_text_seq, early_stop_point=5):
+def train(full_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size, valid_da_seq, valid_text_seq, early_stop_point=5, minimum_stop_point=20):
     """ Training the model """
     valid_onehot_seq = to_categorical(valid_text_seq, num_classes=text_vocab_size)
     text_onehot_seq = to_categorical(text_seq, num_classes=text_vocab_size)
@@ -136,7 +136,7 @@ def train(full_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size, v
                                                                          losses / da_seq.shape[0] * batch_size,
                                                                          valid_loss / valid_da_seq.shape[
                                                                              0] * batch_size))
-            if len(valid_losses) - np.argmin(valid_losses) > early_stop_point:
+            if len(valid_losses) - np.argmin(valid_losses) > early_stop_point and len(valid_losses) > minimum_stop_point:
                 return
 
 use_size = 100
@@ -191,8 +191,11 @@ enc_last_state = inf_enc_out[1:]
 dec_state = enc_last_state
 attention_weights = []
 fr_text = ''
-
 fr_in = test_fr
+
+for x in [enc_outs, dec_state[0], dec_state[1], fr_in]:
+    print(x.shape)
+
 for i in range(20):
     out = infer_dec_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
     dec_out, attention, dec_state = out[0], out[1], out[2:]
