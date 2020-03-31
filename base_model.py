@@ -103,7 +103,6 @@ class TGEN_Model(object):
         valid_losses = []
         rev_embed = text_embedder.embed_to_tok
         print('Valid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
-        print('Training Example: {}'.format(" ".join([rev_embed[x] for x in text_seq[0]]).replace('<>', '')))
 
         for ep in range(n_epochs):
             losses = 0
@@ -135,9 +134,9 @@ class TGEN_Model(object):
                 train_loss = losses / da_seq.shape[0] * self.batch_size
                 valid_loss = valid_loss / valid_da_seq.shape[0] * self.batch_size
 
-                print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f} {} || {}".format(time_taken, ep + 1,
-                                                                                      train_loss, valid_loss,
-                                                                                      train_pred, valid_pred))
+                print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f} {}".format(time_taken, ep + 1,
+                                                                                train_loss, valid_loss,
+                                                                                valid_pred))
                 if len(valid_losses) - np.argmin(valid_losses) > early_stop_point and len(
                         valid_losses) > minimum_stop_point:
                     return
