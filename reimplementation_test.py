@@ -41,7 +41,7 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
     # Ws
     attn_out_t, attn_states_t = attn_layer_Ws([encoder_out, decoder_input_embeddings])
     decoder_concat_input = Concatenate(axis=-1, name='concat_layer_Ws')([decoder_input_embeddings, attn_out_t])
-    dense_Ws = Dense(decoder_in_size, activation='softmax', name='Ws')
+    dense_Ws = Dense(decoder_in_size, name='Ws')
     dense_time = TimeDistributed(dense_Ws, name='time_distributed_layer_Ws')
     decoder_lstm_in = dense_time(decoder_concat_input)
 
@@ -55,7 +55,7 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
     decoder_concat_output = Concatenate(axis=-1, name='concat_layer_Wy')([decoder_out, attn_out_t1])
 
     # Dense layer
-    dense_Wy = Dense(out_vsize, name='Wy')
+    dense_Wy = Dense(out_vsize, name='Wy',  activation='softmax')
     dense_time = TimeDistributed(dense_Wy, name='time_distributed_layer_Wy')
     decoder_pred = dense_time(decoder_concat_output)
 
