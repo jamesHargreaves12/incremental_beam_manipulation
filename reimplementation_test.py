@@ -50,12 +50,12 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
     decoder_state = de_lstm_out[1:]
 
     # Attention layer Wy
-    attn_layer_Wy = AttentionLayer(name='attention_layer_t1')
-    attn_out_t1, attn_states_t1 = attn_layer_Wy([encoder_out, decoder_out])
-    decoder_concat_output = Concatenate(axis=-1, name='concat_layer_Wy')([decoder_out, attn_out_t1])
+    # attn_layer_Wy = AttentionLayer(name='attention_layer_t1')
+    # attn_out_t1, attn_states_t1 = attn_layer_Wy([encoder_out, decoder_out])
+    decoder_concat_output = Concatenate(axis=-1, name='concat_layer_Wy')([decoder_out, attn_out_t])
 
     # Dense layer
-    dense_Wy = Dense(out_vsize, name='Wy',  activation='softmax')
+    dense_Wy = Dense(out_vsize, name='Wy', activation='softmax')
     dense_time = TimeDistributed(dense_Wy, name='time_distributed_layer_Wy')
     decoder_pred = dense_time(decoder_concat_output)
 
@@ -93,23 +93,26 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
     decoder_inf_out = de_lstm_out[0]
     decoder_inf_state = de_lstm_out[1:]
 
-    attn_inf_out_t1, attn_inf_states_t1 = attn_layer_Wy([encoder_out, decoder_inf_out])
-    decoder_inf_concat = Concatenate(axis=-1, name='concat')([decoder_inf_out, attn_inf_out_t1])
+    # attn_inf_out_t1, attn_inf_states_t1 = attn_layer_Wy([encoder_out, decoder_inf_out])
+    decoder_inf_concat = Concatenate(axis=-1, name='concat')([decoder_inf_out, attn_inf_out_t])
     decoder_inf_pred = TimeDistributed(dense_Wy)(decoder_inf_concat)
     decoder_model = Model(inputs=[encoder_out, encoder_1, encoder_2, dec_in],
-                          outputs=[decoder_inf_pred, attn_inf_states_t1, decoder_inf_state])
+                          outputs=[decoder_inf_pred, attn_inf_states_t, decoder_inf_state])
 
     encoder_model.summary()
     decoder_model.summary()
     return full_model, encoder_model, decoder_model
 
 
-def train(full_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size, valid_da_seq, valid_text_seq, early_stop_point=5, minimum_stop_point=20):
+def train(full_model, enc_model, dec_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size,
+          valid_da_seq, valid_text_seq, early_stop_point=5, minimum_stop_point=20):
     """ Training the model """
     valid_onehot_seq = to_categorical(valid_text_seq, num_classes=text_vocab_size)
     text_onehot_seq = to_categorical(text_seq, num_classes=text_vocab_size)
 
     valid_losses = []
+    print('Test Example:    {}'.format(" ".join([x[0] for x in trees[-valid_size]])))
+
     for ep in range(n_epochs):
         losses = 0
         start = time()
@@ -132,12 +135,42 @@ def train(full_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size, v
                                                   valid_onehot_batch[:, 1:, :],
                                                   batch_size=batch_size, verbose=0)
             valid_losses.append(valid_loss)
-            print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f}".format(time() - start, ep + 1,
-                                                                         losses / da_seq.shape[0] * batch_size,
-                                                                         valid_loss / valid_da_seq.shape[
-                                                                             0] * batch_size))
-            if len(valid_losses) - np.argmin(valid_losses) > early_stop_point and len(valid_losses) > minimum_stop_point:
+
+            valid_pred = make_prediction(valid_da_seq[0], enc_model, dec_model).replace("<VOID>", "")
+            train_pred = make_prediction(da_seq[0], enc_model, dec_model).replace("<VOID>", "")
+            time_taken = time() - start
+            train_loss = losses / da_seq.shape[0] * batch_size
+            valid_loss = valid_loss / valid_da_seq.shape[0] * batch_size
+
+            print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f} {} || {}".format(time_taken,
+                                                                                  ep + 1,
+                                                                                  train_loss,
+                                                                                  valid_loss,
+                                                                                  train_pred,
+                                                                                  valid_pred))
+            if len(valid_losses) - np.argmin(valid_losses) > early_stop_point and len(
+                    valid_losses) > minimum_stop_point:
                 return
+
+
+def make_prediction(encoder_in, infer_enc_model, infer_dec_model):
+    test_en = np.array([encoder_in])
+    test_fr = np.array([tree_embs.GO])
+    inf_enc_out = infer_enc_model.predict(test_en)
+    enc_outs = inf_enc_out[0]
+    enc_last_state = inf_enc_out[1:]
+    dec_state = enc_last_state
+    fr_in = test_fr
+    fr_text = ''
+    for i in range(20):
+        out = infer_dec_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
+        dec_out, attention, dec_state = out[0], out[1], out[2:]
+        dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
+
+        fr_in = np.array([dec_ind])
+        fr_text += tree_embs.rev_dict[dec_ind] + ' '
+    return fr_text
+
 
 use_size = 100
 valid_size = 100
@@ -160,7 +193,6 @@ da_max_len = da_embs.get_embeddings_shape()[0]
 text_max_len = tree_embs.get_embeddings_shape()[0]
 print(da_vsize, text_vsize, da_max_len, text_max_len)
 
-
 train_enc = np.array([da_embs.get_embeddings(da) for da in das])
 train_dec = np.array([tree_embs.get_embeddings(tree) for tree in trees])
 
@@ -173,40 +205,12 @@ if os.path.exists(full_model_save_path + '.index'):
     full_model.load_weights(full_model_save_path)
 else:
     print("Training model")
-    train(full_model, train_enc[:-valid_size], train_dec[:-valid_size], batch_size, epoch, text_vsize,
-          train_enc[-valid_size:], train_dec[-valid_size:])
+    train(full_model, infer_enc_model, infer_dec_model, train_enc[:-valid_size], train_dec[:-valid_size], batch_size,
+          epoch, text_vsize, train_enc[-valid_size:], train_dec[-valid_size:])
     # full_model.save_weights(full_model_save_path, save_format='tf')
 
-
-
-""" Inferring with trained model """
-print("Testing greedy inference")
-test_en = np.array([train_enc[-valid_size]])
-test_fr = np.array([tree_embs.GO])
-
-inf_enc_out = infer_enc_model.predict(test_en)
-enc_outs = inf_enc_out[0]
-enc_last_state = inf_enc_out[1:]
-
-dec_state = enc_last_state
-attention_weights = []
-fr_text = ''
-fr_in = test_fr
-
-for x in [enc_outs, dec_state[0], dec_state[1], fr_in]:
-    print(x.shape)
-
-for i in range(20):
-    out = infer_dec_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
-    dec_out, attention, dec_state = out[0], out[1], out[2:]
-    dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
-
-    fr_in = np.array([dec_ind])
-
-    attention_weights.append((dec_ind, attention))
-    fr_text += tree_embs.rev_dict[dec_ind] + ' '
-print('Aim:    {}'.format(" ".join([x[0] for x in trees[-valid_size]])))
-print('Output: {}'.format(fr_text))
-
-""" Attention plotting """
-# plot_attention_weights(test_en_seq, attn_weights, en_index2word, fr_index2word, base_dir=base_dir)
+# print("Testing greedy inference")
+# encoder_in = train_enc[-valid_size]
+# pred = make_prediction(encoder_in, infer_enc_model, infer_dec_model)
+# print('Aim:    {}'.format(" ".join([x[0] for x in trees[-valid_size]])))
+# print('Output: {}'.format(pred))
