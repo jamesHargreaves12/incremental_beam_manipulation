@@ -65,10 +65,11 @@ def count_lines(filepath):
     return sum([1 for _ in open(filepath, "r").readlines()])
 
 
-def get_truth_training():
+def get_texts_training():
     true_file_path = "tgen/e2e-challenge/input/train-text.txt"
     with open(true_file_path, "r") as fp:
-        return [x.strip("\n") for x in fp.readlines()]
+        return [x.strip("\n").split(" ") for x in fp.readlines()]
+
 
 
 # def save_keras_model(model, file_path):

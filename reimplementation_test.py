@@ -12,11 +12,11 @@ from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
 
 from attention_keras.layers.attention import AttentionLayer
+from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
+from utils import get_texts_training
+
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
-
-from tgen.futil import read_trees_or_tokens
-from tgen.embeddings import DAEmbeddingSeq2SeqExtract, TokenEmbeddingSeq2SeqExtract
 from tgen.futil import read_das
 
 
@@ -105,13 +105,14 @@ def get_model(batch_size, in_max_len, out_max_len, in_vsize, out_vsize, hidden_s
 
 
 def train(full_model, enc_model, dec_model, da_seq, text_seq, batch_size, n_epochs, text_vocab_size,
-          valid_da_seq, valid_text_seq, early_stop_point=5, minimum_stop_point=20):
-    """ Training the model """
+          valid_da_seq, valid_text_seq, text_embedder, early_stop_point=5, minimum_stop_point=20, ):
     valid_onehot_seq = to_categorical(valid_text_seq, num_classes=text_vocab_size)
     text_onehot_seq = to_categorical(text_seq, num_classes=text_vocab_size)
 
     valid_losses = []
-    print('Test Example:    {}'.format(" ".join([x[0] for x in trees[-valid_size]])))
+    rev_embed = text_embedder.embed_to_tok
+    print('Valid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
+    print('Training Example: {}'.format(" ".join([rev_embed[x] for x in text_seq[0]]).replace('<>', '')))
 
     for ep in range(n_epochs):
         losses = 0
@@ -136,26 +137,23 @@ def train(full_model, enc_model, dec_model, da_seq, text_seq, batch_size, n_epoc
                                                   batch_size=batch_size, verbose=0)
             valid_losses.append(valid_loss)
 
-            valid_pred = make_prediction(valid_da_seq[0], enc_model, dec_model).replace("<VOID>", "")
-            train_pred = make_prediction(da_seq[0], enc_model, dec_model).replace("<VOID>", "")
+            valid_pred = make_prediction(valid_da_seq[0], enc_model, dec_model, text_embedder).replace("<>", "")
+            train_pred = make_prediction(da_seq[0], enc_model, dec_model, text_embedder).replace("<>", "")
             time_taken = time() - start
             train_loss = losses / da_seq.shape[0] * batch_size
             valid_loss = valid_loss / valid_da_seq.shape[0] * batch_size
 
-            print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f} {} || {}".format(time_taken,
-                                                                                  ep + 1,
-                                                                                  train_loss,
-                                                                                  valid_loss,
-                                                                                  train_pred,
-                                                                                  valid_pred))
+            print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f} {} || {}".format(time_taken, ep + 1,
+                                                                                  train_loss, valid_loss,
+                                                                                  train_pred, valid_pred))
             if len(valid_losses) - np.argmin(valid_losses) > early_stop_point and len(
                     valid_losses) > minimum_stop_point:
                 return
 
 
-def make_prediction(encoder_in, infer_enc_model, infer_dec_model):
+def make_prediction(encoder_in, infer_enc_model, infer_dec_model, text_embedder):
     test_en = np.array([encoder_in])
-    test_fr = np.array([tree_embs.GO])
+    test_fr = np.array([text_embedder.tok_to_embed['<S>']])
     inf_enc_out = infer_enc_model.predict(test_en)
     enc_outs = inf_enc_out[0]
     enc_last_state = inf_enc_out[1:]
@@ -168,7 +166,7 @@ def make_prediction(encoder_in, infer_enc_model, infer_dec_model):
         dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
 
         fr_in = np.array([dec_ind])
-        fr_text += tree_embs.rev_dict[dec_ind] + ' '
+        fr_text += text_embedder.embed_to_tok[dec_ind] + ' '
     return fr_text
 
 
@@ -179,24 +177,34 @@ batch_size = 20
 hidden_size = 128
 
 das = read_das("tgen/e2e-challenge/input/train-das.txt")
-trees = [[('<Start>', None)] + x + [("<End>", None)] for x in
-         read_trees_or_tokens("tgen/e2e-challenge/input/train-text.txt", 'tokens', 'en', '')]
-print(das[0], trees[0])
+# trees = [[('<Start>', None)] + x + [("<End>", None)] for x in
+#          read_trees_or_tokens("tgen/e2e-challenge/input/train-text.txt", 'tokens', 'en', '')]
+
+
+texts = [['<S>'] + x + ['<E>'] for x in get_texts_training()]
+print(texts[0])
+
 das = das[:use_size + valid_size]
-trees = trees[:use_size + valid_size]
-da_embs = DAEmbeddingSeq2SeqExtract(cfg={'sort_da_emb': True})
-tree_embs = TokenEmbeddingSeq2SeqExtract(cfg={'max_sent_len': 80})
+texts = texts[:use_size + valid_size]
 
-da_vsize = da_embs.init_dict(das)
-text_vsize = tree_embs.init_dict(trees)
-da_max_len = da_embs.get_embeddings_shape()[0]
-text_max_len = tree_embs.get_embeddings_shape()[0]
-print(da_vsize, text_vsize, da_max_len, text_max_len)
+text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
+da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 
-train_enc = np.array([da_embs.get_embeddings(da) for da in das])
-train_dec = np.array([tree_embs.get_embeddings(tree) for tree in trees])
+text_embs = text_embedder.get_embeddings(texts)
+text_vsize = text_embedder.vocab_length
+text_len = len(text_embs[0])
 
-full_model, infer_enc_model, infer_dec_model = get_model(batch_size, da_max_len, text_max_len, da_vsize, text_vsize,
+da_embs = da_embedder.get_embeddings(das)
+da_vsize = da_embedder.vocab_length
+da_len = len(da_embs[0])
+print(da_vsize, text_vsize, da_len, text_len)
+
+train_enc = np.array(da_embs)
+train_dec = np.array(text_embs)
+print(train_enc.shape, train_enc[0])
+print(train_dec.shape, train_dec[0])
+
+full_model, infer_enc_model, infer_dec_model = get_model(batch_size, da_len, text_len, da_vsize, text_vsize,
                                                          hidden_size, 50)
 
 full_model_save_path = 'models/reimp_save_test__.tf'
@@ -206,7 +214,7 @@ if os.path.exists(full_model_save_path + '.index'):
 else:
     print("Training model")
     train(full_model, infer_enc_model, infer_dec_model, train_enc[:-valid_size], train_dec[:-valid_size], batch_size,
-          epoch, text_vsize, train_enc[-valid_size:], train_dec[-valid_size:])
+          epoch, text_vsize, train_enc[-valid_size:], train_dec[-valid_size:], text_embedder)
     # full_model.save_weights(full_model_save_path, save_format='tf')
 
 # print("Testing greedy inference")
