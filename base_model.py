@@ -80,13 +80,13 @@ def set_up_models(batch_size, len_in, len_out, vsize_in, vsize_out, lstm_size, e
     decoder_inf_concat = Concatenate(axis=-1, name='concat')([decoder_inf_out, attn_inf_out_t])
     decoder_inf_pred = TimeDistributed(dense_Wy)(decoder_inf_concat)
     decoder_model = Model(inputs=[encoder_out, encoder_1, encoder_2, dec_in],
-                          outputs=[decoder_inf_pred, attn_inf_states_t, decoder_inf_state])
+                          outputs=[decoder_inf_pred, decoder_inf_state])
     return full_model, encoder_model, decoder_model
 
 
 class TGEN_Model(object):
 
-    def __init__(self, batch_size, len_in, len_out, vsize_in, vsize_out, lstm_size, embedding_size):
+    def __init__(self, batch_size, len_in, len_out, vsize_in, vsize_out, lstm_size, embedding_size, beam_size):
         self.batch_size = batch_size
         self.len_in = len_in
         self.len_out = len_out
@@ -95,7 +95,7 @@ class TGEN_Model(object):
         self.lstm_size = lstm_size
         self.embedding_size = embedding_size
         self.full_model, self.encoder_model, self.decoder_model = set_up_models(batch_size, len_in, len_out, vsize_in,
-                                                                                vsize_out, lstm_size, embedding_size, 1)
+                                                                                vsize_out, lstm_size, embedding_size, beam_size)
 
     def train(self, da_seq, text_seq, n_epochs, valid_da_seq, valid_text_seq, text_embedder, early_stop_point=5,
               minimum_stop_point=20):
@@ -156,16 +156,31 @@ class TGEN_Model(object):
         self.decoder_model.save(os.path.join(dir_name, "dec.h5"), save_format='h5')
 
     def beam_search_exapand(self, paths, end_tokens, enc_outs, beam_size):
+        filled_paths = paths
+        while len(filled_paths) < beam_size:
+            filled_paths.append(paths[0])
+
+        batch_enc_outs = np.array([enc_outs[0]]*beam_size)
+        batch_dec_state_0 = []
+        batch_dec_state_1 = []
+        batch_tok = []
+        for _,tok, dec_state in filled_paths:
+            batch_tok.append([tok[-1]])
+            batch_dec_state_0.append(dec_state[0][0])
+            batch_dec_state_1.append(dec_state[1][0])
+        inp = [batch_enc_outs, np.array(batch_dec_state_0), np.array(batch_dec_state_1), np.array(batch_tok)]
+        out = self.decoder_model.predict(inp)
+        dec_outs, dec_states = out[0], out[1:]
+
+
         new_paths = []
-        for logprob, toks, dec_state in paths:
+        for p,dec_out, dec_state in zip(paths, dec_outs, dec_states):
+            logprob, toks, dec_state = p
             if toks[-1] in end_tokens:
                 new_paths.append((logprob, toks, dec_state))
                 continue
-            out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], np.array([toks[-1]])])
-            dec_out, attention, dec_state = out[0], out[1], out[2:]
-
-            top_k = np.argsort(dec_out, axis=-1)[0][0][-beam_size:]
-            tok_prob = dec_out[0][0][top_k]
+            top_k = np.argsort(dec_out, axis=-1)[0][-beam_size:]
+            tok_prob = dec_out[0][top_k]
             for new_tok, tok_prob in zip(top_k, tok_prob):
                 new_paths.append((logprob + log(tok_prob), toks + [new_tok], dec_state))
         return new_paths

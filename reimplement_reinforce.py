@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 import tensorflow as tf
 from keras.layers import Dense
+from keras.optimizers import RMSprop
 from tqdm import tqdm
 
 from base_model import TGEN_Model
@@ -35,7 +36,7 @@ class BinClassifier(object):
         dense4 = Dense(1, activation='sigmoid')
         self.model = Model(inputs=inputs, outputs=dense4(dense3(dense2(dense1(inputs)))))
         optimizer = Adam(lr=0.001)
-        self.model.compile(optimizer=optimizer, loss='binary_crossentropy')
+        self.model.compile(optimizer=optimizer, loss='mean_squared_error')
 
     def train(self, features, lables, n_epoch):
         for ep in range(n_epoch):
@@ -46,8 +47,8 @@ class BinClassifier(object):
             for bi in batch_indexes:
                 feature_batch = features[bi:bi + self.batch_size, :]
                 lab_batch = lables[bi:bi + self.batch_size]
-                self.model.train_on_batch([feature_batch], lables)
-                losses += self.model.evaluate([feature_batch], lables, batch_size=self.batch_size, verbose=0)
+                self.model.train_on_batch([feature_batch], lab_batch)
+                losses += self.model.evaluate([feature_batch], lab_batch, batch_size=self.batch_size, verbose=0)
             if (ep + 1) % 1 == 0:
                 time_taken = time() - start
                 train_loss = losses
@@ -55,6 +56,10 @@ class BinClassifier(object):
 
     def predict(self, features):
         return self.model.predict(features)
+
+    def save_model(self,dir_name):
+        self.model.save(os.path.join(dir_name, "classif.h5"), save_format='h5')
+
 
 
 def get_features(path, text_embedder, w2v):
@@ -73,18 +78,40 @@ def safe_get_w2v(w2v, tok):
     return w2v[tok]
 
 
-def reinforce_learning(beam_size, epoch, data_save_path, beam_search_model: TGEN_Model, das, truth, chance_of_choosing=0.01):
+def load_rein_data(filepath):
+    with open(filepath, "r") as fp:
+        features = []
+        labs = []
+        for line in fp.readlines():
+            line = [float(x) for x in line.split(",")]
+            labs.append(line[-1])
+            features.append(line[:-1])
+        return features, labs
+
+
+def train_classifier(classifier, features, labs):
+    f = np.array(features)
+    l = np.array(labs)
+    classifier.model.fit(f, l, epochs=10, batch_size=1, verbose=2)
+
+
+def reinforce_learning(beam_size, epoch, data_save_path, beam_search_model: TGEN_Model, das, truth,
+                       chance_of_choosing=0.01):
     w2v = Word2Vec.load("models/word2vec_30.model")
 
     D = []
     n_in = 317
-    batch_size = 20
-    classifier = BinClassifier(n_in, batch_size=batch_size)
+    batch_size = 1
+    classifier = BinClassifier(n_in, batch_size=1)
+    if os.path.exists("reinforce_data.txt"):
+        feats, labs = load_rein_data(data_save_path)
+        train_classifier(classifier, feats, labs)
     bleu = BLEUScore()
+    bleu_overall = BLEUScore()
     # might be good to initialise with features
-    data_save_file = open(data_save_path, "w+")
+    data_save_file = open(data_save_path, "a+")
     for i in range(epoch):
-        for da_emb, true in tqdm(zip(da_embedder.get_embeddings(das), truth)):
+        for i,(da_emb, true) in tqdm(enumerate(zip(da_embedder.get_embeddings(das), truth))):
             test_en = np.array([da_emb])
             test_fr = [text_embedder.tok_to_embed['<S>']]
             inf_enc_out = beam_search_model.encoder_model.predict(test_en)
@@ -106,7 +133,8 @@ def reinforce_learning(beam_size, epoch, data_save_path, beam_search_model: TGEN
                     # greedy decode
                     if random.random() < chance_of_choosing:
                         rest = beam_search_model.make_prediction(da_emb, text_embedder,
-                                                                 beam_size=1, prev_tok=text_embedder.embed_to_tok[path[1][-1]],
+                                                                 beam_size=1,
+                                                                 prev_tok=text_embedder.embed_to_tok[path[1][-1]],
                                                                  max_length=5 - len(path[1]))
                         cur = " ".join([text_embedder.embed_to_tok[x] for x in path[1]])
 
@@ -119,13 +147,18 @@ def reinforce_learning(beam_size, epoch, data_save_path, beam_search_model: TGEN
 
                 paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
                 if all([p[1][-1] in end_tokens for p in paths]):
+                    bleu_overall.append(paths[-1],[true])
                     break
-            # print(tgen_time_spent)
 
-            # Train on D
-        features = np.array([d[0] for d in D])
-        labs = np.array([d[1] for d in D])
-        beam_search_model.train(features, labs, 5)
+            if i % 1000 == 1 and i > 100:
+                score = bleu_overall.score()
+                bleu_overall.reset()
+                print("BLEU SCORE FOR last batch = {}".format(score))
+                features = [d[0] for d in D]
+                labs = [d[1] for d in D]
+                train_classifier(classifier, features, labs)
+                model_save_loc = "models/reimplementation"
+                classifier.save_model(model_save_loc)
 
 
 cfg = yaml.load(open("config.yaml", "r"))
@@ -143,11 +176,11 @@ das = read_das("tgen/e2e-challenge/input/train-das.txt")
 texts = [['<S>'] + x + ['<E>'] for x in get_texts_training()]
 print(texts[0])
 
-das = das[:use_size + valid_size]
-texts = texts[:use_size + valid_size]
-
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
+
+das = das[:use_size + valid_size]
+texts = texts[:use_size + valid_size]
 
 text_embs = text_embedder.get_embeddings(texts)
 text_vsize = text_embedder.vocab_length
@@ -161,8 +194,8 @@ print(da_vsize, text_vsize, da_len, text_len)
 # train_in = np.array(da_embs)
 # train_out = np.array(text_embs)
 
-models = TGEN_Model(batch_size, da_len, text_len, da_vsize, text_vsize, hidden_size, embedding_size)
+beam_size = 3
+models = TGEN_Model(batch_size, da_len, text_len, da_vsize, text_vsize, hidden_size, embedding_size, beam_size)
 models.load_models_from_location(model_save_loc)
 
-beam_size = 3
-reinforce_learning(beam_size, 1, "output_files/training_data/{}.csv".format(beam_size), models, das, texts)
+reinforce_learning(beam_size, 4, "output_files/training_data/{}.csv".format(beam_size), models, das, texts)

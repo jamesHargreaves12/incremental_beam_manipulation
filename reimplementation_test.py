@@ -47,7 +47,7 @@ train_in = np.array(da_embs)
 train_out = np.array(text_embs)
 
 model_save_loc = "models/reimplementation"
-models = TGEN_Model(batch_size, da_len, text_len, da_vsize, text_vsize, hidden_size, embedding_size)
+models = TGEN_Model(batch_size, da_len, text_len, da_vsize, text_vsize, hidden_size, embedding_size, 3)
 if load_from_save and os.path.exists(model_save_loc):
     models.load_models_from_location(model_save_loc)
 else:
@@ -57,7 +57,7 @@ else:
 
 # testing
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")
-for beam_size in [1]:
+for beam_size in [3]:
     print("Beam_size {}".format(beam_size))
     start = time()
     with open("output_files/out-text-dir-v2/output_{}.txt".format(beam_size), "w+") as output_file:
