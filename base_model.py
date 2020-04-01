@@ -1,5 +1,6 @@
 import os
 import random
+from math import log
 from time import time
 import numpy as np
 
@@ -154,28 +155,31 @@ class TGEN_Model(object):
         self.encoder_model.save(os.path.join(dir_name, "enc.h5"), save_format='h5')
         self.decoder_model.save(os.path.join(dir_name, "dec.h5"), save_format='h5')
 
-    def make_prediction(self, encoder_in, text_embedder, beam_size=1):
+    def beam_search_exapand(self, paths, end_tokens, enc_outs, beam_size):
+        new_paths = []
+        for logprob, toks, dec_state in paths:
+            if toks[-1] in end_tokens:
+                new_paths.append((logprob, toks, dec_state))
+                continue
+            out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], np.array([toks[-1]])])
+            dec_out, attention, dec_state = out[0], out[1], out[2:]
+
+            top_k = np.argsort(dec_out, axis=-1)[0][0][-beam_size:]
+            tok_prob = dec_out[0][0][top_k]
+            for new_tok, tok_prob in zip(top_k, tok_prob):
+                new_paths.append((logprob + log(tok_prob), toks + [new_tok], dec_state))
+        return new_paths
+
+    def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok='<S>', max_length=20):
         test_en = np.array([encoder_in])
-        test_fr = [text_embedder.tok_to_embed['<S>']]
+        test_fr = [text_embedder.tok_to_embed[prev_tok]]
         inf_enc_out = self.encoder_model.predict(test_en)
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
-        paths = [(1.0, test_fr, enc_last_state)]
+        paths = [(log(1.0), test_fr, enc_last_state)]
         end_tokens = [text_embedder.tok_to_embed['<E>'], text_embedder.tok_to_embed['<>']]
-        for i in range(20):
-            new_paths = []
-            for prob, toks, dec_state in paths:
-                # print(prob, " ".join([text_embedder.embed_to_tok[x] for x in toks]))
-                if toks[-1] in end_tokens:
-                    new_paths.append((prob, toks, dec_state))
-                    continue
-                out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], np.array([toks[-1]])])
-                dec_out, attention, dec_state = out[0], out[1], out[2:]
-
-                top_k = np.argsort(dec_out, axis=-1)[0][0][-beam_size:]
-                tok_prob = dec_out[0][0][top_k]
-                for new_tok, tok_prob in zip(top_k, tok_prob):
-                    new_paths.append((prob * tok_prob, toks + [new_tok], dec_state))
+        for i in range(max_length):
+            new_paths = self.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
 
             paths = sorted(new_paths, key=lambda x: x[0], reverse=True)[:beam_size]
             if all([p[1][-1] in end_tokens for p in paths]):

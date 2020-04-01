@@ -1,9 +1,9 @@
 from gensim.test.utils import common_texts, get_tmpfile
 from gensim.models import Word2Vec
 
-from utils import get_truth_training
+from utils import get_texts_training
 
-texts = [["<GO>"]+x.split(" ")+["<STOP>"] for x in get_truth_training()]
+texts = [["<S>"]+x+["<E>"] for x in get_texts_training()]
 
 print(texts[0], len(texts))
 path = get_tmpfile("models/word2vec.model")
