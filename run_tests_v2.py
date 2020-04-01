@@ -7,7 +7,7 @@ from tqdm import tqdm
 from e2e_metrics.metrics.pymteval import BLEUScore
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
-from utils import construct_logs, RERANK, get_truth_training
+from utils import construct_logs, RERANK, get_texts_training
 from getopt import getopt
 
 from beam_search_edit import _beam_search, lexicalize_beam, save_training_data, rolling_beam_search
@@ -79,7 +79,7 @@ def gen_training_data(beam_size, seq2seq_model_file="models/model_e2e_2/model.pi
     tgen.beam_size = beam_size
 
     das = read_das(da_train_file)
-    truth = [[x] for x in get_truth_training()]
+    truth = [[x] for x in get_texts_training()]
     print('Generating...')
     assert(len(das) == len(truth))
     for i, (da,true) in tqdm(enumerate(zip(das,truth))):
@@ -140,7 +140,7 @@ def test_gen(beam_size,
 def test_res_official(beam_size, reranker=RERANK.VANILLA):
     pred_file = "output_files/out-text-dir-v2/{}_b-{}.txt".format(reranker,
                                                                   beam_size)
-    true_file = "tgen/e2e-challenge/input/devel-text.txt"
+    true_file = "tgen/e2e-challenge/input/devel-conc.txt"
     data_src, data_ref, data_sys = load_data(true_file, pred_file)
     # mteval_scores = run_pymteval(data_ref, data_sys)
 
@@ -157,10 +157,10 @@ def test_res_official(beam_size, reranker=RERANK.VANILLA):
 
 
 if __name__ == "__main__":
-    train("models/model_e2e_3/model.pickle.gz")
+    # train("models/model_e2e_3/model.pickle.gz")
     reranker = RERANK.ORACLE
     generate_results = False
-    get_results = False
+    get_results = True
     training_data = False
 
     print(reranker, generate_results, get_results)

@@ -11,12 +11,13 @@ from utils import get_texts_training
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from tgen.futil import read_das
 
-use_size = 100
+use_size = 5000
 valid_size = 100
 epoch = 100
 batch_size = 20
 hidden_size = 128
 embedding_size = 50
+beam_size = 3
 
 das = read_das("tgen/e2e-challenge/input/train-das.txt")
 
@@ -41,19 +42,23 @@ print(da_vsize, text_vsize, da_len, text_len)
 train_in = np.array(da_embs)
 train_out = np.array(text_embs)
 
+model_save_loc = "models/tgen_reimplement.tf"
 models = TGEN_Model(batch_size, da_len, text_len, da_vsize, text_vsize, hidden_size, 50)
+# models.load_models_from_location(model_save_loc)
 models.train(train_in[:-valid_size], train_out[:-valid_size], epoch, train_in[-valid_size:], train_out[-valid_size:],
              text_embedder)
-models.save_model("models/tgen_reimplement.tf")
+models.save_model(model_save_loc)
 
 # testing
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")
-with open("output_files/out-text-dir-v2/greedy.txt","w+") as output_file:
-    for da_emb in da_embedder.get_embeddings(test_das):
-        pred = models.make_prediction(da_emb, text_embedder)
-        output_file.write(pred.replace(" <>","") + "\n")
-
-
+for beam_size in [1, 3, 5, 10, 30]:
+    print("Beam_size {}".format(beam_size))
+    start = time()
+    with open("output_files/out-text-dir-v2/output_{}.txt".format(beam_size), "w+") as output_file:
+        for da_emb in da_embedder.get_embeddings(test_das):
+            pred = models.make_prediction(da_emb, text_embedder, beam_size)
+            output_file.write(pred.replace(" <>", "") + "\n")
+    print(time()-start)
 
 # full_model_save_path = 'models/reimp_save_test__.tf'
 # if os.path.exists(full_model_save_path + '.index'):

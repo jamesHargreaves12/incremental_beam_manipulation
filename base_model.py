@@ -127,9 +127,9 @@ class TGEN_Model(object):
                                                            batch_size=self.batch_size, verbose=0)
                 valid_losses.append(valid_loss)
 
-                valid_pred = self.make_prediction(valid_da_seq[0], text_embedder).replace(
+                valid_pred = self.make_prediction(valid_da_seq[0], text_embedder, 1).replace(
                     "<>", "")
-                train_pred = self.make_prediction(da_seq[0], text_embedder).replace("<>", "")
+                # train_pred = self.make_prediction(da_seq[0], text_embedder).replace("<>", "")
                 time_taken = time() - start
                 train_loss = losses / da_seq.shape[0] * self.batch_size
                 valid_loss = valid_loss / valid_da_seq.shape[0] * self.batch_size
@@ -147,20 +147,30 @@ class TGEN_Model(object):
     def save_model(self, path):
         self.full_model.save_weights(path, save_format='tf')
 
-    def make_prediction(self, encoder_in, text_embedder):
+    def make_prediction(self, encoder_in, text_embedder, beam_size=1):
         test_en = np.array([encoder_in])
-        test_fr = np.array([text_embedder.tok_to_embed['<S>']])
+        test_fr = [text_embedder.tok_to_embed['<S>']]
         inf_enc_out = self.encoder_model.predict(test_en)
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
-        dec_state = enc_last_state
-        fr_in = test_fr
-        fr_text = ''
+        paths = [(1.0, test_fr, enc_last_state)]
+        end_tokens = [text_embedder.tok_to_embed['<E>'],text_embedder.tok_to_embed['<>']]
         for i in range(20):
-            out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
-            dec_out, attention, dec_state = out[0], out[1], out[2:]
-            dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
+            new_paths = []
+            for prob, toks, dec_state in paths:
+                if toks[-1] in end_tokens:
+                    new_paths.append(prob, toks, dec_state)
+                    continue
+                out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], np.array([toks[-1]])])
+                dec_out, attention, dec_state = out[0], out[1], out[2:]
 
-            fr_in = np.array([dec_ind])
-            fr_text += text_embedder.embed_to_tok[dec_ind] + ' '
-        return fr_text
+                top_k = np.argsort(dec_out, axis=-1)[0][0][-beam_size:]
+                tok_prob = dec_out[0][0][top_k]
+                for new_tok, tok_prob in zip(top_k, tok_prob):
+                    new_paths.append((prob*tok_prob, toks + [new_tok], dec_state))
+
+            paths = sorted(new_paths, key=lambda x: x[0])[:beam_size]
+            if all([p[1][-1] in end_tokens for p in paths]):
+                break
+
+        return " ".join([text_embedder.embed_to_tok[x] for x in paths[0][1]])
