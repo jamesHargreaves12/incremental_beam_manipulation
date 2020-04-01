@@ -14,24 +14,18 @@ from attention_keras.layers.attention import AttentionLayer
 
 
 def set_up_models(batch_size, len_in, len_out, vsize_in, vsize_out, lstm_size, embedding_size, inf_batch_size):
+    lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
     encoder_inputs = Input(batch_shape=(batch_size, len_in), name='encoder_inputs')
     decoder_inputs = Input(batch_shape=(batch_size, len_out - 1), name='decoder_inputs')
 
     embed_enc = Embedding(input_dim=vsize_in, output_dim=embedding_size)
-    if is_gpu_available():
-        encoder_lstm = CuDNNLSTM(num_layers=1,num_units=lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
-    else:
-        encoder_lstm = LSTM(lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
+    encoder_lstm = lstm_type(lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
     en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
     encoder_out = en_lstm_out[0]
     encoder_state = en_lstm_out[1:]
 
     embed_dec = Embedding(input_dim=vsize_out, output_dim=embedding_size)
-    if is_gpu_available():
-        decoder_lstm = CuDNNLSTM(num_layers=1,num_units=lstm_size, return_sequences=True, return_state=True, name='decoder_lstm')
-    else:
-        decoder_lstm = LSTM(lstm_size, return_sequences=True, return_state=True, name='decoder_lstm')
-
+    decoder_lstm = lstm_type(lstm_size, return_sequences=True, return_state=True, name='decoder_lstm')
     decoder_input_embeddings = embed_dec(decoder_inputs)
     # Attention layer
     attn_layer_Ws = AttentionLayer(name='attention_layer_t')
