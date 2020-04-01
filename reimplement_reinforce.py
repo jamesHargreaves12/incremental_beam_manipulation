@@ -73,14 +73,14 @@ def safe_get_w2v(w2v, tok):
     return w2v[tok]
 
 
-def reinforce_learning(beam_size, epoch, data_save_path, beam_search_model: TGEN_Model, das, truth):
+def reinforce_learning(beam_size, epoch, data_save_path, beam_search_model: TGEN_Model, das, truth, chance_of_choosing=0.01):
     w2v = Word2Vec.load("models/word2vec_30.model")
 
     D = []
     n_in = 317
     batch_size = 20
     classifier = BinClassifier(n_in, batch_size=batch_size)
-
+    bleu = BLEUScore()
     # might be good to initialise with features
     data_save_file = open(data_save_path, "w+")
     for i in range(epoch):
@@ -99,23 +99,23 @@ def reinforce_learning(beam_size, epoch, data_save_path, beam_search_model: TGEN
                 path_scores = []
                 for path in new_paths:
                     features = get_features(path, text_embedder, w2v)
-                    classif_score = classifier.predict(np.array([features]))
+                    classif_score = classifier.predict(features.reshape(1, -1))
                     path_scores.append((classif_score, path))
 
                     # get score reference
                     # greedy decode
-                    rest = beam_search_model.make_prediction(da_emb, text_embedder,
-                                                             beam_size=1,
-                                                             prev_tok=text_embedder.embed_to_tok[path[1][-1]],
-                                                             max_length=21 - len(path[1]))
-                    cur = " ".join([text_embedder.embed_to_tok[x] for x in path[1]])
+                    if random.random() < chance_of_choosing:
+                        rest = beam_search_model.make_prediction(da_emb, text_embedder,
+                                                                 beam_size=1, prev_tok=text_embedder.embed_to_tok[path[1][-1]],
+                                                                 max_length=5 - len(path[1]))
+                        cur = " ".join([text_embedder.embed_to_tok[x] for x in path[1]])
 
-                    # This might be a poor way of scoring as greedy decode can get low bleu scores
-                    bleu = BLEUScore()
-                    bleu.append(cur + " " + rest, [true])
-                    ref_score = bleu.score()
-                    D.append((features, ref_score))
-                    data_save_file.write("{},{}\n".format(",".join([str(x) for x in features]), ref_score))
+                        # This might be a poor way of scoring as greedy decode can get low bleu scores
+                        bleu.reset()
+                        bleu.append(cur + " " + rest, [true])
+                        ref_score = bleu.score()
+                        D.append((features, ref_score))
+                        data_save_file.write("{},{}\n".format(",".join([str(x) for x in features]), ref_score))
 
                 paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
                 if all([p[1][-1] in end_tokens for p in paths]):

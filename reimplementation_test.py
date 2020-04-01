@@ -27,11 +27,12 @@ das = read_das("tgen/e2e-challenge/input/train-das.txt")
 texts = [['<S>'] + x + ['<E>'] for x in get_texts_training()]
 print(texts[0])
 
-das = das[:use_size + valid_size]
-texts = texts[:use_size + valid_size]
 
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
+
+das = das[:use_size + valid_size]
+texts = texts[:use_size + valid_size]
 
 text_embs = text_embedder.get_embeddings(texts)
 text_vsize = text_embedder.vocab_length
@@ -56,7 +57,7 @@ else:
 
 # testing
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")
-for beam_size in [100]:
+for beam_size in [1]:
     print("Beam_size {}".format(beam_size))
     start = time()
     with open("output_files/out-text-dir-v2/output_{}.txt".format(beam_size), "w+") as output_file:
