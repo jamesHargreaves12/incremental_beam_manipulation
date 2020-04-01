@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 import nltk
@@ -71,6 +72,24 @@ def get_texts_training():
         return [x.strip("\n").split(" ") for x in fp.readlines()]
 
 
+def apply_absts(absts, texts):
+    results = []
+    pattern = re.compile("X-[a-z]+")
+    for abst, text in zip(absts, texts):
+        text_res = []
+        # print(text)
+        for tok in text:
+            if pattern.match(tok):
+                slot = tok[2:]
+                for a in abst:
+                    if a.slot == slot:
+                        text_res.append(a.value)
+                        break
+            else:
+                text_res.append(tok)
+        # assert(len(text) == len(text_res))
+        results.append(text_res)
+    return results
 
 # def save_keras_model(model, file_path):
 #     # serialize model to YAML
@@ -97,4 +116,3 @@ def get_texts_training():
 def remove_strange_toks(tok):
     unimp_toks = ['<VOID>', '<UNK>', '<-s>']
     return '<STOP>' if tok in unimp_toks else tok
-

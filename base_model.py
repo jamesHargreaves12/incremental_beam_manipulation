@@ -1,10 +1,11 @@
+import os
 import random
 from time import time
 import numpy as np
 
 from tensorflow.test import is_gpu_available
 from tensorflow.python.keras.optimizers import Adam
-from tensorflow.python.keras.models import Model
+from tensorflow.python.keras.models import Model, load_model
 from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
 from keras.utils import to_categorical
 
@@ -141,11 +142,17 @@ class TGEN_Model(object):
                         valid_losses) > minimum_stop_point:
                     return
 
-    def load_models_from_location(self, path):
-        self.full_model.load_weights(path)
+    def load_models_from_location(self, dir_name):
+        self.full_model = load_model(os.path.join(dir_name, "full.h5"), custom_objects={'AttentionLayer': AttentionLayer})
+        self.encoder_model = load_model(os.path.join(dir_name, "enc.h5"), custom_objects={'AttentionLayer': AttentionLayer})
+        self.decoder_model = load_model(os.path.join(dir_name, "dec.h5"), custom_objects={'AttentionLayer': AttentionLayer})
 
-    def save_model(self, path):
-        self.full_model.save_weights(path, save_format='tf')
+    def save_model(self, dir_name):
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        self.full_model.save(os.path.join(dir_name, "full.h5"), save_format='h5')
+        self.encoder_model.save(os.path.join(dir_name, "enc.h5"), save_format='h5')
+        self.decoder_model.save(os.path.join(dir_name, "dec.h5"), save_format='h5')
 
     def make_prediction(self, encoder_in, text_embedder, beam_size=1):
         test_en = np.array([encoder_in])
@@ -154,12 +161,13 @@ class TGEN_Model(object):
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
         paths = [(1.0, test_fr, enc_last_state)]
-        end_tokens = [text_embedder.tok_to_embed['<E>'],text_embedder.tok_to_embed['<>']]
+        end_tokens = [text_embedder.tok_to_embed['<E>'], text_embedder.tok_to_embed['<>']]
         for i in range(20):
             new_paths = []
             for prob, toks, dec_state in paths:
+                # print(prob, " ".join([text_embedder.embed_to_tok[x] for x in toks]))
                 if toks[-1] in end_tokens:
-                    new_paths.append(prob, toks, dec_state)
+                    new_paths.append((prob, toks, dec_state))
                     continue
                 out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], np.array([toks[-1]])])
                 dec_out, attention, dec_state = out[0], out[1], out[2:]
@@ -167,9 +175,9 @@ class TGEN_Model(object):
                 top_k = np.argsort(dec_out, axis=-1)[0][0][-beam_size:]
                 tok_prob = dec_out[0][0][top_k]
                 for new_tok, tok_prob in zip(top_k, tok_prob):
-                    new_paths.append((prob*tok_prob, toks + [new_tok], dec_state))
+                    new_paths.append((prob * tok_prob, toks + [new_tok], dec_state))
 
-            paths = sorted(new_paths, key=lambda x: x[0])[:beam_size]
+            paths = sorted(new_paths, key=lambda x: x[0], reverse=True)[:beam_size]
             if all([p[1][-1] in end_tokens for p in paths]):
                 break
 

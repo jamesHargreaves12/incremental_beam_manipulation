@@ -6,8 +6,8 @@ class TokEmbeddingSeq2SeqExtractor(object):
         for tokens in tokenised_texts:
             self.vocab.update(tokens)
         self.vocab.add(self.PAD_TOK)
-        self.tok_to_embed = {tok: i for i, tok in enumerate(self.vocab)}
-        self.embed_to_tok = {i: tok for i, tok in enumerate(self.vocab)}
+        self.tok_to_embed = {tok: i for i, tok in enumerate(sorted(list(self.vocab)))}
+        self.embed_to_tok = {i: tok for i, tok in enumerate(sorted(list(self.vocab)))}
         self.vocab_length = len(self.vocab)
         self.length = max([len(x) for x in tokenised_texts])
         if max_length is not None:
@@ -37,11 +37,11 @@ class DAEmbeddingSeq2SeqExtractor(object):
                 self.slots.add(dai.slot)
                 self.values.add(dai.value)
         taken_emb = 0
-        self.act_emb = {act: taken_emb + i for i, act in enumerate(self.acts)}
+        self.act_emb = {act: taken_emb + i for i, act in enumerate(sorted(list(self.acts)))}
         taken_emb += len(self.acts)
-        self.slot_emb = {slo: taken_emb + i for i, slo in enumerate(self.slots)}
+        self.slot_emb = {slo: taken_emb + i for i, slo in enumerate(sorted(list(self.slots)))}
         taken_emb += len(self.slots)
-        self.val_emb = {val: taken_emb + i for i, val in enumerate(self.values)}
+        self.val_emb = {val: taken_emb + i for i, val in enumerate(sorted(list(self.values)))}
         taken_emb += len(self.values)
         self.vocab_length = taken_emb
         self.length = max([len(x) for x in das])
