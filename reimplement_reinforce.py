@@ -121,9 +121,12 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
     D = []
     bleu = BLEUScore()
     bleu_overall = BLEUScore()
+    beam_search_proportion = 1.0
+    bsp_multiplier = 0.9
 
     data_save_file = open(data_save_path, "a+")
     for i in range(cfg["epoch"]):
+        beam_search_proportion *= bsp_multiplier
         for j, (da_emb, true) in tqdm(enumerate(zip(da_embedder.get_embeddings(das), truth))):
             inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
             enc_outs = inf_enc_out[0]
@@ -135,10 +138,14 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                 new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
 
                 path_scores = []
+                classifier_order = random() > beam_search_proportion
                 for path, tp in zip(new_paths, tok_probs):
                     features = get_features(path, text_embedder, w2v, tp)
-                    classif_score = classifier.predict(features.reshape(1, -1))
-                    path_scores.append((classif_score, path))
+                    if classifier_order:
+                        classif_score = classifier.predict(features.reshape(1, -1))
+                        path_scores.append((classif_score, path))
+                    else:
+                        path_scores.append((path[0] + log(tp),path))
 
                     # greedy decode
                     if random.random() < chance_of_choosing:

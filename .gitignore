@@ -7,4 +7,4 @@ models/*
 old/*
 output_files/*
 old_files2/*
-config.yaml
+config*.yaml
