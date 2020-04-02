@@ -84,7 +84,7 @@ class TGEN_Model(object):
         fr_text = ''
         for i in range(20):
             out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
-            dec_out, attention, dec_state = out[0], out[1], out[2:]
+            dec_out, dec_state = out[0], out[1:]
             dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
             fr_in = np.array([dec_ind])
             fr_text += text_embedder.embed_to_tok[dec_ind] + ' '
