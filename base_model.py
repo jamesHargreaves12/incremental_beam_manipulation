@@ -6,9 +6,9 @@ import numpy as np
 
 from tensorflow.test import is_gpu_available
 from tensorflow.python.keras.optimizers import Adam
+from tensorflow.python.keras.utils import to_categorical
 from tensorflow.python.keras.models import Model, load_model
 from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
-from keras.utils import to_categorical
 
 from attention_keras.layers.attention import AttentionLayer
 from utils import START_TOK
@@ -59,7 +59,7 @@ class TGEN_Model(object):
                                                            batch_size=self.batch_size, verbose=0)
                 valid_losses.append(valid_loss)
 
-                valid_pred = self.make_prediction(valid_da_seq[0], text_embedder, 1).replace(
+                valid_pred = self.make_prediction_orig(valid_da_seq[0], text_embedder).replace(
                     "<>", "")
                 # train_pred = self.make_prediction(da_seq[0], text_embedder).replace("<>", "")
                 time_taken = time() - start
@@ -72,6 +72,24 @@ class TGEN_Model(object):
                 if len(valid_losses) - np.argmin(valid_losses) > early_stop_point and len(
                         valid_losses) > minimum_stop_point:
                     return
+
+    def make_prediction_orig(self, encoder_in, text_embedder):
+        test_en = np.array([encoder_in])
+        test_fr = np.array([text_embedder.tok_to_embed['<S>']])
+        inf_enc_out = self.encoder_model.predict(test_en)
+        enc_outs = inf_enc_out[0]
+        enc_last_state = inf_enc_out[1:]
+        dec_state = enc_last_state
+        fr_in = test_fr
+        fr_text = ''
+        for i in range(20):
+            out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
+            dec_out, attention, dec_state = out[0], out[1], out[2:]
+            dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
+            fr_in = np.array([dec_ind])
+            fr_text += text_embedder.embed_to_tok[dec_ind] + ' '
+        return fr_text
+
 
     def load_models_from_location(self, dir_name):
         self.full_model = load_model(os.path.join(dir_name, "full.h5"),
@@ -102,6 +120,7 @@ class TGEN_Model(object):
             batch_dec_state_0.append(dec_state[0][0])
             batch_dec_state_1.append(dec_state[1][0])
         inp = [batch_enc_outs, np.array(batch_dec_state_0), np.array(batch_dec_state_1), np.array(batch_tok)]
+
         out = self.decoder_model.predict(inp)
         dec_outs, dec_states = out[0], out[1:]
 
@@ -119,13 +138,17 @@ class TGEN_Model(object):
                 new_paths.append((logprob + log(tok_prob), toks + [new_tok], dec_state))
         return new_paths, tok_probs
 
-    def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok=START_TOK, max_length=20):
+    def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok=None, max_length=20):
+        if prev_tok is None:
+            prev_tok = START_TOK
         test_en = np.array([encoder_in])
         test_fr = [text_embedder.tok_to_embed[prev_tok]]
+
         inf_enc_out = self.encoder_model.predict(test_en)
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
         paths = [(log(1.0), test_fr, enc_last_state)]
+
         end_embs = text_embedder.end_embs
         for i in range(max_length):
             new_paths,_ = self.beam_search_exapand(paths, end_embs, enc_outs, beam_size)
@@ -134,7 +157,9 @@ class TGEN_Model(object):
             if all([p[1][-1] in end_embs for p in paths]):
                 break
 
-        return " ".join(text_embedder.reverse_embedding(paths[0][1][1:]))
+        return " ".join(text_embedder.reverse_embedding(paths[0][1]))
+
+
 
     def set_up_models(self, len_in, len_out, vsize_in, vsize_out, inf_batch_size):
         lstm_type = CuDNNLSTM if is_gpu_available() else LSTM

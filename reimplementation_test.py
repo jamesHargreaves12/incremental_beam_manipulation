@@ -4,6 +4,7 @@ import os
 from time import time
 import numpy as np
 import yaml
+from tqdm import tqdm
 
 from base_model import TGEN_Model
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
@@ -60,7 +61,7 @@ for beam_size in [3]:
     print("Beam_size {}".format(beam_size))
     start = time()
     with open("output_files/out-text-dir-v2/output_{}.txt".format(beam_size), "w+") as output_file:
-        for da_emb in da_embedder.get_embeddings(test_das):
+        for da_emb in tqdm(da_embedder.get_embeddings(test_das)):
             pred = models.make_prediction(da_emb, text_embedder, beam_size)
             output_file.write(pred.replace(" <>", "") + "\n")
     print(time() - start)
