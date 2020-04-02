@@ -157,7 +157,6 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
 
                 if all([p[1][-1] in end_tokens for p in paths]):
                     pred = text_embedder.reverse_embedding(paths[0][1])
-                    print(pred)
                     bleu_overall.append(pred, [true])
                     break
 
