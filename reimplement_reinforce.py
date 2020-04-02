@@ -95,7 +95,7 @@ def get_completion_score(beam_search_model, da_emb, path, bleu, true, text_embed
     rest = beam_search_model.make_prediction(da_emb, text_embedder,
                                              beam_size=1,
                                              prev_tok=text_embedder.embed_to_tok[path[1][-1]],
-                                             max_length=5)
+                                             max_length=len(true)-len(path[1]))
     bleu.reset()
     bleu.append(cur + " " + rest, [true])
     return bleu.score()
