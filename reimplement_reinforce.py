@@ -160,17 +160,16 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                     bleu_overall.append(pred, [true])
                     break
 
-            if j % 1000 == 0 and j > 100:
-                score = bleu_overall.score()
-                bleu_overall.reset()
-                print("BLEU SCORE FOR last batch = {}".format(score))
-                features = [d[0] for d in D]
-                labs = [d[1] for d in D]
-                classifier.train(features, labs)
-                classifier.save_model(cfg["model_save_loc"])
-                test_res = run_classifier_bs(classifier, beam_search_model, None, None, text_embedder, da_embedder,
-                                             das[:1], beam_size, cfg)
-                print(" ".join(test_res[0]))
+        score = bleu_overall.score()
+        bleu_overall.reset()
+        print("BLEU SCORE FOR last batch = {}".format(score))
+        features = [d[0] for d in D]
+        labs = [d[1] for d in D]
+        classifier.train(features, labs)
+        classifier.save_model(cfg["model_save_loc"])
+        test_res = run_classifier_bs(classifier, beam_search_model, None, None, text_embedder, da_embedder,
+                                     das[:1], beam_size, cfg)
+        print(" ".join(test_res[0]))
 
 
 def run_classifier_bs(classifier, beam_search_model, out_path, abstss, text_embedder, da_embedder, das, beam_size, cfg):
