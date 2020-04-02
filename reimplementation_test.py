@@ -55,9 +55,9 @@ else:
                  train_out[-valid_size:], text_embedder)
     models.save_model(cfg['model_save_loc'])
 
-# testing
+print("TESTING")
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")
-for beam_size in [3]:
+for beam_size in [1, 3]:
     print("Beam_size {}".format(beam_size))
     start = time()
     with open("output_files/out-text-dir-v2/output_{}.txt".format(beam_size), "w+") as output_file:

@@ -33,8 +33,6 @@ class TGEN_Model(object):
         valid_losses = []
         rev_embed = text_embedder.embed_to_tok
         print('Valid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
-        valid_pred = self.make_prediction(valid_da_seq[0], text_embedder, 1).replace(
-            "<>", "")
 
         for ep in range(n_epochs):
             losses = 0
@@ -59,7 +57,7 @@ class TGEN_Model(object):
                                                            batch_size=self.batch_size, verbose=0)
                 valid_losses.append(valid_loss)
 
-                valid_pred = self.make_prediction_orig(valid_da_seq[0], text_embedder).replace(
+                valid_pred = self.make_prediction(valid_da_seq[0], text_embedder).replace(
                     "<>", "")
                 # train_pred = self.make_prediction(da_seq[0], text_embedder).replace("<>", "")
                 time_taken = time() - start
@@ -123,19 +121,20 @@ class TGEN_Model(object):
 
         out = self.decoder_model.predict(inp)
         dec_outs, dec_states = out[0], out[1:]
-
         new_paths = []
         tok_probs = []
-        for p, dec_out, dec_state in zip(paths, dec_outs, dec_states):
-            logprob, toks, dec_state = p
+        for p, dec_out, ds0, ds1 in zip(paths, dec_outs, dec_states[0], dec_states[1]):
+            logprob, toks, ds = p
             if toks[-1] in end_tokens:
-                new_paths.append((logprob, toks, dec_state))
+                new_paths.append((logprob, toks, ds))
                 continue
             top_k = np.argsort(dec_out, axis=-1)[0][-beam_size:]
+            ds0 = ds0.reshape((1,-1))
+            ds1 = ds1.reshape((1,-1))
             tok_prob = dec_out[0][top_k]
             for new_tok, tok_prob in zip(top_k, tok_prob):
                 tok_probs.append(tok_prob)
-                new_paths.append((logprob + log(tok_prob), toks + [new_tok], dec_state))
+                new_paths.append((logprob + log(tok_prob), toks + [new_tok], [ds0, ds1]))
         return new_paths, tok_probs
 
     def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok=None, max_length=20):
