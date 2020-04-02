@@ -122,7 +122,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
     bleu = BLEUScore()
     bleu_overall = BLEUScore()
     beam_search_proportion = 1.0
-    bsp_multiplier = 0.9
+    bsp_multiplier = cfg['reference_policy_decay_rate']
 
     data_save_file = open(data_save_path, "a+")
     for i in range(cfg["epoch"]):
@@ -138,7 +138,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                 new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
 
                 path_scores = []
-                classifier_order = random() > beam_search_proportion
+                classifier_order = random.random() > beam_search_proportion
                 for path, tp in zip(new_paths, tok_probs):
                     features = get_features(path, text_embedder, w2v, tp)
                     if classifier_order:

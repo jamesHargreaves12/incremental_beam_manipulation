@@ -19,7 +19,6 @@ epoch = cfg['epoch']
 batch_size = cfg['batch_size']
 hidden_size = cfg['hidden_size']
 embedding_size = cfg['embedding_size']
-beam_size = cfg['beam_size']
 load_from_save = cfg['load_from_save']
 
 das = read_das("tgen/e2e-challenge/input/train-das.txt")
