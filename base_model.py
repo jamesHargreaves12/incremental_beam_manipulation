@@ -105,7 +105,7 @@ class TGEN_Model(object):
         self.decoder_model.save(os.path.join(dir_name, "dec.h5"), save_format='h5')
 
     def beam_search_exapand(self, paths, end_tokens, enc_outs, beam_size):
-        filled_paths = paths
+        filled_paths = paths.copy()
         while len(filled_paths) < beam_size:
             filled_paths.append(paths[0])
 
@@ -118,9 +118,12 @@ class TGEN_Model(object):
             batch_dec_state_0.append(dec_state[0][0])
             batch_dec_state_1.append(dec_state[1][0])
         inp = [batch_enc_outs, np.array(batch_dec_state_0), np.array(batch_dec_state_1), np.array(batch_tok)]
-
+        
         out = self.decoder_model.predict(inp)
-        dec_outs, dec_states = out[0], out[1:]
+        if len(out) == 3:
+            dec_outs, dec_states = out[0], out[1:]
+        else: #old model
+            dec_outs, dec_states = out[0], out[2:]
         new_paths = []
         tok_probs = []
         for p, dec_out, ds0, ds1 in zip(paths, dec_outs, dec_states[0], dec_states[1]):

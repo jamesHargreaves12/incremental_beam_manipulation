@@ -57,12 +57,12 @@ else:
 
 print("TESTING")
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")
-for beam_size in [1, 3]:
+for beam_size in [3]:
     print("Beam_size {}".format(beam_size))
     start = time()
     with open("output_files/out-text-dir-v2/output_{}.txt".format(beam_size), "w+") as output_file:
         for da_emb in tqdm(da_embedder.get_embeddings(test_das)):
-            pred = models.make_prediction(da_emb, text_embedder, beam_size)
+            pred = models.make_prediction(da_emb, text_embedder, beam_size, max_length=text_len)
             output_file.write(pred.replace(" <>", "") + "\n")
     print(time() - start)
 
