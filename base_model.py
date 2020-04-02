@@ -11,91 +11,19 @@ from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concate
 from keras.utils import to_categorical
 
 from attention_keras.layers.attention import AttentionLayer
-
-
-def set_up_models(batch_size, len_in, len_out, vsize_in, vsize_out, lstm_size, embedding_size, inf_batch_size):
-    lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
-    encoder_inputs = Input(batch_shape=(batch_size, len_in), name='encoder_inputs')
-    decoder_inputs = Input(batch_shape=(batch_size, len_out - 1), name='decoder_inputs')
-
-    embed_enc = Embedding(input_dim=vsize_in, output_dim=embedding_size)
-    encoder_lstm = lstm_type(lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
-    en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
-    encoder_out = en_lstm_out[0]
-    encoder_state = en_lstm_out[1:]
-
-    embed_dec = Embedding(input_dim=vsize_out, output_dim=embedding_size)
-    decoder_lstm = lstm_type(lstm_size, return_sequences=True, return_state=True, name='decoder_lstm')
-    decoder_input_embeddings = embed_dec(decoder_inputs)
-    # Attention layer
-    attn_layer_Ws = AttentionLayer(name='attention_layer_t')
-
-    # Ws
-    attn_out_t, attn_states_t = attn_layer_Ws([encoder_out, decoder_input_embeddings])
-    decoder_concat_input = Concatenate(axis=-1, name='concat_layer_Ws')([decoder_input_embeddings, attn_out_t])
-    dense_Ws = Dense(vsize_out, name='Ws')
-    dense_time = TimeDistributed(dense_Ws, name='time_distributed_layer_Ws')
-    decoder_lstm_in = dense_time(decoder_concat_input)
-
-    de_lstm_out = decoder_lstm(decoder_lstm_in, initial_state=encoder_state)
-    decoder_out = de_lstm_out[0]
-    decoder_state = de_lstm_out[1:]
-
-    decoder_concat_output = Concatenate(axis=-1, name='concat_layer_Wy')([decoder_out, attn_out_t])
-
-    # Dense layer
-    dense_Wy = Dense(vsize_out, name='Wy', activation='softmax')
-    dense_time = TimeDistributed(dense_Wy, name='time_distributed_layer_Wy')
-    decoder_pred = dense_time(decoder_concat_output)
-
-    # Full model
-    full_model = Model(inputs=[encoder_inputs, decoder_inputs], outputs=decoder_pred)
-    optimizer = Adam(lr=0.001)
-    full_model.compile(optimizer=optimizer, loss='categorical_crossentropy')
-
-    """ Encoder (Inference) model """
-    encoder_inf_inputs = Input(batch_shape=(inf_batch_size, len_in), name='encoder_inf_inputs')
-    en_lstm_out = encoder_lstm(embed_enc(encoder_inf_inputs))
-    encoder_inf_out = en_lstm_out[0]
-    encoder_inf_state = en_lstm_out[1:]
-
-    encoder_model = Model(inputs=encoder_inf_inputs, outputs=[encoder_inf_out, encoder_inf_state])
-
-    """ Decoder (Inference) model """
-    dec_in = Input(batch_shape=(inf_batch_size, 1), name='decoder_word_inputs')
-    encoder_out = Input(batch_shape=(inf_batch_size, len_in, lstm_size), name='encoder_inf_states')
-    encoder_1 = Input(batch_shape=(inf_batch_size, lstm_size), name='decoder_init_1')
-    encoder_2 = Input(batch_shape=(inf_batch_size, lstm_size), name='decoder_init_2')
-    embed_dec_in = embed_dec(dec_in)
-
-    # Ws
-    attn_inf_out_t, attn_inf_states_t = attn_layer_Ws([encoder_out, embed_dec_in])
-    decoder_concat_input = Concatenate(axis=-1, name='concat_layer')([embed_dec_in, attn_inf_out_t])
-    decoder_lstm_in = TimeDistributed(dense_Ws)(decoder_concat_input)
-
-    de_lstm_out = decoder_lstm(decoder_lstm_in, initial_state=[encoder_1, encoder_2])
-    decoder_inf_out = de_lstm_out[0]
-    decoder_inf_state = de_lstm_out[1:]
-
-    decoder_inf_concat = Concatenate(axis=-1, name='concat')([decoder_inf_out, attn_inf_out_t])
-    decoder_inf_pred = TimeDistributed(dense_Wy)(decoder_inf_concat)
-    decoder_model = Model(inputs=[encoder_out, encoder_1, encoder_2, dec_in],
-                          outputs=[decoder_inf_pred, decoder_inf_state])
-    return full_model, encoder_model, decoder_model
+from utils import START_TOK
 
 
 class TGEN_Model(object):
-
-    def __init__(self, batch_size, len_in, len_out, vsize_in, vsize_out, lstm_size, embedding_size, beam_size):
-        self.batch_size = batch_size
+    def __init__(self, len_in, len_out, vsize_in, vsize_out, beam_size, cfg):
+        self.batch_size = cfg["batch_size"]
         self.len_in = len_in
         self.len_out = len_out
         self.vsize_in = vsize_in
         self.vsize_out = vsize_out
-        self.lstm_size = lstm_size
-        self.embedding_size = embedding_size
-        self.full_model, self.encoder_model, self.decoder_model = set_up_models(batch_size, len_in, len_out, vsize_in,
-                                                                                vsize_out, lstm_size, embedding_size, beam_size)
+        self.lstm_size = cfg["hidden_size"]
+        self.embedding_size = cfg["embedding_size"]
+        self.set_up_models(len_in, len_out, vsize_in, vsize_out, beam_size)
 
     def train(self, da_seq, text_seq, n_epochs, valid_da_seq, valid_text_seq, text_embedder, early_stop_point=5,
               minimum_stop_point=20):
@@ -144,9 +72,12 @@ class TGEN_Model(object):
                     return
 
     def load_models_from_location(self, dir_name):
-        self.full_model = load_model(os.path.join(dir_name, "full.h5"), custom_objects={'AttentionLayer': AttentionLayer})
-        self.encoder_model = load_model(os.path.join(dir_name, "enc.h5"), custom_objects={'AttentionLayer': AttentionLayer})
-        self.decoder_model = load_model(os.path.join(dir_name, "dec.h5"), custom_objects={'AttentionLayer': AttentionLayer})
+        self.full_model = load_model(os.path.join(dir_name, "full.h5"),
+                                     custom_objects={'AttentionLayer': AttentionLayer})
+        self.encoder_model = load_model(os.path.join(dir_name, "enc.h5"),
+                                        custom_objects={'AttentionLayer': AttentionLayer})
+        self.decoder_model = load_model(os.path.join(dir_name, "dec.h5"),
+                                        custom_objects={'AttentionLayer': AttentionLayer})
 
     def save_model(self, dir_name):
         if not os.path.exists(dir_name):
@@ -160,11 +91,11 @@ class TGEN_Model(object):
         while len(filled_paths) < beam_size:
             filled_paths.append(paths[0])
 
-        batch_enc_outs = np.array([enc_outs[0]]*beam_size)
+        batch_enc_outs = np.array([enc_outs[0]] * beam_size)
         batch_dec_state_0 = []
         batch_dec_state_1 = []
         batch_tok = []
-        for _,tok, dec_state in filled_paths:
+        for _, tok, dec_state in filled_paths:
             batch_tok.append([tok[-1]])
             batch_dec_state_0.append(dec_state[0][0])
             batch_dec_state_1.append(dec_state[1][0])
@@ -172,9 +103,8 @@ class TGEN_Model(object):
         out = self.decoder_model.predict(inp)
         dec_outs, dec_states = out[0], out[1:]
 
-
         new_paths = []
-        for p,dec_out, dec_state in zip(paths, dec_outs, dec_states):
+        for p, dec_out, dec_state in zip(paths, dec_outs, dec_states):
             logprob, toks, dec_state = p
             if toks[-1] in end_tokens:
                 new_paths.append((logprob, toks, dec_state))
@@ -185,19 +115,88 @@ class TGEN_Model(object):
                 new_paths.append((logprob + log(tok_prob), toks + [new_tok], dec_state))
         return new_paths
 
-    def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok='<S>', max_length=20):
+    def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok=START_TOK, max_length=20):
         test_en = np.array([encoder_in])
         test_fr = [text_embedder.tok_to_embed[prev_tok]]
         inf_enc_out = self.encoder_model.predict(test_en)
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
         paths = [(log(1.0), test_fr, enc_last_state)]
-        end_tokens = [text_embedder.tok_to_embed['<E>'], text_embedder.tok_to_embed['<>']]
+        end_embs = text_embedder.end_embs
         for i in range(max_length):
-            new_paths = self.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
+            new_paths = self.beam_search_exapand(paths, end_embs, enc_outs, beam_size)
 
             paths = sorted(new_paths, key=lambda x: x[0], reverse=True)[:beam_size]
-            if all([p[1][-1] in end_tokens for p in paths]):
+            if all([p[1][-1] in end_embs for p in paths]):
                 break
 
-        return " ".join([text_embedder.embed_to_tok[x] for x in paths[0][1]])
+        return " ".join(text_embedder.reverse_embedding(paths[0][1][1:]))
+
+    def set_up_models(self, len_in, len_out, vsize_in, vsize_out, inf_batch_size):
+        lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
+        encoder_inputs = Input(batch_shape=(self.batch_size, len_in), name='encoder_inputs')
+        decoder_inputs = Input(batch_shape=(self.batch_size, len_out - 1), name='decoder_inputs')
+
+        embed_enc = Embedding(input_dim=vsize_in, output_dim=self.embedding_size)
+        encoder_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
+        en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
+        encoder_out = en_lstm_out[0]
+        encoder_state = en_lstm_out[1:]
+
+        embed_dec = Embedding(input_dim=vsize_out, output_dim=self.embedding_size)
+        decoder_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='decoder_lstm')
+        decoder_input_embeddings = embed_dec(decoder_inputs)
+        # Attention layer
+        attn_layer_Ws = AttentionLayer(name='attention_layer_t')
+
+        # Ws
+        attn_out_t, attn_states_t = attn_layer_Ws([encoder_out, decoder_input_embeddings])
+        decoder_concat_input = Concatenate(axis=-1, name='concat_layer_Ws')([decoder_input_embeddings, attn_out_t])
+        dense_Ws = Dense(vsize_out, name='Ws')
+        dense_time = TimeDistributed(dense_Ws, name='time_distributed_layer_Ws')
+        decoder_lstm_in = dense_time(decoder_concat_input)
+
+        de_lstm_out = decoder_lstm(decoder_lstm_in, initial_state=encoder_state)
+        decoder_out = de_lstm_out[0]
+        decoder_state = de_lstm_out[1:]
+
+        decoder_concat_output = Concatenate(axis=-1, name='concat_layer_Wy')([decoder_out, attn_out_t])
+
+        # Dense layer
+        dense_Wy = Dense(vsize_out, name='Wy', activation='softmax')
+        dense_time = TimeDistributed(dense_Wy, name='time_distributed_layer_Wy')
+        decoder_pred = dense_time(decoder_concat_output)
+
+        # Full model
+        self.full_model = Model(inputs=[encoder_inputs, decoder_inputs], outputs=decoder_pred)
+        optimizer = Adam(lr=0.001)
+        self.full_model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+
+        """ Encoder (Inference) model """
+        encoder_inf_inputs = Input(batch_shape=(inf_batch_size, len_in), name='encoder_inf_inputs')
+        en_lstm_out = encoder_lstm(embed_enc(encoder_inf_inputs))
+        encoder_inf_out = en_lstm_out[0]
+        encoder_inf_state = en_lstm_out[1:]
+
+        self.encoder_model = Model(inputs=encoder_inf_inputs, outputs=[encoder_inf_out, encoder_inf_state])
+
+        """ Decoder (Inference) model """
+        dec_in = Input(batch_shape=(inf_batch_size, 1), name='decoder_word_inputs')
+        encoder_out = Input(batch_shape=(inf_batch_size, len_in, self.lstm_size), name='encoder_inf_states')
+        encoder_1 = Input(batch_shape=(inf_batch_size, self.lstm_size), name='decoder_init_1')
+        encoder_2 = Input(batch_shape=(inf_batch_size, self.lstm_size), name='decoder_init_2')
+        embed_dec_in = embed_dec(dec_in)
+
+        # Ws
+        attn_inf_out_t, attn_inf_states_t = attn_layer_Ws([encoder_out, embed_dec_in])
+        decoder_concat_input = Concatenate(axis=-1, name='concat_layer')([embed_dec_in, attn_inf_out_t])
+        decoder_lstm_in = TimeDistributed(dense_Ws)(decoder_concat_input)
+
+        de_lstm_out = decoder_lstm(decoder_lstm_in, initial_state=[encoder_1, encoder_2])
+        decoder_inf_out = de_lstm_out[0]
+        decoder_inf_state = de_lstm_out[1:]
+
+        decoder_inf_concat = Concatenate(axis=-1, name='concat')([decoder_inf_out, attn_inf_out_t])
+        decoder_inf_pred = TimeDistributed(dense_Wy)(decoder_inf_concat)
+        self.decoder_model = Model(inputs=[encoder_out, encoder_1, encoder_2, dec_in],
+                                   outputs=[decoder_inf_pred, decoder_inf_state])
