@@ -101,7 +101,8 @@ def get_completion_score(beam_search_model, da_emb, path, bleu, true, text_embed
     return bleu.score()
 
 
-def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, classifier, text_embedder, da_embedder, cfg,
+def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, classifier, text_embedder,
+                       da_embedder, cfg,
                        chance_of_choosing=0.01):
     w2v = Word2Vec.load(cfg["w2v_path"])
     D = []
@@ -110,7 +111,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
 
     data_save_file = open(data_save_path, "a+")
     for i in range(cfg["epoch"]):
-        for i, (da_emb, true) in tqdm(enumerate(zip(da_embedder.get_embeddings(das), truth))):
+        for j, (da_emb, true) in tqdm(enumerate(zip(da_embedder.get_embeddings(das), truth))):
             inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
             enc_outs = inf_enc_out[0]
             enc_last_state = inf_enc_out[1:]
@@ -138,7 +139,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                     bleu_overall.append(text_embedder.reverse_embedding(paths[0]), [true])
                     break
 
-            if i % 1000 == 1 and i > 100:
+            if j % 1000 == 0 and j > 100:
                 score = bleu_overall.score()
                 bleu_overall.reset()
                 print("BLEU SCORE FOR last batch = {}".format(score))
@@ -146,6 +147,8 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                 labs = [d[1] for d in D]
                 train_classifier(classifier, features, labs)
                 classifier.save_model(cfg["model_save_loc"])
+                print(run_classifier_bs(classifier, beam_search_model, None, None, text_embedder, da_embedder, das[:1],
+                                        beam_size, cfg))
 
 
 def run_classifier_bs(classifier, beam_search_model, out_path, abstss, text_embedder, da_embedder, das, beam_size, cfg):
@@ -176,10 +179,13 @@ def run_classifier_bs(classifier, beam_search_model, out_path, abstss, text_embe
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
-    post_abstr = apply_absts(abstss, results)
-    with open(out_path, "w+") as out_file:
-        for pa in post_abstr:
-            out_file.write(" ".join(pa) + '\n')
+    if out_path:
+        post_abstr = apply_absts(abstss, results)
+        with open(out_path, "w+") as out_file:
+            for pa in post_abstr:
+                out_file.write(" ".join(pa) + '\n')
+    else:
+        return results
 
 
 if __name__ == "__main__":
