@@ -1,25 +1,32 @@
-class TokEmbeddingSeq2SeqExtractor(object):
-    PAD_TOK = '<>'
+from utils import PAD_TOK, START_TOK, END_TOK
 
+
+class TokEmbeddingSeq2SeqExtractor(object):
     def __init__(self, tokenised_texts, max_length=None):
         self.vocab = set()
         for tokens in tokenised_texts:
             self.vocab.update(tokens)
-        self.vocab.add(self.PAD_TOK)
+        self.vocab.add(PAD_TOK)
         self.tok_to_embed = {tok: i for i, tok in enumerate(sorted(list(self.vocab)))}
         self.embed_to_tok = {i: tok for i, tok in enumerate(sorted(list(self.vocab)))}
         self.vocab_length = len(self.vocab)
         self.length = max([len(x) for x in tokenised_texts])
         if max_length is not None:
             self.length = min(self.length, max_length)
+        self.start_emb = [self.tok_to_embed[START_TOK]]
+        self.end_embs = [self.tok_to_embed[END_TOK], self.tok_to_embed[PAD_TOK]]
 
     def get_embeddings(self, tokenised_texts):
         embs = []
         for toks in tokenised_texts:
-            emb = [self.tok_to_embed.get(x, self.PAD_TOK) for x in toks]
-            pad = [self.tok_to_embed['<>'] for _ in range(self.length - len(toks))]
+            emb = [self.tok_to_embed.get(x, PAD_TOK) for x in toks]
+            pad = [self.tok_to_embed[PAD_TOK] for _ in range(self.length - len(toks))]
             embs.append(emb + pad)
         return [e[:self.length + 1] for e in embs]
+
+    def reverse_embedding(self, embedding):
+        return [self.embed_to_tok[e] for e in embedding]
+
 
 
 class DAEmbeddingSeq2SeqExtractor(object):
@@ -44,7 +51,7 @@ class DAEmbeddingSeq2SeqExtractor(object):
         self.val_emb = {val: taken_emb + i for i, val in enumerate(sorted(list(self.values)))}
         taken_emb += len(self.values)
         self.vocab_length = taken_emb
-        self.length = max([len(x) for x in das])
+        self.length = max([len(x) for x in das]) * 3
 
     def get_embeddings(self, das):
         embs = []
@@ -56,9 +63,9 @@ class DAEmbeddingSeq2SeqExtractor(object):
                 emb.append(self.val_emb.get(dai.value, self.UNK_VALUE))
 
             pad = [self.act_emb[self.UNK_ACT], self.slot_emb[self.UNK_SLOT], self.val_emb[self.UNK_VALUE]] \
-                  * (self.length - len(da))
+                  * (self.length // 3 - len(da))
             embs.append(pad + emb)
-        return [e[-self.length*3:] for e in embs]
+        return [e[-self.length:] for e in embs]
 
 
 if __name__ == "__main__":

@@ -7,7 +7,11 @@ import nltk
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from enum import Enum
 from tgen.logf import set_debug_stream
+from tgen.futil import read_das
 
+START_TOK = '<S>'
+END_TOK = '<E>'
+PAD_TOK = '<>'
 
 def construct_logs(beam_size):
     debug_stream = open("output_files/debug_files/output_gen_{}.txt".format(beam_size), "w+")
@@ -90,6 +94,18 @@ def apply_absts(absts, texts):
         # assert(len(text) == len(text_res))
         results.append(text_res)
     return results
+
+
+def get_training_das_texts():
+    das = read_das("tgen/e2e-challenge/input/train-das.txt")
+    texts = [[START_TOK] + x + [END_TOK] for x in get_texts_training()]
+    return das, texts
+
+
+def safe_get_w2v(w2v, tok):
+    unimp_toks = [PAD_TOK]
+    tok = END_TOK if tok in unimp_toks else tok
+    return w2v[tok]
 
 # def save_keras_model(model, file_path):
 #     # serialize model to YAML

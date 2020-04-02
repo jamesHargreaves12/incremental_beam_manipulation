@@ -12,7 +12,7 @@ from utils import get_texts_training, RERANK
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from tgen.futil import read_das
 
-cfg = yaml.load(open("config.yaml", "r"))
+cfg = yaml.load(open("config_train.yaml", "r"))
 use_size = cfg['use_size']
 valid_size = cfg['valid_size']
 epoch = cfg['epoch']
@@ -47,7 +47,7 @@ train_in = np.array(da_embs)
 train_out = np.array(text_embs)
 
 model_save_loc = "models/reimplementation"
-models = TGEN_Model(batch_size, da_len, text_len, da_vsize, text_vsize, hidden_size, embedding_size, 3)
+models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, 3, cfg)
 if load_from_save and os.path.exists(model_save_loc):
     models.load_models_from_location(model_save_loc)
 else:
