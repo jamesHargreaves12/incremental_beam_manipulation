@@ -104,6 +104,7 @@ class TGEN_Model(object):
         dec_outs, dec_states = out[0], out[1:]
 
         new_paths = []
+        tok_probs = []
         for p, dec_out, dec_state in zip(paths, dec_outs, dec_states):
             logprob, toks, dec_state = p
             if toks[-1] in end_tokens:
@@ -112,8 +113,9 @@ class TGEN_Model(object):
             top_k = np.argsort(dec_out, axis=-1)[0][-beam_size:]
             tok_prob = dec_out[0][top_k]
             for new_tok, tok_prob in zip(top_k, tok_prob):
+                tok_probs.append(tok_prob)
                 new_paths.append((logprob + log(tok_prob), toks + [new_tok], dec_state))
-        return new_paths
+        return new_paths, tok_probs
 
     def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok=START_TOK, max_length=20):
         test_en = np.array([encoder_in])
@@ -124,7 +126,7 @@ class TGEN_Model(object):
         paths = [(log(1.0), test_fr, enc_last_state)]
         end_embs = text_embedder.end_embs
         for i in range(max_length):
-            new_paths = self.beam_search_exapand(paths, end_embs, enc_outs, beam_size)
+            new_paths,_ = self.beam_search_exapand(paths, end_embs, enc_outs, beam_size)
 
             paths = sorted(new_paths, key=lambda x: x[0], reverse=True)[:beam_size]
             if all([p[1][-1] in end_embs for p in paths]):
