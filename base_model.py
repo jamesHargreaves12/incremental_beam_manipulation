@@ -183,7 +183,7 @@ class TGEN_Model(object):
         # Ws
         attn_out_t, attn_states_t = attn_layer_Ws([encoder_out, decoder_input_embeddings])
         decoder_concat_input = Concatenate(axis=-1, name='concat_layer_Ws')([decoder_input_embeddings, attn_out_t])
-        dense_Ws = Dense(vsize_out, name='Ws')
+        dense_Ws = Dense(128, name='Ws')
         dense_time = TimeDistributed(dense_Ws, name='time_distributed_layer_Ws')
         decoder_lstm_in = dense_time(decoder_concat_input)
 
