@@ -33,6 +33,8 @@ class TGEN_Model(object):
         valid_losses = []
         rev_embed = text_embedder.embed_to_tok
         print('Valid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
+        valid_pred = self.make_prediction(valid_da_seq[0], text_embedder, 1).replace(
+            "<>", "")
 
         for ep in range(n_epochs):
             losses = 0

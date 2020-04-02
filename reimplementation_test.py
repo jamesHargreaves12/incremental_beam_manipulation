@@ -45,14 +45,14 @@ print(da_vsize, text_vsize, da_len, text_len)
 train_in = np.array(da_embs)
 train_out = np.array(text_embs)
 
-model_save_loc = "models/reimplementation"
-models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, 3, cfg)
-if load_from_save and os.path.exists(model_save_loc):
-    models.load_models_from_location(model_save_loc)
+if load_from_save and os.path.exists(cfg['model_save_loc']):
+    models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, 3, cfg)
+    models.load_models_from_location(cfg['model_save_loc'])
 else:
+    models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, 1, cfg)
     models.train(train_in[:-valid_size], train_out[:-valid_size], epoch, train_in[-valid_size:],
                  train_out[-valid_size:], text_embedder)
-    models.save_model(model_save_loc)
+    models.save_model(cfg['model_save_loc'])
 
 # testing
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")

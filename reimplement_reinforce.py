@@ -145,7 +145,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                         classif_score = classifier.predict(features.reshape(1, -1))
                         path_scores.append((classif_score, path))
                     else:
-                        path_scores.append((path[0] + log(tp),path))
+                        path_scores.append((path[0] + log(tp), path))
 
                     # greedy decode
                     if random.random() < chance_of_choosing:
@@ -156,7 +156,9 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                 paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
 
                 if all([p[1][-1] in end_tokens for p in paths]):
-                    bleu_overall.append(text_embedder.reverse_embedding(paths[0]), [true])
+                    pred = text_embedder.reverse_embedding(paths[0][1])
+                    print(pred)
+                    bleu_overall.append(pred, [true])
                     break
 
             if j % 1000 == 0 and j > 100:
