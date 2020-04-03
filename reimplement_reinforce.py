@@ -159,9 +159,9 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                 paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
 
                 if all([p[1][-1] in end_tokens for p in paths]):
-                    pred = text_embedder.reverse_embedding(paths[0][1])
-                    bleu_overall.append(pred, [true])
                     break
+            pred = text_embedder.reverse_embedding(paths[0][1])
+            bleu_overall.append(pred, [true])
 
         score = bleu_overall.score()
         bleu_overall.reset()
@@ -218,6 +218,8 @@ if __name__ == "__main__":
     cfg = yaml.load(open("config_reinforce.yaml", "r"))
     train_data_location = "output_files/training_data/{}_.csv".format(beam_size)
     das, texts = get_training_das_texts()
+    print(das[0], texts[0])
+    sys.exit(0)
     text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
     da_embedder = DAEmbeddingSeq2SeqExtractor(das)
     das = das[:cfg['use_size']]
