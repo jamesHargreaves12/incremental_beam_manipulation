@@ -8,10 +8,10 @@ from tqdm import tqdm
 
 from base_model import TGEN_Model
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
-from utils import get_texts_training, RERANK
+from utils import get_texts_training, RERANK, apply_absts
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
-from tgen.futil import read_das
+from tgen.futil import read_das, smart_load_absts
 
 cfg = yaml.load(open("config_train.yaml", "r"))
 use_size = cfg['use_size']
@@ -57,14 +57,16 @@ else:
 
 print("TESTING")
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")
-for beam_size in [3]:
+absts = smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
+for beam_size in [1, 5, 10, 30, 100]:
     print("Beam_size {}".format(beam_size))
     start = time()
-    with open("output_files/out-text-dir-v2/output_{}.txt".format(beam_size), "w+") as output_file:
-        for da_emb in tqdm(da_embedder.get_embeddings(test_das)):
-            pred = models.make_prediction(da_emb, text_embedder, beam_size, max_length=text_len)
-            output_file.write(pred.replace(" <>", "") + "\n")
+    results = []
+    for da_emb in tqdm(da_embedder.get_embeddings(test_das)):
+        pred = models.make_prediction(da_emb, text_embedder, beam_size, max_length=text_len)
+        results.append(pred.replace(" <>", "").replace('<S> ','').replace(' <E>','').split(" "))
+    post_abstr = apply_absts(absts, results)
+    with open(cfg["res_save_format"].format(beam_size), "w+") as out_file:
+        for pa in post_abstr:
+            out_file.write(" ".join(pa) + '\n')
     print(time() - start)
-
-
-

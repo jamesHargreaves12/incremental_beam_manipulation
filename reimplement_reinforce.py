@@ -31,7 +31,7 @@ class BinClassifier(object):
         inputs = Input(batch_shape=(batch_size, n_in), name='encoder_inputs')
         dense1 = Dense(128, activation='relu')
         # dense3 = Dense(32, activation='relu')
-        dense4 = Dense(1, activation='sigmoid')
+        dense4 = Dense(1, activation='linear')
         self.model = Model(inputs=inputs, outputs=dense4(dense1(inputs)))
         optimizer = Adam(lr=0.001)
         self.model.compile(optimizer=optimizer, loss='mean_squared_error')
@@ -68,9 +68,13 @@ class BinClassifier(object):
         print("Min lprob: ", self.min_lprob)
 
         l = np.array(labs)
+        #only care about order here:
+        l = (l - l.min()) / (l.max() - l.min())
         f = self.normalise_features(f)
         print("Label Variation Mean {}, Var {}, Max {}, Min {}".format(l.mean(), l.var(), l.max(), l.min()))
-        self.model.fit(f, l, epochs=10, batch_size=1, verbose=2)
+        print("Start Train")
+        self.model.fit(f, l, epochs=10, batch_size=1, verbose=0)
+        print("End Train")
 
     def predict(self, features):
         f = self.normalise_features(features)
@@ -142,7 +146,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                 for path, tp in zip(new_paths, tok_probs):
                     features = get_features(path, text_embedder, w2v, tp)
                     if classifier_order:
-                        classif_score = classifier.predict(features.reshape(1, -1))
+                        classif_score = classifier.predict(features.reshape(1, -1))[0][0]
                         path_scores.append((classif_score, path))
                     else:
                         path_scores.append((path[0] + log(tp), path))
@@ -190,7 +194,7 @@ def run_classifier_bs(classifier, beam_search_model, out_path, abstss, text_embe
             path_scores = []
             for path, tp in zip(new_paths, tok_probs):
                 features = get_features(path, text_embedder, w2v, tp)
-                classif_score = classifier.predict(features.reshape(1, -1))
+                classif_score = classifier.predict(features.reshape(1, -1))[0][0]
                 path_scores.append((classif_score, path))
             # prune
             paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
@@ -230,7 +234,7 @@ if __name__ == "__main__":
     classifier = BinClassifier(n_in, batch_size=1, max_len=max([len(x) for x in texts]))
     if cfg["classif_from_file"]:
         classifier.load_model(cfg["model_save_loc"])
-    elif os.path.exists(train_data_location):
+    elif os.path.exists(train_data_location) and cfg["pretrain"]:
         feats, labs = load_rein_data(train_data_location)
         if feats:
             classifier.train(feats, labs)
@@ -238,4 +242,4 @@ if __name__ == "__main__":
     reinforce_learning(beam_size, train_data_location, models, das, texts, classifier, text_embedder, da_embedder, cfg)
     # save_path = "output_files/out-text-dir-v2/rein_{}.txt".format(beam_size)
     # absts = smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
-    # run_classifier_bs(classifier, models, save_path, absts, text_embedder, da_embedder, das, beam_size, cfg)
+    # print(run_classifier_bs(classifier, models, None, None, text_embedder, da_embedder, das[:1], beam_size, cfg))
