@@ -130,7 +130,6 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
 
     data_save_file = open(data_save_path, "a+")
     for i in range(cfg["epoch"]):
-        beam_search_proportion *= bsp_multiplier
         for j, (da_emb, true) in tqdm(enumerate(zip(da_embedder.get_embeddings(das), truth))):
             inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
             enc_outs = inf_enc_out[0]
@@ -171,6 +170,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
         labs = [d[1] for d in D]
         classifier.train(features, labs)
         classifier.save_model(cfg["model_save_loc"])
+        beam_search_proportion *= bsp_multiplier
         test_res = run_classifier_bs(classifier, beam_search_model, None, None, text_embedder, da_embedder,
                                      das[:1], beam_size, cfg)
         print(" ".join(test_res[0]))
