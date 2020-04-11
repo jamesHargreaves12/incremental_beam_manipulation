@@ -145,7 +145,7 @@ def get_greedy_decode_score_func(models, bleu, true_vals):
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False):
     da_embedder = beam_search_model.da_embedder
     text_embedder = beam_search_model.text_embedder
-    max_predict_len = 20
+    max_predict_len = 60
 
     results = []
     for i, da_emb in tqdm(enumerate(da_embedder.get_embeddings(das))):
