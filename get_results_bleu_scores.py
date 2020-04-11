@@ -3,7 +3,7 @@ import os
 from e2e_metrics.metrics.pymteval import BLEUScore
 from e2e_metrics.measure_scores import load_data
 
-output_directory = 'output_files/out-text-dir-v3/'
+output_directory = 'output_files/out-text-dir-v3'
 
 
 def test_res_official(pred_file_name):

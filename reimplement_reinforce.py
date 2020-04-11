@@ -148,7 +148,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     max_predict_len = 60
 
     results = []
-    for i, da_emb in tqdm(enumerate(da_embedder.get_embeddings(das))):
+    for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
         inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]

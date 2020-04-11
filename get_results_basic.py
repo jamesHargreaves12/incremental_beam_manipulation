@@ -10,7 +10,9 @@ from reimplement_reinforce import run_beam_search_with_rescorer, get_tgen_rerank
 from utils import get_training_variables, apply_absts, get_abstss, get_test_das, START_TOK, END_TOK, PAD_TOK, \
     get_true_sents
 
-cfg = yaml.load(open("configs/run_greedy_results.yaml", "r"))
+cfg_path = "configs/run_vanilla_results.yaml"
+print("Using config from: {}".format(cfg_path))
+cfg = yaml.load(open(cfg_path, "r"))
 texts, das, = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
@@ -20,6 +22,7 @@ true_vals = get_true_sents()
 models = TGEN_Model(da_embedder, text_embedder, cfg)
 models.load_models_from_location(cfg['model_save_loc'])
 
+print("Using Scorer: {}".format(cfg["scorer"]))
 if cfg['scorer'] == "TGEN":
     tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg)
     tgen_reranker.load_models_from_location(cfg['reranker_loc'])
@@ -39,6 +42,8 @@ for beam_size in cfg["beam_sizes"]:
     preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'])
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     post_abstr = apply_absts(absts, preds)
-    with open(cfg["res_save_format"].format(beam_size), "w+") as out_file:
+    save_file = cfg["res_save_format"].format(beam_size)
+    print("Saving to {}".format(save_file))
+    with open(save_file, "w+") as out_file:
         for pa in post_abstr:
             out_file.write(" ".join(pa) + '\n')
