@@ -115,6 +115,7 @@ def get_regressor_score_func(regressor, text_embedder, w2v):
         features = get_features(path, text_embedder, w2v, tp)
         regressor_score = regressor.predict(features.reshape(1, -1))[0][0]
         return regressor_score
+
     return func
 
 
@@ -123,11 +124,14 @@ def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
         text_emb = path[1]
         reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb, da_embedder)
         return path[0] - 100 * reranker_score
+
     return func
+
 
 def get_identity_score_func():
     def func(path, tp, da_emb):
         return path[0]
+
     return func
 
 
@@ -137,7 +141,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model, out_path, abstss, t
 
     results = []
     for i, da_emb in tqdm(enumerate(da_embedder.get_embeddings(das))):
-        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]*beam_size))
+        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb] * beam_size))
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
         paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
@@ -159,6 +163,9 @@ def run_beam_search_with_rescorer(scorer, beam_search_model, out_path, abstss, t
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
+
+
+
     if out_path:
         post_abstr = apply_absts(abstss, results)
         with open(out_path, "w+") as out_file:

@@ -233,8 +233,8 @@ class TGEN_Model(object):
             ds0 = ds0.reshape((1, -1))
             ds1 = ds1.reshape((1, -1))
             tok_prob = dec_out[0][top_k]
-            for new_tok, tok_prob in zip(top_k, tok_prob):
-                tok_probs.append(tok_prob)
+            for new_tok, tp in zip(top_k, tok_prob):
+                tok_probs.append(tp)
                 new_paths.append((logprob + log(tok_prob), toks + [new_tok], [ds0, ds1]))
         return new_paths, tok_probs
 
