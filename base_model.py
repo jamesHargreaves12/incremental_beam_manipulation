@@ -235,7 +235,7 @@ class TGEN_Model(object):
             tok_prob = dec_out[0][top_k]
             for new_tok, tp in zip(top_k, tok_prob):
                 tok_probs.append(tp)
-                new_paths.append((logprob + log(tok_prob), toks + [new_tok], [ds0, ds1]))
+                new_paths.append((logprob + log(tp), toks + [new_tok], [ds0, ds1]))
         return new_paths, tok_probs
 
     def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok=None, max_length=20):

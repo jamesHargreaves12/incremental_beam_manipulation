@@ -47,11 +47,10 @@ print(da_vsize, text_vsize, da_len, text_len)
 train_da = np.array(da_embs)
 train_text = np.array(text_embs)
 
+models = TGEN_Model(da_embedder, text_embedder,  cfg)
 if load_from_save and os.path.exists(cfg['model_save_loc']):
-    models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, 3, cfg)
     models.load_models_from_location(cfg['model_save_loc'])
 else:
-    models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, 1, cfg)
     models.train(train_da[:-valid_size], train_text[:-valid_size], epoch, train_da[-valid_size:],
                  train_text[-valid_size:], text_embedder)
     models.save_model(cfg['model_save_loc'])
