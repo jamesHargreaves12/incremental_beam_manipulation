@@ -27,7 +27,7 @@ models = TGEN_Model(da_embedder, text_embedder, cfg)
 models.load_models_from_location(cfg['model_save_loc'])
 
 absts = get_abstss()
-for beam_size in [3]:
+for beam_size in cfg["beam_sizes"]:
     preds = run_beam_search_with_rescorer(scorer_func, models, None, None, text_embedder,
                                           da_embedder, das_test, beam_size)
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
