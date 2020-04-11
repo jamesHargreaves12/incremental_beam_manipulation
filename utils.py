@@ -8,10 +8,12 @@ sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from enum import Enum
 from tgen.logf import set_debug_stream
 from tgen.futil import read_das
+from tgen.futil import smart_load_absts
 
 START_TOK = '<S>'
 END_TOK = '<E>'
 PAD_TOK = '<>'
+
 
 def construct_logs(beam_size):
     debug_stream = open("output_files/debug_files/output_gen_{}.txt".format(beam_size), "w+")
@@ -107,28 +109,26 @@ def safe_get_w2v(w2v, tok):
     tok = END_TOK if tok in unimp_toks else tok
     return w2v[tok]
 
-# def save_keras_model(model, file_path):
-#     # serialize model to YAML
-#     model_yaml = model.to_yaml()
-#     with open(file_path, "w+") as yaml_file:
-#         yaml_file.write(model_yaml)
-#     # serialize weights to HDF5
-#     weights_path = file_path.split(".")[0] + ".h5"
-#     model.save_weights(weights_path)
-#     print("Saved model to disk")
-#
-#
-# def load_model(file_path):
-#     yaml_file = open(file_path, 'r')
-#     loaded_model_yaml = yaml_file.read()
-#     yaml_file.close()
-#     loaded_model = tf.keras.models.load_model(loaded_model_yaml)
-#     # load weights into new mode
-#     weights_path = file_path.split(".")[0] + ".h5"
-#     loaded_model.load_weights(weights_path)
-#     return loaded_model
-
 
 def remove_strange_toks(tok):
     unimp_toks = ['<VOID>', '<UNK>', '<-s>']
     return '<STOP>' if tok in unimp_toks else tok
+
+
+def get_hamming_distance(xs, ys):
+    return sum([1 for x, y in zip(xs, ys) if x != y])
+
+
+def get_training_variables():
+    das = read_das("tgen/e2e-challenge/input/train-das.txt")
+    texts = [[START_TOK] + x + [END_TOK] for x in get_texts_training()]
+    return texts, das
+
+
+def get_test_das():
+    das = read_das("tgen/e2e-challenge/input/devel-das.txt")
+    return das
+
+
+def get_abstss():
+    return smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')

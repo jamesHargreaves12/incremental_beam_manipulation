@@ -12,79 +12,10 @@ from keras.layers import Dense
 from keras.optimizers import RMSprop
 from tqdm import tqdm
 
-from base_model import TGEN_Model
+from base_model import TGEN_Model, Regressor
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w2v, apply_absts
-
-sys.path.append(os.path.join(os.getcwd(), 'tgen'))
-from tgen.futil import read_das, smart_load_absts
-
-from tensorflow.python.keras.optimizers import Adam
-from tensorflow.python.keras.models import Model, load_model
-from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
-
-
-class BinClassifier(object):
-    def __init__(self, n_in, batch_size, max_len):
-        self.batch_size = batch_size
-        inputs = Input(batch_shape=(batch_size, n_in), name='encoder_inputs')
-        dense1 = Dense(128, activation='relu')
-        # dense3 = Dense(32, activation='relu')
-        dense4 = Dense(1, activation='linear')
-        self.model = Model(inputs=inputs, outputs=dense4(dense1(inputs)))
-        optimizer = Adam(lr=0.001)
-        self.model.compile(optimizer=optimizer, loss='mean_squared_error')
-        self.max_len, self.min_len = max_len, 0
-        self.max_lprob, self.min_lprob = 0, -100 #this value is approx from one experiment - may well change
-
-    # def train(self, features, lables, n_epoch):
-    #     for ep in range(n_epoch):
-    #         start = time()
-    #         losses = 0
-    #         batch_indexes = list(range(0, features.shape[0] - self.batch_size, self.batch_size))
-    #         random.shuffle(batch_indexes)
-    #         for bi in batch_indexes:
-    #             feature_batch = features[bi:bi + self.batch_size, :]
-    #             lab_batch = lables[bi:bi + self.batch_size]
-    #             self.model.train_on_batch([feature_batch], lab_batch)
-    #             losses += self.model.evaluate([feature_batch], lab_batch, batch_size=self.batch_size, verbose=0)
-    #         if (ep + 1) % 1 == 0:
-    #             time_taken = time() - start
-    #             train_loss = losses
-    #             print("({:.2f}s) Epoch {} Loss: {:.4f}".format(time_taken, ep + 1, train_loss))
-    def normalise_features(self, f):
-        f = np.array(f, copy=True)
-        f[:, -1] = (f[:, -1] - self.min_len) / (self.max_len - self.min_len)
-        f[:, -2] = (f[:, -2] - self.min_lprob) / (self.max_lprob - self.min_lprob)
-        return f
-
-    def train(self, features, labs):
-        f = np.array(features)
-        lens = f[:, -1]
-        lprob = f[:, -2]
-        self.max_len, self.min_len = max(lens), 0
-        self.max_lprob, self.min_lprob = max(lprob), min(lprob)
-        print("Min lprob: ", self.min_lprob)
-
-        l = np.array(labs)
-        #only care about order here:
-        l = (l - l.min()) / (l.max() - l.min())
-        f = self.normalise_features(f)
-        print("Label Variation Mean {}, Var {}, Max {}, Min {}".format(l.mean(), l.var(), l.max(), l.min()))
-        print("Start Train")
-        self.model.fit(f, l, epochs=10, batch_size=1, verbose=0)
-        print("End Train")
-
-    def predict(self, features):
-        f = self.normalise_features(features)
-        return self.model.predict(f)
-
-    def save_model(self, dir_name):
-        self.model.save(os.path.join(dir_name, "classif.h5"), save_format='h5')
-
-    def load_model(self, dir_name):
-        self.model = load_model(os.path.join(dir_name, "classif.h5"))
 
 
 def get_features(path, text_embedder, w2v, tok_prob):
@@ -93,7 +24,8 @@ def get_features(path, text_embedder, w2v, tok_prob):
     pred_words = [text_embedder.embed_to_tok[x] for x in path[1]]
 
     return np.concatenate((h, c,
-                           safe_get_w2v(w2v, pred_words[-1]), safe_get_w2v(w2v, pred_words[-2]), [tok_prob, path[0], len(pred_words)]))
+                           safe_get_w2v(w2v, pred_words[-1]), safe_get_w2v(w2v, pred_words[-2]),
+                           [tok_prob, path[0], len(pred_words)]))
 
 
 def load_rein_data(filepath):
@@ -112,13 +44,13 @@ def get_completion_score(beam_search_model, da_emb, path, bleu, true, text_embed
     rest = beam_search_model.make_prediction(da_emb, text_embedder,
                                              beam_size=1,
                                              prev_tok=text_embedder.embed_to_tok[path[1][-1]],
-                                             max_length=len(true) - len(path[1]))
+                                             max_length=2 * len(true) - len(path[1]))
     bleu.reset()
     bleu.append(cur + " " + rest, [true])
     return bleu.score()
 
 
-def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, classifier, text_embedder,
+def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, regressor, text_embedder,
                        da_embedder, cfg,
                        chance_of_choosing=0.01):
     w2v = Word2Vec.load(cfg["w2v_path"])
@@ -141,11 +73,11 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
                 new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
 
                 path_scores = []
-                classifier_order = random.random() > beam_search_proportion
+                regressor_order = random.random() > beam_search_proportion
                 for path, tp in zip(new_paths, tok_probs):
                     features = get_features(path, text_embedder, w2v, tp)
-                    if classifier_order:
-                        classif_score = classifier.predict(features.reshape(1, -1))[0][0]
+                    if regressor_order:
+                        classif_score = regressor.predict(features.reshape(1, -1))[0][0]
                         path_scores.append((classif_score, path))
                     else:
                         path_scores.append((path[0] + log(tp), path))
@@ -168,35 +100,58 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
         print("BLEU SCORE FOR last batch = {}".format(score))
         features = [d[0] for d in D]
         labs = [d[1] for d in D]
-        classifier.train(features, labs)
-        classifier.save_model(cfg["model_save_loc"])
+        regressor.train(features, labs)
+        regressor.save_model(cfg["model_save_loc"])
         beam_search_proportion *= bsp_multiplier
-        test_res = run_classifier_bs(classifier, beam_search_model, None, None, text_embedder, da_embedder,
-                                     das[:1], beam_size, cfg)
+        regressor_scorer = get_regressor_score_func(regressor, text_embedder, w2v)
+        test_res = run_beam_search_with_rescorer(regressor_scorer, beam_search_model, None, None, text_embedder,
+                                                 da_embedder,
+                                                 das[:1], beam_size)
         print(" ".join(test_res[0]))
 
 
-def run_classifier_bs(classifier, beam_search_model, out_path, abstss, text_embedder, da_embedder, das, beam_size, cfg):
-    w2v = Word2Vec.load(cfg["w2v_path"])
+def get_regressor_score_func(regressor, text_embedder, w2v):
+    def func(path, tp, da_emb):
+        features = get_features(path, text_embedder, w2v, tp)
+        regressor_score = regressor.predict(features.reshape(1, -1))[0][0]
+        return regressor_score
+    return func
+
+
+def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
+    def func(path, tp, da_emb):
+        text_emb = path[1]
+        reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb, da_embedder)
+        return path[0] - 100 * reranker_score
+    return func
+
+def get_identity_score_func():
+    def func(path, tp, da_emb):
+        return path[0]
+    return func
+
+
+def run_beam_search_with_rescorer(scorer, beam_search_model, out_path, abstss, text_embedder, da_embedder, das,
+                                  beam_size):
     max_predict_len = 20
 
     results = []
     for i, da_emb in tqdm(enumerate(da_embedder.get_embeddings(das))):
-        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
+        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]*beam_size))
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
         paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
         end_tokens = text_embedder.end_embs
 
         for step in range(max_predict_len):
+            # expand
             new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
 
+            # prune
             path_scores = []
             for path, tp in zip(new_paths, tok_probs):
-                features = get_features(path, text_embedder, w2v, tp)
-                classif_score = classifier.predict(features.reshape(1, -1))[0][0]
-                path_scores.append((classif_score, path))
-            # prune
+                hyp_score = scorer(path, tp, da_emb)
+                path_scores.append((hyp_score, path))
             paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
 
             if all([p[1][-1] in end_tokens for p in paths]):
@@ -219,7 +174,7 @@ if __name__ == "__main__":
     train_data_location = "output_files/training_data/{}_.csv".format(beam_size)
     das, texts = get_training_das_texts()
     print(das[0], texts[0])
-    sys.exit(0)
+    # sys.exit(0)
     text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
     da_embedder = DAEmbeddingSeq2SeqExtractor(das)
     das = das[:cfg['use_size']]
@@ -233,15 +188,15 @@ if __name__ == "__main__":
     models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, beam_size, cfg)
     models.load_models_from_location(cfg["model_save_loc"])
 
-    classifier = BinClassifier(n_in, batch_size=1, max_len=max([len(x) for x in texts]))
+    regressor = Regressor(n_in, batch_size=1, max_len=max([len(x) for x in texts]))
     if cfg["classif_from_file"]:
-        classifier.load_model(cfg["model_save_loc"])
+        regressor.load_model(cfg["model_save_loc"])
     elif os.path.exists(train_data_location) and cfg["pretrain"]:
         feats, labs = load_rein_data(train_data_location)
         if feats:
-            classifier.train(feats, labs)
+            regressor.train(feats, labs)
 
-    reinforce_learning(beam_size, train_data_location, models, das, texts, classifier, text_embedder, da_embedder, cfg)
+    reinforce_learning(beam_size, train_data_location, models, das, texts, regressor, text_embedder, da_embedder, cfg)
     # save_path = "output_files/out-text-dir-v2/rein_{}.txt".format(beam_size)
     # absts = smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
     # print(run_classifier_bs(classifier, models, None, None, text_embedder, da_embedder, das[:1], beam_size, cfg))

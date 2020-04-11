@@ -9,21 +9,137 @@ from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.utils import to_categorical
 from tensorflow.python.keras.models import Model, load_model
 from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
+from tqdm import tqdm
 
 from attention_keras.layers.attention import AttentionLayer
-from utils import START_TOK
+from utils import START_TOK, get_hamming_distance, PAD_TOK
+
+
+class TGEN_Reranker(object):
+    def __init__(self, da_embedder, text_embedder, cfg):
+        self.batch_size = cfg['batch_size']
+        self.lstm_size = cfg["hidden_size"]
+        self.embedding_size = cfg['embedding_size']
+        self.model = None
+        self.text_embedder = text_embedder
+        self.da_embedder = da_embedder
+        self.set_up_models(text_embedder.length, text_embedder.vocab_length, da_embedder.inclusion_length)
+
+    def set_up_models(self, len_in, vsize_in, len_out):
+        lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
+        encoder_inputs = Input(shape=(len_in,), name='encoder_inputs')
+
+        embed_enc = Embedding(input_dim=vsize_in, output_dim=self.embedding_size)
+        encoder_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
+        en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
+        h_n = en_lstm_out[1]
+        output = Dense(len_out, activation='sigmoid')(h_n)
+
+        self.model = Model(inputs=encoder_inputs, outputs=output)
+        optimizer = Adam(lr=0.001)
+        self.model.compile(optimizer=optimizer, loss='binary_crossentropy')
+
+    def train(self, da_inclusion, text_seqs, epoch, valid_inc, valid_text):
+        valid_losses = []
+        for ep in range(epoch):
+            start = time()
+            losses = 0
+            batch_indexes = list(range(0, da_inclusion.shape[0] - self.batch_size, self.batch_size))
+            random.shuffle(batch_indexes)
+            for bi in tqdm(batch_indexes):
+                da_batch = da_inclusion[bi:bi + self.batch_size, :]
+                text_batch = text_seqs[bi:bi + self.batch_size, :]
+                self.model.train_on_batch(text_batch, da_batch)
+                losses += self.model.evaluate(text_batch, da_batch, batch_size=self.batch_size, verbose=0)
+            train_loss = losses / da_inclusion.shape[0] * self.batch_size
+            valid_loss = 0
+            for bi in range(0, valid_inc.shape[0] - self.batch_size+1, self.batch_size):
+                valid_da_batch = valid_inc[bi:bi + self.batch_size, :]
+                valid_text_batch = valid_text[bi:bi + self.batch_size, :]
+                valid_loss += self.model.evaluate(valid_text_batch, valid_da_batch, batch_size=self.batch_size, verbose=0)
+            valid_losses.append(valid_loss)
+            time_spent = time() - start
+            print('{} Epoch {} Train: {:.4f} Valid {:.4f}'.format(time_spent, ep, train_loss, valid_loss))
+
+    def predict(self, text_emb):
+        preds = self.model.predict(text_emb)
+        result = [[(1 if x > 0.5 else 0) for x in pred] for pred in preds]
+        return result
+
+    def get_pred_hamming_dist(self, text_emb, da_emb, da_embedder):
+        pad = [self.text_embedder.tok_to_embed[PAD_TOK]]*(self.text_embedder.length - len(text_emb))
+        pred = self.predict(np.array([pad + text_emb]))
+        das = da_embedder.reverse_embedding(da_emb)
+        true = da_embedder.get_inclusion(das)
+        return get_hamming_distance(pred, true)
+
+    def load_models_from_location(self, dir_name):
+        print("Loading reranker from {}".format(dir_name))
+        self.model = load_model(os.path.join(dir_name, "model.h5"))
+
+    def save_model(self, dir_name):
+        print("Saving reranker at {}".format(dir_name))
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        self.model.save(os.path.join(dir_name, "model.h5"), save_format='h5')
+
+
+class Regressor(object):
+    def __init__(self, n_in, batch_size, max_len):
+        self.batch_size = batch_size
+        inputs = Input(batch_shape=(batch_size, n_in), name='encoder_inputs')
+        dense1 = Dense(128, activation='relu')
+        # dense3 = Dense(32, activation='relu')
+        dense4 = Dense(1, activation='linear')
+        self.model = Model(inputs=inputs, outputs=dense4(dense1(inputs)))
+        optimizer = Adam(lr=0.001)
+        self.model.compile(optimizer=optimizer, loss='mean_squared_error')
+        self.max_len, self.min_len = max_len, 0
+        self.max_lprob, self.min_lprob = 0, -100  # this value is approx from one experiment - may well change
+
+    def normalise_features(self, f):
+        f = np.array(f, copy=True)
+        f[:, -1] = (f[:, -1] - self.min_len) / (self.max_len - self.min_len)
+        f[:, -2] = (f[:, -2] - self.min_lprob) / (self.max_lprob - self.min_lprob)
+        return f
+
+    def train(self, features, labs):
+        f = np.array(features)
+        lens = f[:, -1]
+        lprob = f[:, -2]
+        self.max_len, self.min_len = max(lens), 0
+        self.max_lprob, self.min_lprob = max(lprob), min(lprob)
+        print("Min lprob: ", self.min_lprob)
+
+        l = np.array(labs)
+        # only care about order here:
+        l = (l - l.min()) / (l.max() - l.min())
+        f = self.normalise_features(f)
+        print("Label Variation Mean {}, Var {}, Max {}, Min {}".format(l.mean(), l.var(), l.max(), l.min()))
+        print("Start Train")
+        self.model.fit(f, l, epochs=10, batch_size=1, verbose=0)
+        print("End Train")
+
+    def predict(self, features):
+        f = self.normalise_features(features)
+        return self.model.predict(f)
+
+    def save_model(self, dir_name):
+        self.model.save(os.path.join(dir_name, "classif.h5"), save_format='h5')
+
+    def load_model(self, dir_name):
+        self.model = load_model(os.path.join(dir_name, "classif.h5"))
 
 
 class TGEN_Model(object):
-    def __init__(self, len_in, len_out, vsize_in, vsize_out, beam_size, cfg):
-        self.batch_size = cfg["batch_size"]
-        self.len_in = len_in
-        self.len_out = len_out
-        self.vsize_in = vsize_in
-        self.vsize_out = vsize_out
+    def __init__(self, da_embedder, text_embedder,  cfg):
+        self.da_embedder = da_embedder
+        self.text_embedder = text_embedder
+        self.batch_size = cfg["train_batch_size"]
+        self.vsize_out = text_embedder.vocab_length
         self.lstm_size = cfg["hidden_size"]
         self.embedding_size = cfg["embedding_size"]
-        self.set_up_models(len_in, len_out, vsize_in, vsize_out, beam_size)
+        self.set_up_models()
 
     def train(self, da_seq, text_seq, n_epochs, valid_da_seq, valid_text_seq, text_embedder, early_stop_point=5,
               minimum_stop_point=20):
@@ -71,24 +187,6 @@ class TGEN_Model(object):
                         valid_losses) > minimum_stop_point:
                     return
 
-    def make_prediction_orig(self, encoder_in, text_embedder):
-        test_en = np.array([encoder_in])
-        test_fr = np.array([text_embedder.tok_to_embed['<S>']])
-        inf_enc_out = self.encoder_model.predict(test_en)
-        enc_outs = inf_enc_out[0]
-        enc_last_state = inf_enc_out[1:]
-        dec_state = enc_last_state
-        fr_in = test_fr
-        fr_text = ''
-        for i in range(20):
-            out = self.decoder_model.predict([enc_outs, dec_state[0], dec_state[1], fr_in])
-            dec_out, dec_state = out[0], out[1:]
-            dec_ind = np.argmax(dec_out, axis=-1)[0, 0]
-            fr_in = np.array([dec_ind])
-            fr_text += text_embedder.embed_to_tok[dec_ind] + ' '
-        return fr_text
-
-
     def load_models_from_location(self, dir_name):
         self.full_model = load_model(os.path.join(dir_name, "full.h5"),
                                      custom_objects={'AttentionLayer': AttentionLayer})
@@ -118,11 +216,11 @@ class TGEN_Model(object):
             batch_dec_state_0.append(dec_state[0][0])
             batch_dec_state_1.append(dec_state[1][0])
         inp = [batch_enc_outs, np.array(batch_dec_state_0), np.array(batch_dec_state_1), np.array(batch_tok)]
-        
+
         out = self.decoder_model.predict(inp)
         if len(out) == 3:
             dec_outs, dec_states = out[0], out[1:]
-        else: #old model
+        else:  # old model
             dec_outs, dec_states = out[0], out[2:]
         new_paths = []
         tok_probs = []
@@ -132,8 +230,8 @@ class TGEN_Model(object):
                 new_paths.append((logprob, toks, ds))
                 continue
             top_k = np.argsort(dec_out, axis=-1)[0][-beam_size:]
-            ds0 = ds0.reshape((1,-1))
-            ds1 = ds1.reshape((1,-1))
+            ds0 = ds0.reshape((1, -1))
+            ds1 = ds1.reshape((1, -1))
             tok_prob = dec_out[0][top_k]
             for new_tok, tok_prob in zip(top_k, tok_prob):
                 tok_probs.append(tok_prob)
@@ -153,7 +251,7 @@ class TGEN_Model(object):
 
         end_embs = text_embedder.end_embs
         for i in range(max_length):
-            new_paths,_ = self.beam_search_exapand(paths, end_embs, enc_outs, beam_size)
+            new_paths, _ = self.beam_search_exapand(paths, end_embs, enc_outs, beam_size)
 
             paths = sorted(new_paths, key=lambda x: x[0], reverse=True)[:beam_size]
             if all([p[1][-1] in end_embs for p in paths]):
@@ -161,9 +259,11 @@ class TGEN_Model(object):
 
         return " ".join(text_embedder.reverse_embedding(paths[0][1]))
 
-
-
-    def set_up_models(self, len_in, len_out, vsize_in, vsize_out, inf_batch_size):
+    def set_up_models(self):
+        len_in = self.da_embedder.length
+        vsize_in = self.da_embedder.vocab_length
+        len_out = self.text_embedder.length
+        vsize_out = self.text_embedder.vocab_length
         lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
         encoder_inputs = Input(batch_shape=(self.batch_size, len_in), name='encoder_inputs')
         decoder_inputs = Input(batch_shape=(self.batch_size, len_out - 1), name='decoder_inputs')
@@ -204,7 +304,7 @@ class TGEN_Model(object):
         self.full_model.compile(optimizer=optimizer, loss='categorical_crossentropy')
 
         """ Encoder (Inference) model """
-        encoder_inf_inputs = Input(batch_shape=(inf_batch_size, len_in), name='encoder_inf_inputs')
+        encoder_inf_inputs = Input(shape=(len_in), name='encoder_inf_inputs')
         en_lstm_out = encoder_lstm(embed_enc(encoder_inf_inputs))
         encoder_inf_out = en_lstm_out[0]
         encoder_inf_state = en_lstm_out[1:]
@@ -212,10 +312,10 @@ class TGEN_Model(object):
         self.encoder_model = Model(inputs=encoder_inf_inputs, outputs=[encoder_inf_out, encoder_inf_state])
 
         """ Decoder (Inference) model """
-        dec_in = Input(batch_shape=(inf_batch_size, 1), name='decoder_word_inputs')
-        encoder_out = Input(batch_shape=(inf_batch_size, len_in, self.lstm_size), name='encoder_inf_states')
-        encoder_1 = Input(batch_shape=(inf_batch_size, self.lstm_size), name='decoder_init_1')
-        encoder_2 = Input(batch_shape=(inf_batch_size, self.lstm_size), name='decoder_init_2')
+        dec_in = Input(shape=(1,), name='decoder_word_inputs')
+        encoder_out = Input(shape=(len_in, self.lstm_size), name='encoder_inf_states')
+        encoder_1 = Input(shape=(self.lstm_size,), name='decoder_init_1')
+        encoder_2 = Input(shape=(self.lstm_size,), name='decoder_init_2')
         embed_dec_in = embed_dec(dec_in)
 
         # Ws

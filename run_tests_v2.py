@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from utils import construct_logs, RERANK, get_texts_training
 from getopt import getopt
 
-from beam_search_edit import _beam_search, lexicalize_beam, save_training_data, rolling_beam_search
+from old_files.beam_search_edit import _beam_search, lexicalize_beam, save_training_data, rolling_beam_search
 from e2e_metrics.measure_scores import load_data, evaluate, run_pymteval
 
 import nltk
@@ -158,7 +158,7 @@ def test_res_official(beam_size, reranker=RERANK.VANILLA):
 
 if __name__ == "__main__":
     # train("models/model_e2e_3/model.pickle.gz")
-    reranker = 'output'
+    reranker = 'oracle'
     generate_results = False
     get_results = True
     training_data = False
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
     if get_results:
         scores = []
-        for beam_size in [1, 3, 5, 10, 30, 100]:
+        for beam_size in [3, 5, 10, 30, 100]:
             result = test_res_official(beam_size, reranker=reranker)
             scores.append((beam_size, result))
             print(beam_size, result)

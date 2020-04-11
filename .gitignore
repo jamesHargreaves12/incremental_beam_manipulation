@@ -6,5 +6,6 @@ __pycache__*
 models/*
 old/*
 output_files/*
-old_files2/*
+old_files/*
 config*.yaml
+configs/*

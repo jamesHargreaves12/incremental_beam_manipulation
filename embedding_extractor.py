@@ -1,4 +1,9 @@
 from utils import PAD_TOK, START_TOK, END_TOK
+import sys
+import os
+
+sys.path.append(os.path.join(os.getcwd(), 'tgen'))
+from tgen.data import DAI
 
 
 class TokEmbeddingSeq2SeqExtractor(object):
@@ -15,18 +20,21 @@ class TokEmbeddingSeq2SeqExtractor(object):
             self.length = min(self.length, max_length)
         self.start_emb = [self.tok_to_embed[START_TOK]]
         self.end_embs = [self.tok_to_embed[END_TOK], self.tok_to_embed[PAD_TOK]]
+        self.empty_embedding = [self.tok_to_embed[PAD_TOK] for _ in range(self.length)]
 
-    def get_embeddings(self, tokenised_texts):
+    def get_embeddings(self, tokenised_texts, pad_from_end=True):
         embs = []
         for toks in tokenised_texts:
             emb = [self.tok_to_embed.get(x, PAD_TOK) for x in toks]
             pad = [self.tok_to_embed[PAD_TOK] for _ in range(self.length - len(toks))]
-            embs.append(emb + pad)
+            if pad_from_end:
+                embs.append(emb + pad)
+            else:
+                embs.append(pad + emb)
         return [e[:self.length + 1] for e in embs]
 
     def reverse_embedding(self, embedding):
         return [self.embed_to_tok[e] for e in embedding]
-
 
 
 class DAEmbeddingSeq2SeqExtractor(object):
@@ -38,20 +46,29 @@ class DAEmbeddingSeq2SeqExtractor(object):
         self.acts = {self.UNK_ACT}
         self.slots = {self.UNK_SLOT}
         self.values = {self.UNK_VALUE}
+        self.coocurrence = set()
         for da in das:
             for dai in da:
                 self.acts.add(dai.da_type)
                 self.slots.add(dai.slot)
                 self.values.add(dai.value)
+                self.coocurrence.add((dai.da_type, dai.slot, dai.value))
         taken_emb = 0
         self.act_emb = {act: taken_emb + i for i, act in enumerate(sorted(list(self.acts)))}
+        self.rev_act_emb = {taken_emb + i: act for i, act in enumerate(sorted(list(self.acts)))}
         taken_emb += len(self.acts)
         self.slot_emb = {slo: taken_emb + i for i, slo in enumerate(sorted(list(self.slots)))}
+        self.rev_slot_emb = {taken_emb + i: slo for i, slo in enumerate(sorted(list(self.slots)))}
         taken_emb += len(self.slots)
         self.val_emb = {val: taken_emb + i for i, val in enumerate(sorted(list(self.values)))}
+        self.rev_val_emb = {taken_emb + i: val for i, val in enumerate(sorted(list(self.values)))}
         taken_emb += len(self.values)
         self.vocab_length = taken_emb
+        self.inclusion_map = {val: i for i, val in enumerate(sorted(list(self.coocurrence)))}
+        self.inclusion_rev = {i: val for i, val in enumerate(sorted(list(self.coocurrence)))}
         self.length = max([len(x) for x in das]) * 3
+        self.inclusion_length = len(self.inclusion_map)
+        self.empty_inclusion = [0 for _ in range(self.inclusion_length)]
 
     def get_embeddings(self, das):
         embs = []
@@ -66,6 +83,31 @@ class DAEmbeddingSeq2SeqExtractor(object):
                   * (self.length // 3 - len(da))
             embs.append(pad + emb)
         return [e[-self.length:] for e in embs]
+
+    def reverse_embedding(self, da_emb):
+        i = 0
+        das = []
+        while i < len(da_emb):
+            act = self.rev_act_emb[da_emb[i]]
+            slot = self.rev_slot_emb[da_emb[i + 1]]
+            val = self.rev_val_emb[da_emb[i + 2]]
+            i += 3
+            if act != self.UNK_ACT:
+                das.append(DAI(act, slot, val))
+        return das
+
+    def get_inclusion(self, das):
+        included = set()
+        for dai in das:
+            included.add(self.inclusion_map[(dai.da_type, dai.slot, dai.value)])
+        return [(1 if x in included else 0) for x in range(self.inclusion_length)]
+
+    def reverse_inclusion(self, inclusion):
+        included = set()
+        for i, x in enumerate(inclusion):
+            if x == 1:
+                included.add(i)
+        return [self.inclusion_rev[x] for x in included]
 
 
 if __name__ == "__main__":
