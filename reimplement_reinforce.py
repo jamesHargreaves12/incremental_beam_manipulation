@@ -176,6 +176,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 break
 
         if save_file:
+            print("Saving final beam")
             for path in paths:
                 save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
             save_file.write("\n")
