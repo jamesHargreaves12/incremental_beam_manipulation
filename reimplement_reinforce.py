@@ -142,12 +142,15 @@ def get_greedy_decode_score_func(models, bleu, true_vals):
     return func
 
 
-def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False):
+def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False, save_final_beam_path=False):
     da_embedder = beam_search_model.da_embedder
     text_embedder = beam_search_model.text_embedder
     max_predict_len = 60
 
     results = []
+    save_file = None
+    if save_final_beam_path:
+        save_file = open(save_final_beam_path.format(beam_size), "w+")
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
         inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
         enc_outs = inf_enc_out[0]
@@ -171,6 +174,11 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
             if all([p[1][-1] in end_tokens for p in paths]):
                 break
+
+        if save_file:
+            for path in paths:
+                save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
+            save_file.write("\n")
 
         if only_rescore_final:
             path_scores = []
