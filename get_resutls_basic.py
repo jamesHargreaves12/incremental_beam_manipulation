@@ -12,7 +12,6 @@ texts, das, = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 
-das_test = get_test_das()
 
 if cfg['scorer'] == "TGEN":
     tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg)
@@ -23,7 +22,10 @@ elif cfg['scorer'] == 'identity':
 else:
     raise ValueError("Unknown Scorer {}".format(cfg['scorer']))
 
+das_test = get_test_das()
 models = TGEN_Model(da_embedder, text_embedder, cfg)
+models.load_models_from_location(cfg['model_save_loc'])
+
 absts = get_abstss()
 for beam_size in [3]:
     preds = run_beam_search_with_rescorer(scorer_func, models, None, None, text_embedder,

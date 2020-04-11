@@ -63,7 +63,7 @@ for beam_size in [3, 5, 10, 30, 100]:
     start = time()
     results = []
     for da_emb in tqdm(da_embedder.get_embeddings(test_das)):
-        pred = models.make_prediction(da_emb, text_embedder, beam_size, max_length=text_len)
+        pred = models.make_prediction(da_emb, beam_size, max_length=text_len)
         results.append(pred.replace(" <>", "").replace('<S> ', '').replace(' <E>', '').split(" "))
     post_abstr = apply_absts(absts, results)
     with open(cfg["res_save_format"].format(beam_size), "w+") as out_file:

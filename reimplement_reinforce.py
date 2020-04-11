@@ -141,7 +141,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model, out_path, abstss, t
 
     results = []
     for i, da_emb in tqdm(enumerate(da_embedder.get_embeddings(das))):
-        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb] * beam_size))
+        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
         paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
@@ -149,7 +149,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model, out_path, abstss, t
 
         for step in range(max_predict_len):
             # expand
-            new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
+            new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, enc_outs, beam_size)
 
             # prune
             path_scores = []

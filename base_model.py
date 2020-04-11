@@ -202,7 +202,7 @@ class TGEN_Model(object):
         self.encoder_model.save(os.path.join(dir_name, "enc.h5"), save_format='h5')
         self.decoder_model.save(os.path.join(dir_name, "dec.h5"), save_format='h5')
 
-    def beam_search_exapand(self, paths, end_tokens, enc_outs, beam_size):
+    def beam_search_exapand(self, paths, enc_outs, beam_size):
         filled_paths = paths.copy()
         while len(filled_paths) < beam_size:
             filled_paths.append(paths[0])
@@ -226,7 +226,7 @@ class TGEN_Model(object):
         tok_probs = []
         for p, dec_out, ds0, ds1 in zip(paths, dec_outs, dec_states[0], dec_states[1]):
             logprob, toks, ds = p
-            if toks[-1] in end_tokens:
+            if toks[-1] in self.text_embedder.end_embs:
                 new_paths.append((logprob, toks, ds))
                 continue
             top_k = np.argsort(dec_out, axis=-1)[0][-beam_size:]
@@ -238,26 +238,26 @@ class TGEN_Model(object):
                 new_paths.append((logprob + log(tp), toks + [new_tok], [ds0, ds1]))
         return new_paths, tok_probs
 
-    def make_prediction(self, encoder_in, text_embedder, beam_size=1, prev_tok=None, max_length=20):
+    def make_prediction(self, encoder_in, beam_size=1, prev_tok=None, max_length=20):
         if prev_tok is None:
             prev_tok = START_TOK
         test_en = np.array([encoder_in])
-        test_fr = [text_embedder.tok_to_embed[prev_tok]]
+        test_fr = [self.text_embedder.tok_to_embed[prev_tok]]
 
         inf_enc_out = self.encoder_model.predict(test_en)
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
         paths = [(log(1.0), test_fr, enc_last_state)]
 
-        end_embs = text_embedder.end_embs
+        end_embs = self.text_embedder.end_embs
         for i in range(max_length):
-            new_paths, _ = self.beam_search_exapand(paths, end_embs, enc_outs, beam_size)
+            new_paths, _ = self.beam_search_exapand(paths, enc_outs, beam_size)
 
             paths = sorted(new_paths, key=lambda x: x[0], reverse=True)[:beam_size]
             if all([p[1][-1] in end_embs for p in paths]):
                 break
 
-        return " ".join(text_embedder.reverse_embedding(paths[0][1]))
+        return " ".join(self.text_embedder.reverse_embedding(paths[0][1]))
 
     def set_up_models(self):
         len_in = self.da_embedder.length
