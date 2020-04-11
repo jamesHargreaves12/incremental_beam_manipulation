@@ -39,7 +39,7 @@ else:
 absts = get_abstss()
 for beam_size in cfg["beam_sizes"]:
     print("Beam size = {} ".format(beam_size))
-    preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'])
+    preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'], cfg.get('beam_save_path', None))
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     post_abstr = apply_absts(absts, preds)
     save_file = cfg["res_save_format"].format(beam_size)
