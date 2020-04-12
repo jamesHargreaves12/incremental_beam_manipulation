@@ -229,6 +229,8 @@ class TGEN_Model(object):
         print("Final Valid Loss =", final_valid_loss)
 
     def load_models(self):
+        print("Loading models at {}".format(self.save_location))
+
         self.full_model = load_model(os.path.join(self.save_location, "full.h5"),
                                      custom_objects={'AttentionLayer': AttentionLayer})
         self.encoder_model = load_model(os.path.join(self.save_location, "enc.h5"),
@@ -237,6 +239,7 @@ class TGEN_Model(object):
                                         custom_objects={'AttentionLayer': AttentionLayer})
 
     def save_model(self):
+        print("Saving models at {}".format(self.save_location))
         if not os.path.exists(self.save_location):
             os.makedirs(self.save_location)
         self.full_model.save(os.path.join(self.save_location, "full.h5"), save_format='h5')
