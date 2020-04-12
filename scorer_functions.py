@@ -8,7 +8,7 @@ def get_score_function(scorer, cfg, da_embedder, text_embedder, models, true_val
     print("Using Scorer: {}".format(scorer))
     if scorer == "TGEN":
         tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg)
-        tgen_reranker.load_models_from_location(cfg['reranker_loc'])
+        tgen_reranker.load_model()
         return get_tgen_rerank_score_func(tgen_reranker, da_embedder)
     elif scorer == 'identity':
         return get_identity_score_func()

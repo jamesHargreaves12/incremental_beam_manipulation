@@ -15,12 +15,11 @@ train_text = np.array(text_embedder.get_embeddings(texts, pad_from_end=False) + 
 das_inclusions = np.array([da_embedder.get_inclusion(da) for da in das] + [da_embedder.empty_inclusion])
 reranker = TGEN_Reranker(da_embedder, text_embedder, cfg)
 if os.path.exists(cfg["reranker_loc"]) and cfg["load_reranker"]:
-    reranker.load_models_from_location(cfg["reranker_loc"])
+    reranker.load_model()
 else:
     valid_size = cfg['valid_size']
     reranker.train(das_inclusions[:-valid_size], train_text[:-valid_size], cfg["reranker_epoch"],
-                   das_inclusions[-valid_size:], train_text[-valid_size:])
-    reranker.save_model(cfg["reranker_loc"])
+                   das_inclusions[-valid_size:], train_text[-valid_size:], cfg["min_passes"])
 if cfg["plot_reranker_stats"]:
     preds = reranker.predict(train_text)
     ham_dists = [get_hamming_distance(x, y) for x, y in zip(preds, das_inclusions)]

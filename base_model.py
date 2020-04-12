@@ -21,6 +21,7 @@ class TGEN_Reranker(object):
         self.batch_size = cfg['batch_size']
         self.lstm_size = cfg["hidden_size"]
         self.embedding_size = cfg['embedding_size']
+        self.save_location = cfg["reranker_loc"]
         self.model = None
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
@@ -41,6 +42,7 @@ class TGEN_Reranker(object):
         self.model = Model(inputs=encoder_inputs, outputs=output)
         optimizer = Adam(lr=0.001)
         self.model.compile(optimizer=optimizer, loss='binary_crossentropy')
+        self.model.summary()
 
     def train(self, da_inclusion, text_seqs, epoch, valid_inc, valid_text, min_epoch=5):
         valid_losses = []
@@ -68,10 +70,12 @@ class TGEN_Reranker(object):
             if valid_loss < min_valid_loss:
                 min_valid_loss = valid_loss
                 epoch_since_last_min = 0
+                self.save_model()
             else:
                 epoch_since_last_min += 1
             if epoch_since_last_min == min_epoch:
                 break
+        self.load_model()
 
     def predict(self, text_emb):
         preds = self.model.predict(text_emb)
@@ -85,15 +89,15 @@ class TGEN_Reranker(object):
         true = da_embedder.get_inclusion(das)
         return get_hamming_distance(pred, true)
 
-    def load_models_from_location(self, dir_name):
-        print("Loading reranker from {}".format(dir_name))
-        self.model = load_model(os.path.join(dir_name, "model.h5"))
+    def load_model(self):
+        print("Loading reranker from {}".format(self.save_location))
+        self.model = load_model(os.path.join(self.save_location, "model.h5"))
 
-    def save_model(self, dir_name):
-        print("Saving reranker at {}".format(dir_name))
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-        self.model.save(os.path.join(dir_name, "model.h5"), save_format='h5')
+    def save_model(self):
+        print("Saving reranker at {}".format(self.save_location))
+        if not os.path.exists(self.save_location):
+            os.makedirs(self.save_location)
+        self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
 
 class Regressor(object):
