@@ -49,7 +49,7 @@ class TGEN_Reranker(object):
         for bi in range(0, valid_inc.shape[0] - self.batch_size + 1, self.batch_size):
             valid_da_batch = valid_inc[bi:bi + self.batch_size, :]
             valid_text_batch = valid_text[bi:bi + self.batch_size, :]
-            valid_loss += self.model.evaluate(X=valid_text_batch, y=valid_da_batch, batch_size=self.batch_size,
+            valid_loss += self.model.evaluate(valid_text_batch, valid_da_batch, batch_size=self.batch_size,
                                               verbose=0)
         return valid_loss
 
