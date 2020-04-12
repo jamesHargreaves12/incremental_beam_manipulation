@@ -1,3 +1,4 @@
+import math
 import os
 import random
 from math import log
@@ -42,8 +43,10 @@ class TGEN_Reranker(object):
         optimizer = Adam(lr=0.001)
         self.model.compile(optimizer=optimizer, loss='binary_crossentropy')
 
-    def train(self, da_inclusion, text_seqs, epoch, valid_inc, valid_text):
+    def train(self, da_inclusion, text_seqs, epoch, valid_inc, valid_text, min_epoch=5):
         valid_losses = []
+        min_valid_loss = math.inf
+        epoch_since_last_min = 0
         for ep in range(epoch):
             start = time()
             losses = 0
@@ -63,6 +66,13 @@ class TGEN_Reranker(object):
             valid_losses.append(valid_loss)
             time_spent = time() - start
             print('{} Epoch {} Train: {:.4f} Valid {:.4f}'.format(time_spent, ep, train_loss, valid_loss))
+            if valid_loss < min_valid_loss:
+                min_valid_loss = valid_loss
+                epoch_since_last_min = 0
+            else:
+                epoch_since_last_min += 1
+            if epoch_since_last_min == min_epoch:
+                break
 
     def predict(self, text_emb):
         preds = self.model.predict(text_emb)
