@@ -49,11 +49,10 @@ train_text = np.array(text_embs)
 
 models = TGEN_Model(da_embedder, text_embedder,  cfg)
 if load_from_save and os.path.exists(cfg['model_save_loc']):
-    models.load_models_from_location(cfg['model_save_loc'])
+    models.load_models()
 else:
     models.train(train_da[:-valid_size], train_text[:-valid_size], epoch, train_da[-valid_size:],
                  train_text[-valid_size:], text_embedder)
-    models.save_model(cfg['model_save_loc'])
 
 print("TESTING")
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")

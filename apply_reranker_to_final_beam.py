@@ -22,7 +22,7 @@ da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 das_test = get_test_das()
 true_vals = get_true_sents()
 models = TGEN_Model(da_embedder, text_embedder, cfg)
-models.load_models_from_location(cfg['model_save_loc'])
+models.load_models()
 
 scorer_func = get_score_function(cfg['scorer'], cfg, da_embedder, text_embedder, models, true_vals)
 

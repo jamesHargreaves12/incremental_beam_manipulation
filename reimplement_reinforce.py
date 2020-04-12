@@ -233,8 +233,8 @@ if __name__ == "__main__":
     da_vsize, da_len = da_embedder.vocab_length, da_embedder.length
     print(da_vsize, text_vsize, da_len, text_len)
 
-    models = TGEN_Model(da_len, text_len, da_vsize, text_vsize, beam_size, cfg)
-    models.load_models_from_location(cfg["model_save_loc"])
+    models = TGEN_Model(da_embedder, text_embedder, cfg)
+    models.load_models()
 
     regressor = Regressor(n_in, batch_size=1, max_len=max([len(x) for x in texts]))
     if cfg["classif_from_file"]:

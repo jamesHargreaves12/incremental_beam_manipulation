@@ -44,6 +44,15 @@ class TGEN_Reranker(object):
         self.model.compile(optimizer=optimizer, loss='binary_crossentropy')
         self.model.summary()
 
+    def get_valid_loss(self, valid_inc, valid_text):
+        valid_loss = 0
+        for bi in range(0, valid_inc.shape[0] - self.batch_size + 1, self.batch_size):
+            valid_da_batch = valid_inc[bi:bi + self.batch_size, :]
+            valid_text_batch = valid_text[bi:bi + self.batch_size, :]
+            valid_loss += self.model.evaluate(X=valid_text_batch, y=valid_da_batch, batch_size=self.batch_size,
+                                              verbose=0)
+        return valid_loss
+
     def train(self, da_inclusion, text_seqs, epoch, valid_inc, valid_text, min_epoch=5):
         valid_losses = []
         min_valid_loss = math.inf
@@ -59,11 +68,8 @@ class TGEN_Reranker(object):
                 self.model.train_on_batch(text_batch, da_batch)
                 losses += self.model.evaluate(text_batch, da_batch, batch_size=self.batch_size, verbose=0)
             train_loss = losses / da_inclusion.shape[0] * self.batch_size
-            valid_loss = 0
-            for bi in range(0, valid_inc.shape[0] - self.batch_size+1, self.batch_size):
-                valid_da_batch = valid_inc[bi:bi + self.batch_size, :]
-                valid_text_batch = valid_text[bi:bi + self.batch_size, :]
-                valid_loss += self.model.evaluate(valid_text_batch, valid_da_batch, batch_size=self.batch_size, verbose=0)
+
+            valid_loss = self.get_valid_loss(valid_inc, valid_text)
             valid_losses.append(valid_loss)
             time_spent = time() - start
             print('{} Epoch {} Train: {:.4f} Valid {:.4f}'.format(time_spent, ep, train_loss, valid_loss))
@@ -76,6 +82,8 @@ class TGEN_Reranker(object):
             if epoch_since_last_min == min_epoch:
                 break
         self.load_model()
+        final_valid_loss = self.get_valid_loss(valid_inc, valid_text)
+        print("Final valid loss =", final_valid_loss)
 
     def predict(self, text_emb):
         preds = self.model.predict(text_emb)
@@ -83,7 +91,7 @@ class TGEN_Reranker(object):
         return result
 
     def get_pred_hamming_dist(self, text_emb, da_emb, da_embedder):
-        pad = [self.text_embedder.tok_to_embed[PAD_TOK]]*(self.text_embedder.length - len(text_emb))
+        pad = [self.text_embedder.tok_to_embed[PAD_TOK]] * (self.text_embedder.length - len(text_emb))
         pred = self.predict(np.array([pad + text_emb]))[0]
         das = da_embedder.reverse_embedding(da_emb)
         true = da_embedder.get_inclusion(das)
@@ -148,14 +156,29 @@ class Regressor(object):
 
 
 class TGEN_Model(object):
-    def __init__(self, da_embedder, text_embedder,  cfg):
+    def __init__(self, da_embedder, text_embedder, cfg):
         self.da_embedder = da_embedder
         self.text_embedder = text_embedder
         self.batch_size = cfg["train_batch_size"]
         self.vsize_out = text_embedder.vocab_length
         self.lstm_size = cfg["hidden_size"]
         self.embedding_size = cfg["embedding_size"]
+        self.save_location = cfg["model_save_loc"]
+        self.full_model = None
+        self.encoder_model = None
+        self.decoder_model = None
         self.set_up_models()
+
+    def get_valid_loss(self, valid_da_seq, valid_text_seq, valid_onehot_seq):
+        valid_loss = 0
+        for bi in range(0, valid_da_seq.shape[0] - self.batch_size, self.batch_size):
+            valid_da_batch = valid_da_seq[bi:bi + self.batch_size, :]
+            valid_text_batch = valid_text_seq[bi:bi + self.batch_size, :]
+            valid_onehot_batch = valid_onehot_seq[bi:bi + self.batch_size, :, :]
+            valid_loss += self.full_model.evaluate([valid_da_batch, valid_text_batch[:, :-1]],
+                                                   valid_onehot_batch[:, 1:, :],
+                                                   batch_size=self.batch_size, verbose=0)
+        return valid_loss
 
     def train(self, da_seq, text_seq, n_epochs, valid_da_seq, valid_text_seq, text_embedder, early_stop_point=5,
               minimum_stop_point=20):
@@ -163,6 +186,7 @@ class TGEN_Model(object):
         text_onehot_seq = to_categorical(text_seq, num_classes=self.vsize_out)
 
         valid_losses = []
+        min_valid_loss = math.inf
         rev_embed = text_embedder.embed_to_tok
         print('Valid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
 
@@ -179,14 +203,7 @@ class TGEN_Model(object):
                 losses += self.full_model.evaluate([da_batch, text_batch[:, :-1]], text_onehot_batch[:, 1:, :],
                                                    batch_size=self.batch_size, verbose=0)
             if (ep + 1) % 1 == 0:
-                valid_loss = 0
-                for bi in range(0, valid_da_seq.shape[0] - self.batch_size, self.batch_size):
-                    valid_da_batch = da_seq[bi:bi + self.batch_size, :]
-                    valid_text_batch = text_seq[bi:bi + self.batch_size, :]
-                    valid_onehot_batch = valid_onehot_seq[bi:bi + self.batch_size, :, :]
-                    valid_loss += self.full_model.evaluate([valid_da_batch, valid_text_batch[:, :-1]],
-                                                           valid_onehot_batch[:, 1:, :],
-                                                           batch_size=self.batch_size, verbose=0)
+                valid_loss = self.get_valid_loss(valid_da_seq, valid_text_seq, valid_onehot_seq)
                 valid_losses.append(valid_loss)
 
                 valid_pred = self.make_prediction(valid_da_seq[0], text_embedder).replace(
@@ -199,24 +216,32 @@ class TGEN_Model(object):
                 print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f} {}".format(time_taken, ep + 1,
                                                                                 train_loss, valid_loss,
                                                                                 valid_pred))
+                if valid_loss < min_valid_loss:
+                    self.save_model()
+                    min_valid_loss = valid_loss
+
                 if len(valid_losses) - np.argmin(valid_losses) > early_stop_point and len(
                         valid_losses) > minimum_stop_point:
                     return
+            self.load_models()
 
-    def load_models_from_location(self, dir_name):
-        self.full_model = load_model(os.path.join(dir_name, "full.h5"),
+            final_valid_loss = self.get_valid_loss(valid_da_seq, valid_text_seq, valid_onehot_seq)
+            print("Final Valid Loss =", final_valid_loss)
+
+    def load_models(self):
+        self.full_model = load_model(os.path.join(self.save_location, "full.h5"),
                                      custom_objects={'AttentionLayer': AttentionLayer})
-        self.encoder_model = load_model(os.path.join(dir_name, "enc.h5"),
+        self.encoder_model = load_model(os.path.join(self.save_location, "enc.h5"),
                                         custom_objects={'AttentionLayer': AttentionLayer})
-        self.decoder_model = load_model(os.path.join(dir_name, "dec.h5"),
+        self.decoder_model = load_model(os.path.join(self.save_location, "dec.h5"),
                                         custom_objects={'AttentionLayer': AttentionLayer})
 
-    def save_model(self, dir_name):
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-        self.full_model.save(os.path.join(dir_name, "full.h5"), save_format='h5')
-        self.encoder_model.save(os.path.join(dir_name, "enc.h5"), save_format='h5')
-        self.decoder_model.save(os.path.join(dir_name, "dec.h5"), save_format='h5')
+    def save_model(self):
+        if not os.path.exists(self.save_location):
+            os.makedirs(self.save_location)
+        self.full_model.save(os.path.join(self.save_location, "full.h5"), save_format='h5')
+        self.encoder_model.save(os.path.join(self.save_location, "enc.h5"), save_format='h5')
+        self.decoder_model.save(os.path.join(self.save_location, "dec.h5"), save_format='h5')
 
     def beam_search_exapand(self, paths, enc_outs, beam_size):
         filled_paths = paths.copy()
