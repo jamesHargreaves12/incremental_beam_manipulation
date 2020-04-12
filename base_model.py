@@ -32,8 +32,11 @@ class TGEN_Reranker(object):
         embed_enc = Embedding(input_dim=vsize_in, output_dim=self.embedding_size)
         encoder_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
         en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
-        h_n = en_lstm_out[1]
-        output = Dense(len_out, activation='sigmoid')(h_n)
+        h_n = en_lstm_out[1:]
+        in_logistic_layer = Concatenate(axis=-1, name='concat_layer_Wy')(h_n)
+
+        output = Dense(self.lstm_size, activation='tanh')(in_logistic_layer)
+        output = Dense(len_out, activation='sigmoid')(output)
 
         self.model = Model(inputs=encoder_inputs, outputs=output)
         optimizer = Adam(lr=0.001)
