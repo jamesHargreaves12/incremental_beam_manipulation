@@ -206,8 +206,8 @@ class TGEN_Model(object):
                 valid_loss = self.get_valid_loss(valid_da_seq, valid_text_seq, valid_onehot_seq)
                 valid_losses.append(valid_loss)
 
-                valid_pred = self.make_prediction(valid_da_seq[0], text_embedder).replace(
-                    "<>", "")
+                valid_pred = self.make_prediction(valid_da_seq[0], max_length=40).replace(
+                    "<> ", "")
                 # train_pred = self.make_prediction(da_seq[0], text_embedder).replace("<>", "")
                 time_taken = time() - start
                 train_loss = losses / da_seq.shape[0] * self.batch_size

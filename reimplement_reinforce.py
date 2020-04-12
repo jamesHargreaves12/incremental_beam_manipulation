@@ -71,7 +71,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
             end_tokens = text_embedder.end_embs
 
             for step in range(len(true)):
-                new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, end_tokens, enc_outs, beam_size)
+                new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, enc_outs, beam_size)
 
                 path_scores = []
                 regressor_order = random.random() > beam_search_proportion
