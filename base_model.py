@@ -36,8 +36,7 @@ class TGEN_Reranker(object):
         h_n = en_lstm_out[1:]
         in_logistic_layer = Concatenate(axis=-1, name='concat_layer_Wy')(h_n)
 
-        output = Dense(self.lstm_size, activation='tanh')(in_logistic_layer)
-        output = Dense(len_out, activation='sigmoid')(output)
+        output = Dense(len_out, activation='sigmoid')(in_logistic_layer)
 
         self.model = Model(inputs=encoder_inputs, outputs=output)
         optimizer = Adam(lr=0.001)
