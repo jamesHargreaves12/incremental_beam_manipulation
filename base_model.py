@@ -68,7 +68,7 @@ class TGEN_Reranker(object):
 
     def get_pred_hamming_dist(self, text_emb, da_emb, da_embedder):
         pad = [self.text_embedder.tok_to_embed[PAD_TOK]]*(self.text_embedder.length - len(text_emb))
-        pred = self.predict(np.array([pad + text_emb]))
+        pred = self.predict(np.array([pad + text_emb]))[0]
         das = da_embedder.reverse_embedding(da_emb)
         true = da_embedder.get_inclusion(das)
         return get_hamming_distance(pred, true)

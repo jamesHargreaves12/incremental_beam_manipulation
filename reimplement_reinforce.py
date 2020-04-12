@@ -142,7 +142,29 @@ def get_greedy_decode_score_func(models, bleu, true_vals):
     return func
 
 
-def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False, save_final_beam_path=False):
+def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
+    def func(path, tp, da_emb, da_i):
+        true = true_vals[da_i]
+        pred = " ".join(text_embedder.reverse_embedding(path[1])) \
+            .replace("<> ", "").replace("<S> ", "").replace("<E> ", "")
+        bleu.reset()
+        bleu.append(pred, true)
+        if reverse:
+            return 1 - bleu.score()
+        return bleu.score()
+
+    return func
+
+
+def get_random_score_func():
+    def func(path, tp, da_emb, da_i):
+        return random.random()
+
+    return func
+
+
+def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False,
+                                  save_final_beam_path=False):
     da_embedder = beam_search_model.da_embedder
     text_embedder = beam_search_model.text_embedder
     max_predict_len = 60
