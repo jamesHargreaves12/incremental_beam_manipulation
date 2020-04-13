@@ -10,8 +10,8 @@ from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2Seq
 from reimplement_reinforce import run_beam_search_with_rescorer, get_tgen_rerank_score_func, get_identity_score_func, \
     get_greedy_decode_score_func
 from scorer_functions import get_score_function
-from utils import get_training_variables, apply_absts, get_abstss, get_test_das, START_TOK, END_TOK, PAD_TOK, \
-    get_true_sents, get_final_beam
+from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
+    get_true_sents, get_final_beam, get_abstss_test
 
 parser = argparse.ArgumentParser()
 parser.add_argument('config_path')
@@ -32,7 +32,7 @@ models.load_models()
 
 scorer_func = get_score_function(cfg['scorer'], cfg, da_embedder, text_embedder, models, true_vals)
 
-absts = get_abstss()
+absts = get_abstss_test()
 
 for beam_size in cfg["beam_sizes"]:
     print("Beam size = {} ".format(beam_size))

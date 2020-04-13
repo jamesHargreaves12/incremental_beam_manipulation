@@ -56,7 +56,7 @@ else:
 
 print("TESTING")
 test_das = read_das("tgen/e2e-challenge/input/devel-das.txt")
-absts = smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
+absts = smart_load_absts('tgen/e2e-challenge/input/devel-abst.txt')
 for beam_size in [3, 5, 10, 30, 100]:
     print("Beam_size {}".format(beam_size))
     start = time()

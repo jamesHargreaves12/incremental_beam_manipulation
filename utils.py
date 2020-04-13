@@ -130,13 +130,17 @@ def get_test_das():
     return das
 
 
-def get_abstss():
+def get_abstss_train():
     return smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
+
+
+def get_abstss_test():
+    return smart_load_absts('tgen/e2e-challenge/input/devel-abst.txt')
 
 
 def get_final_beam(beam_size):
     path = "output_files/saved_beams/vanilla_{}.txt".format(beam_size)
-    output= []
+    output = []
     current = []
     for line in open(path, "r+"):
         if line == '\n':

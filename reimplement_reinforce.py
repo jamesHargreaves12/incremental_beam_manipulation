@@ -15,7 +15,8 @@ from tqdm import tqdm
 from base_model import TGEN_Model, Regressor
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
-from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w2v, apply_absts
+from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w2v, apply_absts, PAD_TOK, END_TOK, \
+    START_TOK
 
 
 def get_features(path, text_embedder, w2v, tok_prob):
@@ -145,8 +146,8 @@ def get_greedy_decode_score_func(models, bleu, true_vals):
 def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
     def func(path, tp, da_emb, da_i):
         true = true_vals[da_i]
-        pred = " ".join(text_embedder.reverse_embedding(path[1])) \
-            .replace("<> ", "").replace("<S> ", "").replace("<E> ", "")
+        toks = text_embedder.reverse_embedding(path[1])
+        pred = [x for x in toks if x not in [START_TOK, END_TOK, PAD_TOK]]
         bleu.reset()
         bleu.append(pred, true)
         if reverse:

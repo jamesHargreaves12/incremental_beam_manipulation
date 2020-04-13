@@ -6,7 +6,7 @@ import nltk
 import yaml
 from tqdm import tqdm
 
-from utils import get_test_das, get_final_beam, START_TOK, PAD_TOK, END_TOK
+from utils import get_test_das, get_final_beam, START_TOK, PAD_TOK, END_TOK, get_abstss_test, apply_absts
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 
@@ -29,7 +29,9 @@ class fake_trees(object):
 
 
 test_das = get_test_das()
+abstss = get_abstss_test()
 classif_filter = Reranker.load_from_file('tgen/models/model_e2e_2/model.tftreecl.pickle.gz')
+preds = []
 for beam_size in [3, 5, 10, 30, 100]:
     print("Beam size =", beam_size)
     final_beams = get_final_beam(beam_size)
@@ -41,6 +43,10 @@ for beam_size in [3, 5, 10, 30, 100]:
         scores = []
         for fit, hyp_score in zip(fits, beam):
             scores.append((-100 * fit + hyp_score[1], hyp_score[0]))
-        best = sorted(scores, reverse=True)[0][1]
-        out_file.write(" ".join(best) + '\n')
+        best = [x for x in sorted(scores, reverse=True)[0][1] if x not in [START_TOK, END_TOK, PAD_TOK]]
+        preds.append(best)
+    results = apply_absts(abstss, preds)
+    for res in results:
+        res = " ".join(res)
+        out_file.write(res + '\n')
     out_file.close()
