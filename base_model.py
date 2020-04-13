@@ -16,6 +16,68 @@ from attention_keras.layers.attention import AttentionLayer
 from utils import START_TOK, get_hamming_distance, PAD_TOK
 
 
+class TrainableReranker(object):
+    def __init__(self, da_embedder, text_embedder, cfg):
+        self.embedding_size = cfg['embedding_size']
+        self.lstm_size = cfg['hidden_size']
+        self.batch_size = cfg['batch_size']
+        self.text_embedder = text_embedder
+        self.da_embedder = da_embedder
+        self.save_location = cfg["save_location"]
+        self.model = None
+
+        self.set_up_models()
+
+    def set_up_models(self):
+        len_text = self.text_embedder.length
+        len_vtext = self.text_embedder.vocab_length
+        len_da = self.da_embedder.length
+        len_vda = self.da_embedder.vocab_length
+
+        lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
+
+        text_inputs = Input(shape=(len_text,), name='text_inputs')
+        da_inputs = Input(shape=(len_da,), name='da_inputs')
+
+        embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
+        embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
+
+        text_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='text_lstm')
+        da_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='da_lstm')
+
+        text_lstm_out = text_lstm(embed_text(text_inputs))
+        da_lstm_out = da_lstm(embed_da(da_inputs))
+
+        h_n_text = text_lstm_out[1:]
+        h_n_da = da_lstm_out[1:]
+        in_logistic_layer = Concatenate(axis=-1, name='concat_layer_Wy')(h_n_text + h_n_da)
+
+        hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
+        output = Dense(1)(hidden_logistic)
+        self.model = Model(inputs=[text_inputs, da_inputs], outputs=output)
+        optimizer = Adam(lr=0.001)
+        self.model.compile(optimizer=optimizer, loss='mean_squared_error')
+        self.model.summary()
+
+    def train(self, texts_seqs, das_seqs, bleu_scores, epoch):
+        for ep in range(epoch):
+            start = time()
+            losses = 0
+            batch_indexes = list(range(0, texts_seqs.shape[0] - self.batch_size, self.batch_size))
+            random.shuffle(batch_indexes)
+            for bi in tqdm(batch_indexes):
+                da_batch = das_seqs[bi:bi + self.batch_size, :]
+                text_batch = texts_seqs[bi:bi + self.batch_size, :]
+                bleu_batch = bleu_scores[bi:bi + self.batch_size, :]
+                self.model.train_on_batch([text_batch, da_batch], bleu_batch)
+                losses += self.model.evaluate([text_batch, da_batch], bleu_batch, batch_size=self.batch_size, verbose=0)
+            train_loss = losses / das_seqs.shape[0] * self.batch_size
+            time_spent = time() - start
+            print('{} Epoch {} Train: {:.4f}'.format(time_spent, ep, train_loss))
+            # predicted_score = self.model.predict([texts_seqs[:1], das_seqs[:1]])
+            # print('{} {}')
+
+
 class TGEN_Reranker(object):
     def __init__(self, da_embedder, text_embedder, cfg):
         self.batch_size = cfg['batch_size']

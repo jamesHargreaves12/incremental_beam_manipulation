@@ -138,8 +138,12 @@ def get_abstss_test():
     return smart_load_absts('tgen/e2e-challenge/input/devel-abst.txt')
 
 
-def get_final_beam(beam_size):
-    path = "output_files/saved_beams/vanilla_{}.txt".format(beam_size)
+def get_final_beam(beam_size, train=False):
+    if train:
+        path_format = "output_files/saved_beams/train_vanilla_{}.txt"
+    else:
+        path_format = "output_files/saved_beams/vanilla_{}.txt"
+    path = path_format.format(beam_size)
     output = []
     current = []
     for line in open(path, "r+"):

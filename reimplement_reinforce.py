@@ -43,12 +43,14 @@ def load_rein_data(filepath):
 def get_completion_score(beam_search_model, da_emb, path, bleu, true):
     text_embedder = beam_search_model.text_embedder
     cur = " ".join(text_embedder.reverse_embedding(path[1])[:-1])
+    true_length = max([len(x) for x in true])
     rest = beam_search_model.make_prediction(da_emb,
                                              beam_size=1,
                                              prev_tok=text_embedder.embed_to_tok[path[1][-1]],
-                                             max_length=2 * len(true) - len(path[1]))
+                                             max_length=2 * true_length - len(path[1]))
     bleu.reset()
-    bleu.append(cur + " " + rest, true)
+    toks = [x for x in (cur.split(" ") + rest.split(" ")) if x not in [START_TOK, END_TOK, PAD_TOK]]
+    bleu.append(toks, true)
     return bleu.score()
 
 
