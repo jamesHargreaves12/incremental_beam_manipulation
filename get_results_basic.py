@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import yaml
@@ -11,7 +12,12 @@ from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss, get_test_das, START_TOK, END_TOK, PAD_TOK, \
     get_true_sents
 
-cfg_path = "configs/run_vanilla_results.yaml"
+parser = argparse.ArgumentParser()
+parser.add_argument('config_path')
+args = parser.parse_args()
+
+
+cfg_path = args.config_path
 print("Using config from: {}".format(cfg_path))
 cfg = yaml.load(open(cfg_path, "r"))
 texts, das, = get_training_variables()
