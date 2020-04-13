@@ -4,6 +4,7 @@ import sys
 
 import nltk
 import yaml
+from tqdm import tqdm
 
 from utils import get_test_das, get_final_beam, START_TOK, PAD_TOK, END_TOK
 
@@ -30,9 +31,10 @@ class fake_trees(object):
 test_das = get_test_das()
 classif_filter = Reranker.load_from_file('tgen/models/model_e2e_2/model.tftreecl.pickle.gz')
 for beam_size in [3, 5, 10, 30, 100]:
+    print("Beam size =", beam_size)
     final_beams = get_final_beam(beam_size)
-    out_file = open('output_files/out-text-dir-v3/TGEN_b-{}.txt'.format(beam_size), "w+")
-    for beam, das in zip(final_beams, test_das):
+    out_file = open('output_files/out-text-dir-v3/TGEN_old_b-{}.txt'.format(beam_size), "w+")
+    for beam, das in tqdm(zip(final_beams, test_das)):
         ftrees = [fake_trees(x[0]) for x in beam]
         classif_filter.init_run(das)
         fits = classif_filter.dist_to_cur_da(ftrees)
