@@ -1,8 +1,11 @@
 import math
 import os
+import pickle
 import random
 from math import log
 from time import time
+
+import msgpack
 import numpy as np
 
 from tensorflow.test import is_gpu_available
@@ -13,7 +16,7 @@ from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concate
 from tqdm import tqdm
 
 from attention_keras.layers.attention import AttentionLayer
-from utils import START_TOK, get_hamming_distance, PAD_TOK
+from utils import START_TOK, get_hamming_distance, PAD_TOK, load_model_from_gpu
 
 
 class TrainableReranker(object):
@@ -230,6 +233,8 @@ class TGEN_Model(object):
         self.encoder_model = None
         self.decoder_model = None
         self.set_up_models()
+        self.greedy_complete_cache = {}
+        self.greedy_complete_cache_path = 'models/greedy_decode.dict'
 
     def get_valid_loss(self, valid_da_seq, valid_text_seq, valid_onehot_seq):
         valid_loss = 0
@@ -292,13 +297,15 @@ class TGEN_Model(object):
 
     def load_models(self):
         print("Loading models at {}".format(self.save_location))
-
-        self.full_model = load_model(os.path.join(self.save_location, "full.h5"),
-                                     custom_objects={'AttentionLayer': AttentionLayer})
-        self.encoder_model = load_model(os.path.join(self.save_location, "enc.h5"),
-                                        custom_objects={'AttentionLayer': AttentionLayer})
-        self.decoder_model = load_model(os.path.join(self.save_location, "dec.h5"),
-                                        custom_objects={'AttentionLayer': AttentionLayer})
+        load_model_from_gpu(self.full_model, os.path.join(self.save_location, "full.h5"))
+        load_model_from_gpu(self.encoder_model, os.path.join(self.save_location, "enc.h5"))
+        load_model_from_gpu(self.decoder_model, os.path.join(self.save_location, "dec.h5"))
+        # self.full_model = load_model(os.path.join(self.save_location, "full.h5"),
+        #                              custom_objects={'AttentionLayer': AttentionLayer})
+        # self.encoder_model = load_model(os.path.join(self.save_location, "enc.h5"),
+        #                                 custom_objects={'AttentionLayer': AttentionLayer})
+        # self.decoder_model = load_model(os.path.join(self.save_location, "dec.h5"),
+        #                                 custom_objects={'AttentionLayer': AttentionLayer})
 
     def save_model(self):
         print("Saving models at {}".format(self.save_location))
@@ -353,17 +360,54 @@ class TGEN_Model(object):
         inf_enc_out = self.encoder_model.predict(test_en)
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
-        paths = [(log(1.0), test_fr, enc_last_state)]
+        path = (log(1.0), test_fr, enc_last_state)
+        return self.complete_search(path, enc_outs, beam_size, max_length)
 
-        end_embs = self.text_embedder.end_embs
+    def complete_search(self, path, enc_outs, beam_size, max_length):
+        paths = [path]
         for i in range(max_length):
             new_paths, _ = self.beam_search_exapand(paths, enc_outs, beam_size)
-
             paths = sorted(new_paths, key=lambda x: x[0], reverse=True)[:beam_size]
-            if all([p[1][-1] in end_embs for p in paths]):
+            if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
                 break
-
         return " ".join(self.text_embedder.reverse_embedding(paths[0][1]))
+
+    def save_cache(self):
+        print("Saving cache")
+        with open(self.greedy_complete_cache_path, 'wb+') as fp:
+            msgpack.dump(self.greedy_complete_cache, fp)
+
+    def populate_cache(self):
+        print("Populating cache")
+        if os.path.exists(self.greedy_complete_cache_path):
+            with open(self.greedy_complete_cache_path, 'rb') as fp:
+                self.greedy_complete_cache = msgpack.load(fp, use_list=False, strict_map_key=False)
+
+    def complete_greedy(self, path, enc_outs, max_length):
+        def get_key(max_length, path, enc_outs):
+            return max_length, tuple(int(x) for x in path[1]), enc_outs
+
+        key_enc_outs = tuple(float(x) for x in enc_outs.sum(axis=2).reshape(-1))
+        so_far = []  # (key, next tok)
+        paths = [path]
+        completed = ""
+        for i in range(max_length):
+            key = get_key(max_length-i, paths[0], key_enc_outs)
+            if key in self.greedy_complete_cache:
+                completed = self.greedy_complete_cache[key]
+                break
+            else:
+                paths, _ = self.beam_search_exapand(paths, enc_outs, 1)
+                so_far.append((key, self.text_embedder.embed_to_tok[paths[0][1][-1]]))
+                if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
+                    break
+        for key, tok in reversed(so_far):
+            if completed:
+                completed = tok + " " + completed
+            else:
+                completed = tok
+            self.greedy_complete_cache[key] = completed
+        return completed
 
     def set_up_models(self):
         len_in = self.da_embedder.length

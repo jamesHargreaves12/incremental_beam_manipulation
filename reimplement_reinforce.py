@@ -40,16 +40,28 @@ def load_rein_data(filepath):
         return features, labs
 
 
-def get_completion_score(beam_search_model, da_emb, path, bleu, true):
+def get_completion_score(beam_search_model, path, bleu, true, enc_outs):
     text_embedder = beam_search_model.text_embedder
-    cur = " ".join(text_embedder.reverse_embedding(path[1])[:-1])
     true_length = max([len(x) for x in true])
-    rest = beam_search_model.make_prediction(da_emb,
-                                             beam_size=1,
-                                             prev_tok=text_embedder.embed_to_tok[path[1][-1]],
-                                             max_length=2 * true_length - len(path[1]))
+    # rest = beam_search_model.complete_search(path,
+    #                                          enc_outs,
+    #                                          beam_size=1,
+    #                                          max_length=2 * true_length - len(path[1]))
+    cur = " ".join(text_embedder.reverse_embedding(path[1]))
+    if path[1][-1] not in text_embedder.end_embs:
+        rest = beam_search_model.complete_greedy(path, enc_outs, 2 * true_length - len(path[1]))
+        if rest:
+            cur = cur + " " + rest
+    # if cur != rest:
+    #     print(rest)
+    #     print(cur)
+    #     print()
+    # rest = beam_search_model.make_prediction(da_emb,
+    #                                          beam_size=1,
+    #                                          prev_tok=text_embedder.embed_to_tok[path[1][-1]],
+    #                                          max_length=2 * true_length - len(path[1]))
     bleu.reset()
-    toks = [x for x in (cur.split(" ") + rest.split(" ")) if x not in [START_TOK, END_TOK, PAD_TOK]]
+    toks = [x for x in cur.split(" ") if x not in [START_TOK, END_TOK, PAD_TOK]]
     bleu.append(toks, true)
     return bleu.score()
 
@@ -113,7 +125,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
 
 
 def get_regressor_score_func(regressor, text_embedder, w2v):
-    def func(path, tp, da_emb):
+    def func(path, tp, da_emb, da_i, enc_outs):
         features = get_features(path, text_embedder, w2v, tp)
         regressor_score = regressor.predict(features.reshape(1, -1))[0][0]
         return regressor_score
@@ -122,7 +134,7 @@ def get_regressor_score_func(regressor, text_embedder, w2v):
 
 
 def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
-    def func(path, tp, da_emb, da_i):
+    def func(path, tp, da_emb, da_i, enc_outs):
         text_emb = path[1]
         reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb, da_embedder)
         return path[0] - 100 * reranker_score
@@ -131,22 +143,22 @@ def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
 
 
 def get_identity_score_func():
-    def func(path, tp, da_emb, da_i):
+    def func(path, tp, da_emb, da_i, enc_outs):
         return path[0]
 
     return func
 
 
 def get_greedy_decode_score_func(models, bleu, true_vals):
-    def func(path, tp, da_emb, da_i):
+    def func(path, tp, da_emb, da_i, enc_outs):
         true = true_vals[da_i]
-        return get_completion_score(models, da_emb, path, bleu, true)
+        return get_completion_score(models, path, bleu, true, enc_outs)
 
     return func
 
 
 def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
-    def func(path, tp, da_emb, da_i):
+    def func(path, tp, da_emb, da_i, enc_outs):
         true = true_vals[da_i]
         toks = text_embedder.reverse_embedding(path[1])
         pred = [x for x in toks if x not in [START_TOK, END_TOK, PAD_TOK]]
@@ -160,7 +172,7 @@ def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
 
 
 def get_random_score_func():
-    def func(path, tp, da_emb, da_i):
+    def func(path, tp, da_emb, da_i, enc_outs):
         return random.random()
 
     return func
@@ -177,6 +189,8 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     if save_final_beam_path:
         save_file = open(save_final_beam_path.format(beam_size), "w+")
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
+        if i % 10 == 0:
+            beam_search_model.save_cache()
         inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
@@ -191,7 +205,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
             path_scores = []
             for path, tp in zip(new_paths, tok_probs):
                 if not only_rescore_final:
-                    hyp_score = scorer(path, tp, da_emb, i)
+                    hyp_score = scorer(path, tp, da_emb, i, enc_outs)
                     path_scores.append((hyp_score, path))
                 else:
                     path_scores.append((path[0], path))
@@ -219,35 +233,35 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     return results
 
 
-if __name__ == "__main__":
-    beam_size = 3
-    cfg = yaml.load(open("config_reinforce.yaml", "r"))
-    train_data_location = "output_files/training_data/{}_.csv".format(beam_size)
-    das, texts = get_training_das_texts()
-    print(das[0], texts[0])
-    # sys.exit(0)
-    text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
-    da_embedder = DAEmbeddingSeq2SeqExtractor(das)
-    das = das[:cfg['use_size']]
-    texts = texts[:cfg['use_size']]
-    n_in = cfg["hidden_size"] * 2 + cfg["w2v_size"] * 2 + 3
-
-    text_vsize, text_len = text_embedder.vocab_length, text_embedder.length
-    da_vsize, da_len = da_embedder.vocab_length, da_embedder.length
-    print(da_vsize, text_vsize, da_len, text_len)
-
-    models = TGEN_Model(da_embedder, text_embedder, cfg)
-    models.load_models()
-
-    regressor = Regressor(n_in, batch_size=1, max_len=max([len(x) for x in texts]))
-    if cfg["classif_from_file"]:
-        regressor.load_model(cfg["model_save_loc"])
-    elif os.path.exists(train_data_location) and cfg["pretrain"]:
-        feats, labs = load_rein_data(train_data_location)
-        if feats:
-            regressor.train(feats, labs)
-
-    reinforce_learning(beam_size, train_data_location, models, das, texts, regressor, text_embedder, da_embedder, cfg)
-    # save_path = "output_files/out-text-dir-v2/rein_{}.txt".format(beam_size)
-    # absts = smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
-    # print(run_classifier_bs(classifier, models, None, None, text_embedder, da_embedder, das[:1], beam_size, cfg))
+# if __name__ == "__main__":
+#     beam_size = 3
+#     cfg = yaml.load(open("config_reinforce.yaml", "r"))
+#     train_data_location = "output_files/training_data/{}_.csv".format(beam_size)
+#     das, texts = get_training_das_texts()
+#     print(das[0], texts[0])
+#     # sys.exit(0)
+#     text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
+#     da_embedder = DAEmbeddingSeq2SeqExtractor(das)
+#     das = das[:cfg['use_size']]
+#     texts = texts[:cfg['use_size']]
+#     n_in = cfg["hidden_size"] * 2 + cfg["w2v_size"] * 2 + 3
+#
+#     text_vsize, text_len = text_embedder.vocab_length, text_embedder.length
+#     da_vsize, da_len = da_embedder.vocab_length, da_embedder.length
+#     print(da_vsize, text_vsize, da_len, text_len)
+#
+#     models = TGEN_Model(da_embedder, text_embedder, cfg)
+#     models.load_models()
+#
+#     regressor = Regressor(n_in, batch_size=1, max_len=max([len(x) for x in texts]))
+#     if cfg["classif_from_file"]:
+#         regressor.load_model(cfg["model_save_loc"])
+#     elif os.path.exists(train_data_location) and cfg["pretrain"]:
+#         feats, labs = load_rein_data(train_data_location)
+#         if feats:
+#             regressor.train(feats, labs)
+#
+#     reinforce_learning(beam_size, train_data_location, models, das, texts, regressor, text_embedder, da_embedder, cfg)
+#     # save_path = "output_files/out-text-dir-v2/rein_{}.txt".format(beam_size)
+#     # absts = smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
+#     # print(run_classifier_bs(classifier, models, None, None, text_embedder, da_embedder, das[:1], beam_size, cfg))

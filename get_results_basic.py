@@ -34,6 +34,9 @@ models.load_models()
 
 scorer_func = get_score_function(cfg['scorer'], cfg, da_embedder, text_embedder, models, true_vals)
 
+if "populate_greedy_cache" in cfg and cfg["populate_greedy_cache"]:
+    models.populate_cache()
+
 absts = get_abstss_test()
 for beam_size in cfg["beam_sizes"]:
     print("Beam size = {} ".format(beam_size))
