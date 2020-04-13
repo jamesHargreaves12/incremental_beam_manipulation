@@ -189,8 +189,6 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     if save_final_beam_path:
         save_file = open(save_final_beam_path.format(beam_size), "w+")
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
-        if i % 10 == 0:
-            beam_search_model.save_cache()
         inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
         enc_outs = inf_enc_out[0]
         enc_last_state = inf_enc_out[1:]
@@ -229,7 +227,8 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
-
+    beam_search_model.save_cache()
+    print("Cache Saved")
     return results
 
 
