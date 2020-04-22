@@ -7,7 +7,7 @@ from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2Seq
 from utils import get_final_beam, get_training_variables, get_abstss_train, PAD_TOK, END_TOK, START_TOK
 from matplotlib import pyplot as plt
 cfg = yaml.load(open("configs/config_trainable_reranker_train.yaml", "r+"))
-final_beams = get_final_beam(1, True)
+final_beams = get_final_beam(3, True)
 texts, das, = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
@@ -30,10 +30,13 @@ for beam, text, da in zip(final_beams, texts, das):
 print(input_score[0])
 plt.hist(input_score)
 plt.show()
+
 reranker = TrainableReranker(da_embedder, text_embedder, cfg)
 da_embs = np.array(da_embedder.get_embeddings(input_da))
 text_embs = np.array(text_embedder.get_embeddings(input_text))
 bleu_scores = np.array(input_score).reshape(-1, 1)
-reranker.train(text_embs, da_embs, bleu_scores, 1)
+valid_size = cfg['valid_size']
+reranker.train(text_embs[:-valid_size], da_embs[:-valid_size], bleu_scores[:-valid_size], 10, text_embs[-valid_size:], da_embs[-valid_size:], bleu_scores[-valid_size:])
+# reranker.load_model()
 
-
+x= 1

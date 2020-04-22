@@ -40,30 +40,19 @@ def load_rein_data(filepath):
         return features, labs
 
 
-def get_completion_score(beam_search_model, path, bleu, true, enc_outs):
+def get_greedy_compelete_toks_logprob(beam_search_model, path, max_length, enc_outs):
     text_embedder = beam_search_model.text_embedder
-    true_length = max([len(x) for x in true])
-    # rest = beam_search_model.complete_search(path,
-    #                                          enc_outs,
-    #                                          beam_size=1,
-    #                                          max_length=2 * true_length - len(path[1]))
-    cur = " ".join(text_embedder.reverse_embedding(path[1]))
+
+    result = " ".join(text_embedder.reverse_embedding(path[1]))
     if path[1][-1] not in text_embedder.end_embs:
-        rest = beam_search_model.complete_greedy(path, enc_outs, 2 * true_length - len(path[1]))
+        rest, logprob = beam_search_model.complete_greedy(path, enc_outs, max_length)
         if rest:
-            cur = cur + " " + rest
-    # if cur != rest:
-    #     print(rest)
-    #     print(cur)
-    #     print()
-    # rest = beam_search_model.make_prediction(da_emb,
-    #                                          beam_size=1,
-    #                                          prev_tok=text_embedder.embed_to_tok[path[1][-1]],
-    #                                          max_length=2 * true_length - len(path[1]))
-    bleu.reset()
-    toks = [x for x in cur.split(" ") if x not in [START_TOK, END_TOK, PAD_TOK]]
-    bleu.append(toks, true)
-    return bleu.score()
+            result = result + " " + rest
+
+    else:
+        logprob = path[0]
+    toks = [x for x in result.split(" ") if x not in [START_TOK, END_TOK, PAD_TOK]]
+    return toks, logprob
 
 
 def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, regressor, text_embedder,
@@ -84,7 +73,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
             enc_last_state = inf_enc_out[1:]
             paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
             end_tokens = text_embedder.end_embs
-
+            final_scorer = final_scorer_bleu(bleu)
             for step in range(len(true)):
                 new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, enc_outs, beam_size)
 
@@ -100,7 +89,8 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
 
                     # greedy decode
                     if random.random() < chance_of_choosing:
-                        ref_score = get_completion_score(beam_search_model, da_emb, path, bleu, [true])
+                        # this probs wont work as will have changed dramatically ********
+                        ref_score = get_completion_score(beam_search_model, path, final_scorer, [true], enc_outs)
                         D.append((features, ref_score))
                         data_save_file.write("{},{}\n".format(",".join([str(x) for x in features]), ref_score))
                 # prune
@@ -149,10 +139,12 @@ def get_identity_score_func():
     return func
 
 
-def get_greedy_decode_score_func(models, bleu, true_vals):
+def get_greedy_decode_score_func(models, final_scorer, max_length_out):
     def func(path, tp, da_emb, da_i, enc_outs):
-        true = true_vals[da_i]
-        return get_completion_score(models, path, bleu, true, enc_outs)
+        toks, log_prob = get_greedy_compelete_toks_logprob(models, path, max_length_out - len(path[1]), enc_outs)
+        path = (log_prob, path[1][:-1] + models.text_embedder.get_embeddings(tokenised_texts=[toks])[0], path[2])
+        # Working on the assumption that the final state of the decoder lstm is not required
+        return final_scorer(path, tp, da_emb, da_i, enc_outs)
 
     return func
 
@@ -174,6 +166,17 @@ def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
 def get_random_score_func():
     def func(path, tp, da_emb, da_i, enc_outs):
         return random.random()
+
+    return func
+
+
+def get_learned_score_func(trainable_reranker):
+    def func(path, tp, da_emb, da_i, enc_outs):
+        text_emb = path[1]
+        pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
+               (trainable_reranker.text_embedder.length - len(text_emb))
+        pred = trainable_reranker.predict_bleu_score(np.array([pads + text_emb]), np.array([da_emb]))
+        return -pred[0][0]
 
     return func
 
@@ -230,7 +233,6 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     beam_search_model.save_cache()
     print("Cache Saved")
     return results
-
 
 # if __name__ == "__main__":
 #     beam_size = 3

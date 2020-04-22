@@ -40,10 +40,11 @@ for beam_size in cfg["beam_sizes"]:
     preds = []
     for i, (beam, da_emb) in tqdm(list(enumerate(zip(final_beams, da_embedder.get_embeddings(das_test))))):
         scores = []
+        enc_outs = None #only needed for greedy decode
         for hyp, logprob in beam:
             fake_path = (logprob, text_embedder.get_embeddings([hyp], pad_from_end=False)[0])
             tp = 0
-            score = scorer_func(fake_path, tp, da_emb, i)
+            score = scorer_func(fake_path, tp, da_emb, i, enc_outs)
             scores.append((score, hyp))
         pred = sorted(scores, reverse=True)[0][1]
         preds.append(pred)

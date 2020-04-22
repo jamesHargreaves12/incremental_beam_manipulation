@@ -26,7 +26,7 @@ class TrainableReranker(object):
         self.batch_size = cfg['batch_size']
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
-        self.save_location = cfg["save_location"]
+        self.save_location = cfg["trainable_reranker_save_location"]
         self.model = None
 
         self.set_up_models()
@@ -62,23 +62,56 @@ class TrainableReranker(object):
         self.model.compile(optimizer=optimizer, loss='mean_squared_error')
         self.model.summary()
 
-    def train(self, texts_seqs, das_seqs, bleu_scores, epoch):
+    def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_bleu_scores):
+        valid_loss = 0
+        for bi in range(0, valid_das_seqs.shape[0] - self.batch_size + 1, self.batch_size):
+            valid_da_batch = valid_das_seqs[bi:bi + self.batch_size, :]
+            valid_text_batch = valid_text_seqs[bi:bi + self.batch_size, :]
+            bleu_scores_batch = valid_bleu_scores[bi:bi + self.batch_size, :]
+            valid_loss += self.model.evaluate([valid_text_batch, valid_da_batch], bleu_scores_batch,
+                                              batch_size=self.batch_size, verbose=0)
+        return valid_loss
+
+    def train(self, text_seqs, das_seqs, bleu_scores, epoch, valid_text_seqs, valid_das, valid_bleu_scores):
+        min_valid_loss = math.inf
+        epoch_since_minimum = 0
         for ep in range(epoch):
             start = time()
             losses = 0
-            batch_indexes = list(range(0, texts_seqs.shape[0] - self.batch_size, self.batch_size))
+            batch_indexes = list(range(0, text_seqs.shape[0] - self.batch_size, self.batch_size))
             random.shuffle(batch_indexes)
             for bi in tqdm(batch_indexes):
                 da_batch = das_seqs[bi:bi + self.batch_size, :]
-                text_batch = texts_seqs[bi:bi + self.batch_size, :]
+                text_batch = text_seqs[bi:bi + self.batch_size, :]
                 bleu_batch = bleu_scores[bi:bi + self.batch_size, :]
                 self.model.train_on_batch([text_batch, da_batch], bleu_batch)
                 losses += self.model.evaluate([text_batch, da_batch], bleu_batch, batch_size=self.batch_size, verbose=0)
             train_loss = losses / das_seqs.shape[0] * self.batch_size
             time_spent = time() - start
-            print('{} Epoch {} Train: {:.4f}'.format(time_spent, ep, train_loss))
-            # predicted_score = self.model.predict([texts_seqs[:1], das_seqs[:1]])
-            # print('{} {}')
+            valid_loss = self.get_valid_loss(valid_das, valid_text_seqs, valid_bleu_scores)
+            print('{} Epoch {} Train: {:.4f} Valid: {:.4f}'.format(time_spent, ep, train_loss, valid_loss))
+            if valid_loss < min_valid_loss:
+                min_valid_loss = valid_loss
+                epoch_since_minimum = 0
+                self.save_model()
+            else:
+                epoch_since_minimum += 1
+                if epoch_since_minimum > 5:
+                    break
+        self.load_model()
+
+    def load_model(self):
+        print("Loading trainable reranker from {}".format(self.save_location))
+        self.model = load_model(os.path.join(self.save_location, "model.h5"))
+
+    def save_model(self):
+        print("Saving trainable reranker at {}".format(self.save_location))
+        if not os.path.exists(self.save_location):
+            os.makedirs(self.save_location)
+        self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
+
+    def predict_bleu_score(self, text_seqs, da_seqs):
+        return self.model.predict([text_seqs, da_seqs])
 
 
 class TGEN_Reranker(object):
@@ -391,13 +424,15 @@ class TGEN_Model(object):
         so_far = []  # (key, next tok)
         paths = [path]
         completed = ""
+        completed_logprob = 0
         for i in range(max_length):
-            key = get_key(max_length-i, paths[0], key_enc_outs)
+            key = get_key(max_length - i, paths[0], key_enc_outs)
             if key in self.greedy_complete_cache:
-                completed = self.greedy_complete_cache[key]
+                completed, completed_logprob = self.greedy_complete_cache[key]
                 break
             else:
                 paths, _ = self.beam_search_exapand(paths, enc_outs, 1)
+                completed_logprob = paths[0][0]
                 so_far.append((key, self.text_embedder.embed_to_tok[paths[0][1][-1]]))
                 if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
                     break
@@ -406,8 +441,8 @@ class TGEN_Model(object):
                 completed = tok + " " + completed
             else:
                 completed = tok
-            self.greedy_complete_cache[key] = completed
-        return completed
+            self.greedy_complete_cache[key] = (completed, completed_logprob)
+        return completed, completed_logprob
 
     def set_up_models(self):
         len_in = self.da_embedder.length
