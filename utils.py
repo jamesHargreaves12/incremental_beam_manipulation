@@ -5,6 +5,7 @@ import sys
 import h5py
 import nltk
 from keras.engine.saving import load_weights_from_hdf5_group
+import numpy as np
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from enum import Enum
@@ -163,3 +164,13 @@ def get_final_beam(beam_size, train=False):
 def load_model_from_gpu(model, filepath):
     f = h5py.File(filepath, mode='r')
     load_weights_from_hdf5_group(f['model_weights'], model.layers)
+
+
+def get_features(path, text_embedder, w2v, tok_prob):
+    h = path[2][0][0]
+    c = path[2][1][0]
+    pred_words = [text_embedder.embed_to_tok[x] for x in path[1]]
+
+    return np.concatenate((h, c,
+                           safe_get_w2v(w2v, pred_words[-1]), safe_get_w2v(w2v, pred_words[-2]),
+                           [tok_prob, path[0], len(pred_words)]))

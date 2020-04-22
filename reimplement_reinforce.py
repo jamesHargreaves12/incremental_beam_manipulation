@@ -18,17 +18,6 @@ from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2Seq
 from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w2v, apply_absts, PAD_TOK, END_TOK, \
     START_TOK
 
-
-def get_features(path, text_embedder, w2v, tok_prob):
-    h = path[2][0][0]
-    c = path[2][1][0]
-    pred_words = [text_embedder.embed_to_tok[x] for x in path[1]]
-
-    return np.concatenate((h, c,
-                           safe_get_w2v(w2v, pred_words[-1]), safe_get_w2v(w2v, pred_words[-2]),
-                           [tok_prob, path[0], len(pred_words)]))
-
-
 def load_rein_data(filepath):
     with open(filepath, "r") as fp:
         features = []
@@ -58,6 +47,7 @@ def get_greedy_compelete_toks_logprob(beam_search_model, path, max_length, enc_o
 def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, regressor, text_embedder,
                        da_embedder, cfg,
                        chance_of_choosing=0.01):
+    # This needs to be updated
     w2v = Word2Vec.load(cfg["w2v_path"])
     D = []
     bleu = BLEUScore()
@@ -112,73 +102,6 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
         regressor_scorer = get_regressor_score_func(regressor, text_embedder, w2v)
         test_res = run_beam_search_with_rescorer(regressor_scorer, beam_search_model, das[:1])
         print(" ".join(test_res[0]))
-
-
-def get_regressor_score_func(regressor, text_embedder, w2v):
-    def func(path, tp, da_emb, da_i, enc_outs):
-        features = get_features(path, text_embedder, w2v, tp)
-        regressor_score = regressor.predict(features.reshape(1, -1))[0][0]
-        return regressor_score
-
-    return func
-
-
-def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
-    def func(path, tp, da_emb, da_i, enc_outs):
-        text_emb = path[1]
-        reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb, da_embedder)
-        return path[0] - 100 * reranker_score
-
-    return func
-
-
-def get_identity_score_func():
-    def func(path, tp, da_emb, da_i, enc_outs):
-        return path[0]
-
-    return func
-
-
-def get_greedy_decode_score_func(models, final_scorer, max_length_out):
-    def func(path, tp, da_emb, da_i, enc_outs):
-        toks, log_prob = get_greedy_compelete_toks_logprob(models, path, max_length_out - len(path[1]), enc_outs)
-        path = (log_prob, path[1][:-1] + models.text_embedder.get_embeddings(tokenised_texts=[toks])[0], path[2])
-        # Working on the assumption that the final state of the decoder lstm is not required
-        return final_scorer(path, tp, da_emb, da_i, enc_outs)
-
-    return func
-
-
-def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
-    def func(path, tp, da_emb, da_i, enc_outs):
-        true = true_vals[da_i]
-        toks = text_embedder.reverse_embedding(path[1])
-        pred = [x for x in toks if x not in [START_TOK, END_TOK, PAD_TOK]]
-        bleu.reset()
-        bleu.append(pred, true)
-        if reverse:
-            return 1 - bleu.score()
-        return bleu.score()
-
-    return func
-
-
-def get_random_score_func():
-    def func(path, tp, da_emb, da_i, enc_outs):
-        return random.random()
-
-    return func
-
-
-def get_learned_score_func(trainable_reranker):
-    def func(path, tp, da_emb, da_i, enc_outs):
-        text_emb = path[1]
-        pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
-               (trainable_reranker.text_embedder.length - len(text_emb))
-        pred = trainable_reranker.predict_bleu_score(np.array([pads + text_emb]), np.array([da_emb]))
-        return -pred[0][0]
-
-    return func
 
 
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False,

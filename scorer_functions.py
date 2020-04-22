@@ -1,7 +1,76 @@
+import random
+
 from base_model import TGEN_Reranker, TrainableReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
-from reimplement_reinforce import get_tgen_rerank_score_func, get_identity_score_func, get_greedy_decode_score_func, \
-    get_oracle_score_func, get_random_score_func, get_learned_score_func
+from reimplement_reinforce import get_greedy_compelete_toks_logprob
+from utils import START_TOK, END_TOK, PAD_TOK, get_features
+
+
+def get_regressor_score_func(regressor, text_embedder, w2v):
+    def func(path, tp, da_emb, da_i, enc_outs):
+        features = get_features(path, text_embedder, w2v, tp)
+        regressor_score = regressor.predict(features.reshape(1, -1))[0][0]
+        return regressor_score
+
+    return func
+
+
+def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
+    def func(path, tp, da_emb, da_i, enc_outs):
+        text_emb = path[1]
+        reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb, da_embedder)
+        return path[0] - 100 * reranker_score
+
+    return func
+
+
+def get_identity_score_func():
+    def func(path, tp, da_emb, da_i, enc_outs):
+        return path[0]
+
+    return func
+
+
+def get_greedy_decode_score_func(models, final_scorer, max_length_out):
+    def func(path, tp, da_emb, da_i, enc_outs):
+        toks, log_prob = get_greedy_compelete_toks_logprob(models, path, max_length_out - len(path[1]), enc_outs)
+        comp_path = (log_prob, models.text_embedder.get_embeddings(tokenised_texts=[toks])[0], path[2])
+        # Working on the assumption that the final state of the decoder lstm is not required
+        return final_scorer(comp_path, tp, da_emb, da_i, enc_outs)
+
+    return func
+
+
+def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
+    def func(path, tp, da_emb, da_i, enc_outs):
+        true = true_vals[da_i]
+        toks = text_embedder.reverse_embedding(path[1])
+        pred = [x for x in toks if x not in [START_TOK, END_TOK, PAD_TOK]]
+        bleu.reset()
+        bleu.append(pred, true)
+        if reverse:
+            return 1 - bleu.score()
+        return bleu.score()
+
+    return func
+
+
+def get_random_score_func():
+    def func(path, tp, da_emb, da_i, enc_outs):
+        return random.random()
+
+    return func
+
+
+def get_learned_score_func(trainable_reranker):
+    def func(path, tp, da_emb, da_i, enc_outs):
+        text_emb = path[1]
+        pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
+               (trainable_reranker.text_embedder.length - len(text_emb))
+        pred = trainable_reranker.predict_bleu_score(np.array([pads + text_emb]), np.array([da_emb]))
+        return -pred[0][0]
+
+    return func
 
 
 def get_score_function(scorer, cfg, da_embedder, text_embedder, models, true_vals):
@@ -15,6 +84,11 @@ def get_score_function(scorer, cfg, da_embedder, text_embedder, models, true_val
     elif scorer == 'greedy_decode_oracle':
         bleu_scorer = BLEUScore()
         final_scorer = get_oracle_score_func(bleu_scorer, true_vals, text_embedder, reverse=False)
+        return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
+    elif scorer == 'greedy_decode_tgen':
+        tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg)
+        tgen_reranker.load_model()
+        final_scorer = get_tgen_rerank_score_func(tgen_reranker, da_embedder)
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
     elif scorer in ['oracle', 'rev_oracle']:
         bleu_scorer = BLEUScore()
