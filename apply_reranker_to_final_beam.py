@@ -4,11 +4,10 @@ import sys
 import yaml
 from tqdm import tqdm
 
-from base_model import TGEN_Model, TGEN_Reranker
+from base_models import TGEN_Model, TGEN_Reranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
-from reimplement_reinforce import run_beam_search_with_rescorer, get_tgen_rerank_score_func, get_identity_score_func, \
-    get_greedy_decode_score_func
+from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
     get_true_sents, get_final_beam, get_abstss_test

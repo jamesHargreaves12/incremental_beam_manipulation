@@ -106,7 +106,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
 
 
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False,
-                                  save_final_beam_path=False, should_save_cache=False):
+                                  save_final_beam_path=False, should_save_cache=False, callback_1000=None):
     da_embedder = beam_search_model.da_embedder
     text_embedder = beam_search_model.text_embedder
     max_predict_len = 60
@@ -154,6 +154,8 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
+        if i % 1000 == 0 and callback_1000 is not None:
+            callback_1000(i)
     if should_save_cache:
         beam_search_model.save_cache()
         print("Cache Saved")

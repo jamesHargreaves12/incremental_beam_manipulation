@@ -119,7 +119,7 @@ class DAEmbeddingSeq2SeqExtractor(object):
 
     def add_pad_to_embed(self, emb, to_start=True):
         pad = [self.act_emb[self.UNK_ACT], self.slot_emb[self.UNK_SLOT], self.val_emb[self.UNK_VALUE]] \
-              * (self.length // 3 - len(emb))
+              * ((self.length - len(emb))//3)
         if to_start:
             return pad+list(emb)
         else:
