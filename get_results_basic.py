@@ -3,7 +3,7 @@ import os
 import sys
 import yaml
 
-from base_model import TGEN_Model, TGEN_Reranker
+from base_models import TGEN_Model, TGEN_Reranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from reimplement_reinforce import run_beam_search_with_rescorer
