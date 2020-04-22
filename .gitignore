@@ -9,3 +9,4 @@ output_files/*
 old_files/*
 config*.yaml
 configs/*
+tmp.py

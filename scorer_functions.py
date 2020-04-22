@@ -1,6 +1,6 @@
 import random
-
-from base_model import TGEN_Reranker, TrainableReranker
+import numpy as np
+from base_models import TGEN_Reranker, TrainableReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from reimplement_reinforce import get_greedy_compelete_toks_logprob
 from utils import START_TOK, END_TOK, PAD_TOK, get_features
@@ -31,12 +31,19 @@ def get_identity_score_func():
     return func
 
 
-def get_greedy_decode_score_func(models, final_scorer, max_length_out):
+def get_greedy_decode_score_func(models, final_scorer, max_length_out, save_scores=None):
     def func(path, tp, da_emb, da_i, enc_outs):
         toks, log_prob = get_greedy_compelete_toks_logprob(models, path, max_length_out - len(path[1]), enc_outs)
-        comp_path = (log_prob, models.text_embedder.get_embeddings(tokenised_texts=[toks])[0], path[2])
+        text_emb = models.text_embedder.get_embeddings(tokenised_texts=[toks])[0]
+        text_emb = models.text_embedder.remove_pad_from_embed(text_emb)
+        comp_path = (log_prob, text_emb, path[2])
         # Working on the assumption that the final state of the decoder lstm is not required
-        return final_scorer(comp_path, tp, da_emb, da_i, enc_outs)
+        score = final_scorer(comp_path, tp, da_emb, da_i, enc_outs)
+        if save_scores is not None:
+            if type(save_scores) is dict:
+                da_emb = models.da_embedder.remove_pad_from_embed(da_emb)
+                save_scores[(tuple(da_emb), tuple(text_emb))] = score
+        return score
 
     return func
 

@@ -33,8 +33,18 @@ class TokEmbeddingSeq2SeqExtractor(object):
                 embs.append(pad + emb)
         return [e[:self.length + 1] for e in embs]
 
+    def add_pad_to_embed(self, emb, to_start=False):
+        pad = [self.tok_to_embed[PAD_TOK] for _ in range(self.length - len(emb))]
+        if to_start:
+            return pad + list(emb)
+        else:
+            return list(emb) + pad
+
     def reverse_embedding(self, embedding):
         return [self.embed_to_tok[e] for e in embedding]
+
+    def remove_pad_from_embed(self, emb):
+        return [x for x in emb if x != self.tok_to_embed[PAD_TOK]]
 
 
 class DAEmbeddingSeq2SeqExtractor(object):
@@ -95,6 +105,25 @@ class DAEmbeddingSeq2SeqExtractor(object):
             if act != self.UNK_ACT:
                 das.append(DAI(act, slot, val))
         return das
+
+    def remove_pad_from_embed(self, emb):
+        results = []
+        for i in range(0, len(emb), 3):
+            if emb[i] == self.act_emb[self.UNK_ACT] and emb[i + 1] == self.slot_emb[self.UNK_SLOT] and emb[i + 2] == \
+                    self.val_emb[self.UNK_VALUE]:
+                continue
+            results.append(emb[i])
+            results.append(emb[i + 1])
+            results.append(emb[i + 2])
+        return results
+
+    def add_pad_to_embed(self, emb, to_start=True):
+        pad = [self.act_emb[self.UNK_ACT], self.slot_emb[self.UNK_SLOT], self.val_emb[self.UNK_VALUE]] \
+              * (self.length // 3 - len(emb))
+        if to_start:
+            return pad+list(emb)
+        else:
+            return list(emb)+pad
 
     def get_inclusion(self, das):
         included = set()

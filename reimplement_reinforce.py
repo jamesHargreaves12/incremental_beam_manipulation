@@ -12,11 +12,12 @@ from keras.layers import Dense
 from keras.optimizers import RMSprop
 from tqdm import tqdm
 
-from base_model import TGEN_Model, Regressor
+from base_models import TGEN_Model, Regressor
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w2v, apply_absts, PAD_TOK, END_TOK, \
     START_TOK
+
 
 def load_rein_data(filepath):
     with open(filepath, "r") as fp:
