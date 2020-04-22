@@ -101,12 +101,12 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
         regressor.save_model(cfg["model_save_loc"])
         beam_search_proportion *= bsp_multiplier
         regressor_scorer = get_regressor_score_func(regressor, text_embedder, w2v)
-        test_res = run_beam_search_with_rescorer(regressor_scorer, beam_search_model, das[:1])
+        test_res = run_beam_search_with_rescorer(regressor_scorer, beam_search_model, das[:1], )
         print(" ".join(test_res[0]))
 
 
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False,
-                                  save_final_beam_path=False):
+                                  save_final_beam_path=False, should_save_cache=False):
     da_embedder = beam_search_model.da_embedder
     text_embedder = beam_search_model.text_embedder
     max_predict_len = 60
@@ -154,8 +154,9 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
-    beam_search_model.save_cache()
-    print("Cache Saved")
+    if should_save_cache:
+        beam_search_model.save_cache()
+        print("Cache Saved")
     return results
 
 # if __name__ == "__main__":
