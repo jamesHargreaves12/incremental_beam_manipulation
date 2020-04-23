@@ -10,7 +10,7 @@ from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2Seq
 from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
-    get_true_sents, get_final_beam, get_abstss_test
+    get_true_sents, get_final_beam, get_abstss_test, RESULTS_DIR
 
 parser = argparse.ArgumentParser()
 parser.add_argument('config_path')
@@ -26,10 +26,10 @@ da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 
 das_test = get_test_das()
 true_vals = get_true_sents()
-models = TGEN_Model(da_embedder, text_embedder, cfg)
+models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
 models.load_models()
 
-scorer_func = get_score_function(cfg['scorer'], cfg, da_embedder, text_embedder, models, true_vals)
+scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals)
 
 absts = get_abstss_test()
 
@@ -51,8 +51,9 @@ for beam_size in cfg["beam_sizes"]:
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
 
     post_abstr = apply_absts(absts, preds)
-    save_file = cfg["res_save_format"].format(beam_size)
-    print("Saving to {}".format(save_file))
-    with open(save_file, "w+") as out_file:
+    save_filename = cfg["res_save_format"].format(beam_size)
+    save_path = os.path.join(RESULTS_DIR, save_filename)
+    print("Saving to {}".format(save_path))
+    with open(save_path, "w+") as out_file:
         for pa in post_abstr:
             out_file.write(" ".join(pa) + '\n')

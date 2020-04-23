@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+from collections import defaultdict
 
 import h5py
 import nltk
@@ -16,7 +17,7 @@ from tgen.futil import smart_load_absts
 START_TOK = '<S>'
 END_TOK = '<E>'
 PAD_TOK = '<>'
-
+RESULTS_DIR = 'output_files/out-text-dir-v3'
 
 def construct_logs(beam_size):
     debug_stream = open("output_files/debug_files/output_gen_{}.txt".format(beam_size), "w+")
@@ -126,6 +127,20 @@ def get_training_variables():
     das = read_das("tgen/e2e-challenge/input/train-das.txt")
     texts = [[START_TOK] + x + [END_TOK] for x in get_texts_training()]
     return texts, das
+
+
+def get_multi_reference_training_variables():
+    texts, das = get_training_variables()
+
+    da_text_map = defaultdict(list)
+    for da, text in zip(das, texts):
+        da_text_map[da].append(text)
+    das_mr = []
+    texts_mr = []
+    for da, text in da_text_map.items():
+        das_mr.append(da)
+        texts_mr.append(text)
+    return texts_mr, das_mr
 
 
 def get_test_das():

@@ -80,10 +80,12 @@ def get_learned_score_func(trainable_reranker):
     return func
 
 
-def get_score_function(scorer, cfg, da_embedder, text_embedder, models, true_vals):
+def get_score_function(scorer, cfg, models, true_vals):
+    da_embedder = models.da_embedder
+    text_embedder = models.text_embedder
     print("Using Scorer: {}".format(scorer))
     if scorer == "TGEN":
-        tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg)
+        tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg['tgen_reranker_config'])
         tgen_reranker.load_model()
         return get_tgen_rerank_score_func(tgen_reranker, da_embedder)
     elif scorer == 'identity':
@@ -93,7 +95,7 @@ def get_score_function(scorer, cfg, da_embedder, text_embedder, models, true_val
         final_scorer = get_oracle_score_func(bleu_scorer, true_vals, text_embedder, reverse=False)
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
     elif scorer == 'greedy_decode_tgen':
-        tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg)
+        tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg['tgen_reranker_config'])
         tgen_reranker.load_model()
         final_scorer = get_tgen_rerank_score_func(tgen_reranker, da_embedder)
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)

@@ -7,6 +7,7 @@ from time import time
 
 import msgpack
 import numpy as np
+import yaml
 
 from tensorflow.test import is_gpu_available
 from tensorflow.python.keras.optimizers import Adam
@@ -115,8 +116,9 @@ class TrainableReranker(object):
 
 
 class TGEN_Reranker(object):
-    def __init__(self, da_embedder, text_embedder, cfg):
-        self.batch_size = cfg['batch_size']
+    def __init__(self, da_embedder, text_embedder, cfg_path):
+        cfg = yaml.load(open(cfg_path, "r+"))
+        self.batch_size = cfg['training_batch_size']
         self.lstm_size = cfg["hidden_size"]
         self.embedding_size = cfg['embedding_size']
         self.save_location = cfg["reranker_loc"]
@@ -151,7 +153,11 @@ class TGEN_Reranker(object):
                                               verbose=0)
         return valid_loss
 
-    def train(self, da_inclusion, text_seqs, epoch, valid_inc, valid_text, min_epoch=5):
+    def train(self, da_inclusion, text_seqs, epoch, valid_size, min_epoch=5):
+        valid_inc = da_inclusion[-valid_size:]
+        valid_text = text_seqs[-valid_size:]
+        da_inclusion = da_inclusion[:-valid_size]
+        text_seqs = text_seqs[:-valid_size]
         valid_losses = []
         min_valid_loss = math.inf
         epoch_since_last_min = 0
@@ -254,7 +260,8 @@ class Regressor(object):
 
 
 class TGEN_Model(object):
-    def __init__(self, da_embedder, text_embedder, cfg):
+    def __init__(self, da_embedder, text_embedder, cfg_path):
+        cfg = yaml.load(open(cfg_path, "r+"))
         self.da_embedder = da_embedder
         self.text_embedder = text_embedder
         self.batch_size = cfg["train_batch_size"]
@@ -267,7 +274,7 @@ class TGEN_Model(object):
         self.decoder_model = None
         self.set_up_models()
         self.greedy_complete_cache = {}
-        self.greedy_complete_cache_path = 'models/greedy_decode.dict'
+        self.greedy_complete_cache_path = cfg['greedy_complete_cache_location']
 
     def get_valid_loss(self, valid_da_seq, valid_text_seq, valid_onehot_seq):
         valid_loss = 0
@@ -280,14 +287,17 @@ class TGEN_Model(object):
                                                    batch_size=self.batch_size, verbose=0)
         return valid_loss
 
-    def train(self, da_seq, text_seq, n_epochs, valid_da_seq, valid_text_seq, text_embedder, early_stop_point=5,
-              minimum_stop_point=20):
+    def train(self, da_seq, text_seq, n_epochs, valid_size, early_stop_point=5, minimum_stop_point=20):
+        valid_text_seq = text_seq[-valid_size:]
+        valid_da_seq = da_seq[-valid_size:]
+        text_seq = text_seq[:-valid_size]
+        da_seq = da_seq[:-valid_size]
         valid_onehot_seq = to_categorical(valid_text_seq, num_classes=self.vsize_out)
         text_onehot_seq = to_categorical(text_seq, num_classes=self.vsize_out)
 
         valid_losses = []
         min_valid_loss = math.inf
-        rev_embed = text_embedder.embed_to_tok
+        rev_embed = self.text_embedder.embed_to_tok
         print('\tValid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
 
         for ep in range(n_epochs):
@@ -333,12 +343,6 @@ class TGEN_Model(object):
         load_model_from_gpu(self.full_model, os.path.join(self.save_location, "full.h5"))
         load_model_from_gpu(self.encoder_model, os.path.join(self.save_location, "enc.h5"))
         load_model_from_gpu(self.decoder_model, os.path.join(self.save_location, "dec.h5"))
-        # self.full_model = load_model(os.path.join(self.save_location, "full.h5"),
-        #                              custom_objects={'AttentionLayer': AttentionLayer})
-        # self.encoder_model = load_model(os.path.join(self.save_location, "enc.h5"),
-        #                                 custom_objects={'AttentionLayer': AttentionLayer})
-        # self.decoder_model = load_model(os.path.join(self.save_location, "dec.h5"),
-        #                                 custom_objects={'AttentionLayer': AttentionLayer})
 
     def save_model(self):
         print("Saving models at {}".format(self.save_location))

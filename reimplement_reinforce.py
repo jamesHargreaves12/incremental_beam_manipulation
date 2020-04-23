@@ -105,7 +105,7 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
         print(" ".join(test_res[0]))
 
 
-def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rescore_final=False,
+def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rerank_final=False,
                                   save_final_beam_path=False, should_save_cache=False, callback_1000=None):
     da_embedder = beam_search_model.da_embedder
     text_embedder = beam_search_model.text_embedder
@@ -129,7 +129,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
             # prune
             path_scores = []
             for path, tp in zip(new_paths, tok_probs):
-                if not only_rescore_final:
+                if not only_rerank_final:
                     hyp_score = scorer(path, tp, da_emb, i, enc_outs)
                     path_scores.append((hyp_score, path))
                 else:
@@ -144,10 +144,10 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
             save_file.write("\n")
 
-        if only_rescore_final:
+        if only_rerank_final:
             path_scores = []
             for path in paths:
-                hyp_score = scorer(path, 1, da_emb, i)
+                hyp_score = scorer(path, 1, da_emb, i, enc_outs)
                 path_scores.append((hyp_score, path))
             paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)]
 

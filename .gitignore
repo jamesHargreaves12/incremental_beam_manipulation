@@ -10,3 +10,4 @@ old_files/*
 config*.yaml
 configs/*
 tmp.py
+new_configs/*
