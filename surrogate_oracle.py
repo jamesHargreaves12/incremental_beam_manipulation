@@ -68,7 +68,7 @@ text_seqs = []
 da_seqs = []
 scores = []
 valid_size = cfg['valid_size']
-for (da_emb, text_emb), score in surrogte_train_dict.items():
+for (da_emb, text_emb), (score,log_prob) in surrogte_train_dict.items():
     da_seqs.append(da_embedder.add_pad_to_embed(da_emb, to_start=True))
     text_seqs.append(text_embedder.add_pad_to_embed(text_emb, to_start=True))
     scores.append(score)

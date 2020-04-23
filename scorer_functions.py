@@ -42,7 +42,7 @@ def get_greedy_decode_score_func(models, final_scorer, max_length_out, save_scor
         if save_scores is not None:
             if type(save_scores) is dict:
                 da_emb = models.da_embedder.remove_pad_from_embed(da_emb)
-                save_scores[(tuple(da_emb), tuple(text_emb))] = score
+                save_scores[(tuple(da_emb), tuple(text_emb))] = (score, log_prob)
         return score
 
     return func
