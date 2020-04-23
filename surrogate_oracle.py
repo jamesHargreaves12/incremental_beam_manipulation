@@ -35,17 +35,19 @@ models.load_models()
 bleu_scorer = BLEUScore()
 texts = [[[x for x in xs if x not in [START_TOK, END_TOK, PAD_TOK]]] for xs in texts]
 final_scorer = get_oracle_score_func(bleu_scorer, texts, text_embedder, reverse=False)
-if os.path.exists(cfg["surrogate_train_data_path"]) and cfg["load_surrogate_data"]:
+should_load_data = os.path.exists(cfg["surrogate_train_data_path"]) and cfg["load_surrogate_data"]
+surrogte_train_dict = {}
+
+if should_load_data:
     print("Loading Training data")
     surrogte_train_dict = msgpack.load(open(cfg["surrogate_train_data_path"], 'rb+'), use_list=False,
                                        strict_map_key=False)
-else:
+if not should_load_data or cfg["get_rest_surrogate_data"]:
     print("Creating Training data")
-    surrogte_train_dict = {}
     scorer_func = get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length,
                                                save_scores=surrogte_train_dict)
-
-    preds = run_beam_search_with_rescorer(scorer_func, models, das, 3, cfg['only_rerank_final'],
+    start_point = cfg.get("surrogate_data_start_point", 0)
+    preds = run_beam_search_with_rescorer(scorer_func, models, das[start_point:], 3, cfg['only_rerank_final'],
                                           cfg.get('beam_save_path', None), callback_1000=save_scores_dict)
 
     print("Saving training data")
