@@ -18,6 +18,7 @@ def save_scores_dict(i):
     with open(cfg["surrogate_train_data_path"], 'wb+') as fp:
         msgpack.dump(surrogte_train_dict, fp)
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('config_path')
 args = parser.parse_args()
@@ -56,7 +57,7 @@ if not should_load_data or cfg["get_rest_surrogate_data"]:
                                           das=das[start_point:],
                                           beam_size=3,
                                           only_rerank_final=False,
-                                          save_final_beam_path= cfg.get('beam_save_path', None),
+                                          save_final_beam_path=cfg.get('beam_save_path', None),
                                           callback_1000=save_scores_dict)
 
     print("Saving training data")
@@ -67,15 +68,20 @@ print("Training")
 text_seqs = []
 da_seqs = []
 scores = []
-valid_size = cfg['valid_size']
-for (da_emb, text_emb), (score,log_prob) in surrogte_train_dict.items():
+log_probs = []
+print(len(surrogte_train_dict))
+for (da_emb, text_emb), (score, log_prob) in surrogte_train_dict.items():
     da_seqs.append(da_embedder.add_pad_to_embed(da_emb, to_start=True))
     text_seqs.append(text_embedder.add_pad_to_embed(text_emb, to_start=True))
     scores.append(score)
+    log_probs.append(log_prob)
 
+valid_size = cfg['valid_size']
 text_seqs = np.array(text_seqs)
 da_seqs = np.array(da_seqs)
 scores = np.array(scores).reshape((-1, 1))
-reranker = TrainableReranker(da_embedder, text_embedder, cfg)
-reranker.train(text_seqs[:-valid_size], da_seqs[:-valid_size], scores[:-valid_size], cfg["trainable_reranker_epoch"],
-               text_seqs[-valid_size:], da_seqs[-valid_size:], scores[-valid_size:])
+log_probs = np.array(log_probs).reshape((-1, 1))
+# both scores and log probs need to be normalised
+
+reranker = TrainableReranker(da_embedder, text_embedder, cfg_path)
+reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], valid_size)

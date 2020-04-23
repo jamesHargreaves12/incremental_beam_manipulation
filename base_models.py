@@ -21,13 +21,14 @@ from utils import START_TOK, get_hamming_distance, PAD_TOK, load_model_from_gpu
 
 
 class TrainableReranker(object):
-    def __init__(self, da_embedder, text_embedder, cfg):
+    def __init__(self, da_embedder, text_embedder, cfg_path):
+        cfg = yaml.load(open(cfg_path, "r+"))
         self.embedding_size = cfg['embedding_size']
         self.lstm_size = cfg['hidden_size']
-        self.batch_size = cfg['batch_size']
+        self.batch_size = cfg['training_batch_size']
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
-        self.save_location = cfg["trainable_reranker_save_location"]
+        self.save_location = cfg["reranker_loc"]
         self.model = None
 
         self.set_up_models()
@@ -42,6 +43,7 @@ class TrainableReranker(object):
 
         text_inputs = Input(shape=(len_text,), name='text_inputs')
         da_inputs = Input(shape=(len_da,), name='da_inputs')
+        log_probs_inputs = Input(shape=(1, ), name='log_probs_inputs')
 
         embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
         embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
@@ -54,28 +56,38 @@ class TrainableReranker(object):
 
         h_n_text = text_lstm_out[1:]
         h_n_da = da_lstm_out[1:]
-        in_logistic_layer = Concatenate(axis=-1, name='concat_layer_Wy')(h_n_text + h_n_da)
+        in_logistic_layer = Concatenate(axis=-1, name='concat_layer_Wy')(h_n_text + h_n_da + [log_probs_inputs])
 
         hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
         output = Dense(1)(hidden_logistic)
-        self.model = Model(inputs=[text_inputs, da_inputs], outputs=output)
+        self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
         optimizer = Adam(lr=0.001)
         self.model.compile(optimizer=optimizer, loss='mean_squared_error')
         self.model.summary()
 
-    def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_bleu_scores):
+    def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
         valid_loss = 0
         for bi in range(0, valid_das_seqs.shape[0] - self.batch_size + 1, self.batch_size):
             valid_da_batch = valid_das_seqs[bi:bi + self.batch_size, :]
             valid_text_batch = valid_text_seqs[bi:bi + self.batch_size, :]
+            lp_batch = valid_log_probs[bi:bi + self.batch_size, :]
             bleu_scores_batch = valid_bleu_scores[bi:bi + self.batch_size, :]
-            valid_loss += self.model.evaluate([valid_text_batch, valid_da_batch], bleu_scores_batch,
+            valid_loss += self.model.evaluate([valid_text_batch, valid_da_batch,lp_batch], bleu_scores_batch,
                                               batch_size=self.batch_size, verbose=0)
         return valid_loss
 
-    def train(self, text_seqs, das_seqs, bleu_scores, epoch, valid_text_seqs, valid_das, valid_bleu_scores):
+    def train(self, text_seqs, das_seqs, bleu_scores, log_probs,  epoch, valid_size):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
+        valid_text_seqs = text_seqs[-valid_size:]
+        valid_das = das_seqs[-valid_size:]
+        valid_bleu_scores = bleu_scores[-valid_size:]
+        valid_log_probs = log_probs[-valid_size:]
+        text_seqs = text_seqs[:-valid_size]
+        das_seqs = das_seqs[:-valid_size]
+        bleu_scores = bleu_scores[:-valid_size]
+        log_probs = log_probs[:-valid_size]
+
         for ep in range(epoch):
             start = time()
             losses = 0
@@ -85,11 +97,12 @@ class TrainableReranker(object):
                 da_batch = das_seqs[bi:bi + self.batch_size, :]
                 text_batch = text_seqs[bi:bi + self.batch_size, :]
                 bleu_batch = bleu_scores[bi:bi + self.batch_size, :]
-                self.model.train_on_batch([text_batch, da_batch], bleu_batch)
-                losses += self.model.evaluate([text_batch, da_batch], bleu_batch, batch_size=self.batch_size, verbose=0)
+                lp_batch = log_probs[bi:bi + self.batch_size, :]
+                self.model.train_on_batch([text_batch, da_batch, lp_batch], bleu_batch)
+                losses += self.model.evaluate([text_batch, da_batch, lp_batch], bleu_batch, batch_size=self.batch_size, verbose=0)
             train_loss = losses / das_seqs.shape[0] * self.batch_size
             time_spent = time() - start
-            valid_loss = self.get_valid_loss(valid_das, valid_text_seqs, valid_bleu_scores)
+            valid_loss = self.get_valid_loss(valid_das, valid_text_seqs, valid_log_probs, valid_bleu_scores)
             print('{} Epoch {} Train: {:.4f} Valid: {:.4f}'.format(time_spent, ep, train_loss, valid_loss))
             if valid_loss < min_valid_loss:
                 min_valid_loss = valid_loss
