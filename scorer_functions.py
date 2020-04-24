@@ -100,7 +100,7 @@ def get_score_function(scorer, cfg, models, true_vals):
         final_scorer = get_tgen_rerank_score_func(tgen_reranker, da_embedder)
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
     elif scorer == 'greedy_decode_learned':
-        learned = TrainableReranker(da_embedder, text_embedder, cfg)
+        learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
         final_scorer = get_learned_score_func(learned)
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
@@ -108,7 +108,7 @@ def get_score_function(scorer, cfg, models, true_vals):
         bleu_scorer = BLEUScore()
         return get_oracle_score_func(bleu_scorer, true_vals, text_embedder, reverse=(scorer == 'rev_oracle'))
     elif scorer == 'learned':
-        learned = TrainableReranker(da_embedder, text_embedder, cfg)
+        learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
         return get_learned_score_func(learned)
     elif scorer == 'random':

@@ -27,7 +27,7 @@ if "get_train_beam" in cfg and cfg["get_train_beam"]:
     das_test, _ = get_training_das_texts()
 
 true_vals = get_true_sents()
-models = TGEN_Model(da_embedder, text_embedder, cfg)
+models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
 models.load_models()
 
 scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals)
