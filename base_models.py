@@ -124,8 +124,8 @@ class TrainableReranker(object):
             os.makedirs(self.save_location)
         self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
-    def predict_bleu_score(self, text_seqs, da_seqs):
-        return self.model.predict([text_seqs, da_seqs])
+    def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
+        return self.model.predict([text_seqs, da_seqs, logprob_seqs.reshape((1, 1))])
 
 
 class TGEN_Reranker(object):
