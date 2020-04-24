@@ -78,7 +78,7 @@ def get_learned_score_func(trainable_reranker):
             np.array([pads + text_emb]),
             np.array([da_emb]),
             np.array([tp]))
-        return -pred[0][0]
+        return pred[0][0]
 
     return func
 

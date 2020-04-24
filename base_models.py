@@ -119,7 +119,8 @@ class TrainableReranker(object):
         print("Loading trainable reranker from {}".format(self.save_location))
         model_path = os.path.join(self.save_location, "model.h5")
         if os.path.exists(model_path):
-            self.model = load_model(model_path)
+            # self.model = load_model(model_path)
+            load_model_from_gpu(self.model, model_path)
         else:
             print("Model does not exist yet")
 
