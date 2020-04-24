@@ -74,7 +74,7 @@ def get_learned_score_func(trainable_reranker):
         text_emb = path[1]
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
                (trainable_reranker.text_embedder.length - len(text_emb))
-        pred = trainable_reranker.predict_bleu_score(np.array([pads + text_emb]), np.array([da_emb]))
+        pred = trainable_reranker.predict_bleu_score(np.array([pads + text_emb]), np.array([da_emb]), np.array([tp]).reshape((1,1)))
         return -pred[0][0]
 
     return func

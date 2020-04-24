@@ -42,6 +42,7 @@ for beam_size in cfg["beam_sizes"]:
         enc_outs = None #only needed for greedy decode
         for hyp, logprob in beam:
             fake_path = (logprob, text_embedder.get_embeddings([hyp], pad_from_end=False)[0])
+            # NOTE THAT THE TOKEN PROB IS SET TO 0 SINCE WE DONT HAVE IT
             tp = 0
             score = scorer_func(fake_path, tp, da_emb, i, enc_outs)
             scores.append((score, hyp))
