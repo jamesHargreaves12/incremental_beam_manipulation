@@ -77,7 +77,7 @@ class TrainableReranker(object):
                                               batch_size=self.batch_size, verbose=0)
         return valid_loss
 
-    def train(self, text_seqs, das_seqs, bleu_scores, log_probs,  epoch, valid_size):
+    def train(self, text_seqs, das_seqs, bleu_scores, log_probs,  epoch, valid_size, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
         valid_text_seqs = text_seqs[-valid_size:]
@@ -111,7 +111,7 @@ class TrainableReranker(object):
                 self.save_model()
             else:
                 epoch_since_minimum += 1
-                if epoch_since_minimum > 5:
+                if epoch_since_minimum > min_passes:
                     break
         self.load_model()
 
