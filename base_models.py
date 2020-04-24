@@ -116,7 +116,11 @@ class TrainableReranker(object):
 
     def load_model(self):
         print("Loading trainable reranker from {}".format(self.save_location))
-        self.model = load_model(os.path.join(self.save_location, "model.h5"))
+        model_path = os.path.join(self.save_location, "model.h5")
+        if os.path.exists(model_path):
+            self.model = load_model(model_path)
+        else:
+            print("Model does not exist yet")
 
     def save_model(self):
         print("Saving trainable reranker at {}".format(self.save_location))
