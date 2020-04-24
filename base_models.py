@@ -73,7 +73,7 @@ class TrainableReranker(object):
             valid_text_batch = valid_text_seqs[bi:bi + self.batch_size, :]
             lp_batch = valid_log_probs[bi:bi + self.batch_size, :]
             bleu_scores_batch = valid_bleu_scores[bi:bi + self.batch_size, :]
-            valid_loss += self.model.evaluate([valid_text_batch, valid_da_batch,lp_batch], bleu_scores_batch,
+            valid_loss += self.model.evaluate([valid_text_batch, valid_da_batch, lp_batch], bleu_scores_batch,
                                               batch_size=self.batch_size, verbose=0)
         return valid_loss
 

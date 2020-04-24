@@ -33,6 +33,7 @@ models.load_models()
 scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals)
 
 should_use_cache = "populate_greedy_cache" in cfg and cfg["populate_greedy_cache"]
+should_update_cache = should_use_cache and "update_greedy_cache" in cfg and cfg["update_greedy_cache"]
 if should_use_cache:
     models.populate_cache()
 
@@ -40,7 +41,7 @@ absts = get_abstss_test()
 for beam_size in cfg["beam_sizes"]:
     print("Beam size = {} ".format(beam_size))
     preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'],
-                                          cfg.get('beam_save_path', None), should_save_cache=should_use_cache)
+                                          cfg.get('beam_save_path', None), should_save_cache=should_update_cache)
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
         save_filename = cfg["res_save_format"].format(beam_size)
