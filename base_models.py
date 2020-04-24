@@ -125,6 +125,7 @@ class TrainableReranker(object):
         self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
     def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
+        # need to normalise logprob_seqs
         return self.model.predict([text_seqs, da_seqs, logprob_seqs.reshape((1, 1))])
 
 
