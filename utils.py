@@ -2,6 +2,8 @@ import os
 import re
 import sys
 from collections import defaultdict
+from tensorflow.python.util import deprecation
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import h5py
 import nltk

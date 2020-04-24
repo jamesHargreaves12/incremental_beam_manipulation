@@ -30,7 +30,8 @@ class TrainableReranker(object):
         self.da_embedder = da_embedder
         self.save_location = cfg["reranker_loc"]
         self.model = None
-
+        self.min_log_prob = cfg["default_min_log_prob"]
+        self.max_log_prob = cfg["default_max_log_prob"]
         self.set_up_models()
 
     def set_up_models(self):
@@ -130,6 +131,7 @@ class TrainableReranker(object):
 
     def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
         # need to normalise logprob_seqs
+        logprob_seqs = (logprob_seqs - self.min_log_prob)/(self.max_log_prob-self.min_log_prob)
         return self.model.predict([text_seqs, da_seqs, logprob_seqs.reshape((1, 1))])
 
 

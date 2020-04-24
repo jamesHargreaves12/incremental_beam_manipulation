@@ -5,12 +5,12 @@ import msgpack
 import numpy as np
 import yaml
 
+from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables
 from base_models import TGEN_Model, TrainableReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_oracle_score_func, get_greedy_decode_score_func
-from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables
 
 
 def save_scores_dict(i):
