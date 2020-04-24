@@ -81,7 +81,9 @@ text_seqs = np.array(text_seqs)
 da_seqs = np.array(da_seqs)
 scores = np.array(scores).reshape((-1, 1))
 log_probs = np.array(log_probs).reshape((-1, 1))
-# both scores and log probs need to be normalised
+
+# log probs need to be normalised
+log_probs = (log_probs-np.min(log_probs)) / np.ptp(log_probs)
 
 reranker = TrainableReranker(da_embedder, text_embedder, cfg_path)
 reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], valid_size)
