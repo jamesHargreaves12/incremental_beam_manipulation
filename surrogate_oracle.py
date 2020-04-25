@@ -1,10 +1,11 @@
 import argparse
 import os
-
+import sys
 import msgpack
 import numpy as np
 import yaml
 import matplotlib.pyplot as plt
+from keras.utils import to_categorical
 
 from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables, \
     get_final_beam, get_test_das, get_true_sents
@@ -113,12 +114,12 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
         for i, (score, hyp, lp) in enumerate(sorted(beam_scores)):
             text_seqs.append(hyp)
             da_seqs.append(da)
-            scores.append(i/2)
+            scores.append(to_categorical([i], num_classes=3))
             log_probs.append(lp)
 
-    text_seqs = np.array(text_embedder.get_embeddings(text_seqs))
+    text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
-    scores = np.array(scores).reshape((-1, 1))
+    scores = np.array(scores).reshape((-1, 3))
     log_probs = np.array(log_probs).reshape((-1, 1))
 
     # log probs need to be normalised
@@ -172,17 +173,30 @@ if "get_stats" in cfg and cfg["get_stats"]:
     # test_text_embs = [text_embedder.get_embeddings(beam) for beam in beam_texts]
     bleu = BLEUScore()
     mapping = []
+    order_correct_surrogate = 0
+    order_correct_seq2seq = 0
     for texts, da_emb, tp_emb, true_texts in zip(beam_texts, test_da_embs, beam_tok_logprob, test_texts):
         text_seqs = np.array(text_embedder.get_embeddings(texts, pad_from_end=False))
         da_seqs = np.array([da_emb for _ in range(len(text_seqs))])
         tp_seqs = np.array(tp_emb).reshape(-1, 1)
         preds = reranker.predict_bleu_score(text_seqs, da_seqs, tp_seqs)
-        for pred, text in zip(preds, texts):
+        beam_scores = []
+        for i, (pred, text, tp) in enumerate(zip(preds, texts, tp_seqs)):
             bleu.reset()
             bleu.append(text, true_texts)
             real = bleu.score()
             mapping.append((pred[0], real))
+            beam_scores.append((real, pred[0][0], i, tp))
+        best = sorted(beam_scores, reverse=True)[0]
+        best_surrogate = sorted(beam_scores, key=lambda x: x[1], reverse=True)[0]
+        best_seq2seq = sorted(beam_scores, key=lambda x: x[3], reverse=True)[0]
+        if best == best_surrogate:
+            order_correct_surrogate += 1
+        if best == best_seq2seq:
+            order_correct_seq2seq += 1
+    print(len(beam_texts), order_correct_surrogate, order_correct_seq2seq)
 
+    sys.exit(0)
     print(mapping)
     preds = [x for x, _ in mapping]
     reals = [x for _, x in mapping]

@@ -32,9 +32,9 @@ class TrainableReranker(object):
         self.model = None
         self.min_log_prob = cfg["default_min_log_prob"]
         self.max_log_prob = cfg["default_max_log_prob"]
-        self.set_up_models()
+        self.set_up_models(cfg["train_data_type"]=='ordered_beams')
 
-    def set_up_models(self):
+    def set_up_models(self, order=False):
         len_text = self.text_embedder.length
         len_vtext = self.text_embedder.vocab_length
         len_da = self.da_embedder.length
@@ -60,11 +60,18 @@ class TrainableReranker(object):
         in_logistic_layer = Concatenate(axis=-1, name='concat_layer_Wy')(h_n_text + h_n_da + [log_probs_inputs])
 
         hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
-        output = Dense(1)(hidden_logistic)
-        self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
         optimizer = Adam(lr=0.001)
-        self.model.compile(optimizer=optimizer, loss='mean_squared_error')
+        if not order:
+            output = Dense(1)(hidden_logistic)
+            self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
+            self.model.compile(optimizer=optimizer, loss='mean_squared_error')
+        else:
+            output = Dense(3, activation='softmax')(hidden_logistic)
+            self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
+            self.model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+
         self.model.summary()
+
 
     def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
         valid_loss = 0
