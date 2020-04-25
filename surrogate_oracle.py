@@ -93,10 +93,11 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
     models.load_models()
     train_texts, train_das = get_multi_reference_training_variables()
-    # print("Loading final beams")
-    # scorer = get_score_function('identity', cfg, models, None)
-    # run_beam_search_with_rescorer(scorer, models, das, 3, only_rerank_final=True,
-    #                               save_final_beam_path='output_files/saved_beams/train_vanilla_3.txt')
+    if cfg["reload_saved_beams"]:
+        print("Loading final beams")
+        scorer = get_score_function('identity', cfg, models, None)
+        run_beam_search_with_rescorer(scorer, models, das, 3, only_rerank_final=True,
+                                      save_final_beam_path='output_files/saved_beams/train_vanilla_3.txt')
     bleu = BLEUScore()
     final_beam = get_final_beam(3, True)
     text_seqs = []
