@@ -111,7 +111,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
             bleu.reset()
             bleu.append(hyp, real_texts)
             beam_scores.append((bleu.score(), hyp, lp))
-        for i, (score, hyp, lp) in enumerate(sorted(beam_scores)):
+        for i, (score, hyp, lp) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append(hyp)
             da_seqs.append(da)
             scores.append(to_categorical([i], num_classes=3))
@@ -186,18 +186,17 @@ if "get_stats" in cfg and cfg["get_stats"]:
             bleu.append(text, true_texts)
             real = bleu.score()
             mapping.append((pred[0], real))
-            beam_scores.append((real, pred[0][0], i, tp))
-        best = sorted(beam_scores, reverse=True)[0]
-        best_surrogate = sorted(beam_scores, key=lambda x: x[1], reverse=True)[0]
-        best_seq2seq = sorted(beam_scores, key=lambda x: x[3], reverse=True)[0]
+            beam_scores.append((real, pred[0], i, tp[0]))
+        best = sorted(beam_scores, reverse=True)[0][2]
+        best_surrogate = sorted(beam_scores, key=lambda x: x[1])[0][2]
+        best_seq2seq = sorted(beam_scores, key=lambda x: x[3], reverse=True)[0][2]
         if best == best_surrogate:
             order_correct_surrogate += 1
         if best == best_seq2seq:
             order_correct_seq2seq += 1
     print(len(beam_texts), order_correct_surrogate, order_correct_seq2seq)
 
-    sys.exit(0)
-    print(mapping)
+    # print(mapping)
     preds = [x for x, _ in mapping]
     reals = [x for _, x in mapping]
     plt.scatter(reals, preds, alpha=0.1)

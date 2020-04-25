@@ -32,7 +32,7 @@ class TrainableReranker(object):
         self.model = None
         self.min_log_prob = cfg["default_min_log_prob"]
         self.max_log_prob = cfg["default_max_log_prob"]
-        self.set_up_models(cfg["train_data_type"]=='ordered_beams')
+        self.set_up_models(cfg["train_data_type"] == 'ordered_beams')
 
     def set_up_models(self, order=False):
         len_text = self.text_embedder.length
@@ -44,34 +44,33 @@ class TrainableReranker(object):
 
         text_inputs = Input(shape=(len_text,), name='text_inputs')
         da_inputs = Input(shape=(len_da,), name='da_inputs')
-        log_probs_inputs = Input(shape=(1, ), name='log_probs_inputs')
+        log_probs_inputs = Input(shape=(1,), name='log_probs_inputs')
 
         embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
         embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
 
-        text_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='text_lstm')
-        da_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='da_lstm')
+        text_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
+        da_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
 
         text_lstm_out = text_lstm(embed_text(text_inputs))
         da_lstm_out = da_lstm(embed_da(da_inputs))
 
         h_n_text = text_lstm_out[1:]
         h_n_da = da_lstm_out[1:]
-        in_logistic_layer = Concatenate(axis=-1, name='concat_layer_Wy')(h_n_text + h_n_da + [log_probs_inputs])
+        in_logistic_layer = Concatenate(axis=-1)(h_n_text + h_n_da + [log_probs_inputs])
 
         hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
         optimizer = Adam(lr=0.001)
         if not order:
-            output = Dense(1)(hidden_logistic)
+            output = Dense(1, name="dense_1")(hidden_logistic)
             self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
             self.model.compile(optimizer=optimizer, loss='mean_squared_error')
         else:
-            output = Dense(3, activation='softmax')(hidden_logistic)
+            output = Dense(3, activation='softmax', name='dense_3')(hidden_logistic)
             self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
             self.model.compile(optimizer=optimizer, loss='categorical_crossentropy')
 
         self.model.summary()
-
 
     def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
         valid_loss = 0
@@ -84,7 +83,7 @@ class TrainableReranker(object):
                                               batch_size=self.batch_size, verbose=0)
         return valid_loss
 
-    def train(self, text_seqs, das_seqs, bleu_scores, log_probs,  epoch, valid_size, min_passes=5):
+    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
         valid_text_seqs = text_seqs[-valid_size:]
@@ -107,7 +106,8 @@ class TrainableReranker(object):
                 bleu_batch = bleu_scores[bi:bi + self.batch_size, :]
                 lp_batch = log_probs[bi:bi + self.batch_size, :]
                 self.model.train_on_batch([text_batch, da_batch, lp_batch], bleu_batch)
-                losses += self.model.evaluate([text_batch, da_batch, lp_batch], bleu_batch, batch_size=self.batch_size, verbose=0)
+                losses += self.model.evaluate([text_batch, da_batch, lp_batch], bleu_batch, batch_size=self.batch_size,
+                                              verbose=0)
             train_loss = losses / das_seqs.shape[0] * self.batch_size
             time_spent = time() - start
             valid_loss = self.get_valid_loss(valid_das, valid_text_seqs, valid_log_probs, valid_bleu_scores)
@@ -139,7 +139,7 @@ class TrainableReranker(object):
 
     def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
         # need to normalise logprob_seqs
-        logprob_seqs = (logprob_seqs - self.min_log_prob)/(self.max_log_prob-self.min_log_prob)
+        logprob_seqs = (logprob_seqs - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)
         return self.model.predict([text_seqs, da_seqs, logprob_seqs.reshape((-1, 1))])
 
 
