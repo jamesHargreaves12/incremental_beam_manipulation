@@ -133,7 +133,7 @@ class TrainableReranker(object):
     def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
         # need to normalise logprob_seqs
         logprob_seqs = (logprob_seqs - self.min_log_prob)/(self.max_log_prob-self.min_log_prob)
-        return self.model.predict([text_seqs, da_seqs, logprob_seqs.reshape((1, 1))])
+        return self.model.predict([text_seqs, da_seqs, logprob_seqs.reshape((-1, 1))])
 
 
 class TGEN_Reranker(object):
