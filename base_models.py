@@ -23,6 +23,7 @@ from utils import START_TOK, get_hamming_distance, PAD_TOK, load_model_from_gpu
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
         cfg = yaml.load(open(cfg_path, "r+"))
+        self.beam_size = cfg["beam_size"]
         self.embedding_size = cfg['embedding_size']
         self.lstm_size = cfg['hidden_size']
         self.batch_size = cfg['training_batch_size']
@@ -66,7 +67,7 @@ class TrainableReranker(object):
             self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
             self.model.compile(optimizer=optimizer, loss='mean_squared_error')
         else:
-            output = Dense(3, activation='softmax', name='dense_3')(hidden_logistic)
+            output = Dense(self.beam_size, activation='softmax', name='dense_3')(hidden_logistic)
             self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
             self.model.compile(optimizer=optimizer, loss='categorical_crossentropy')
 

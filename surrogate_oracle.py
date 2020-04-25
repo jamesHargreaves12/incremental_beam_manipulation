@@ -91,16 +91,18 @@ def get_scores_from_greedy_decode_dict(cfg, da_embedder, text_embedder, texts, d
 
 
 def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
+    beam_size = cfg["beam_size"]
     models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
     models.load_models()
     train_texts, train_das = get_multi_reference_training_variables()
-    if cfg["reload_saved_beams"]:
+    beam_save_path = 'output_files/saved_beams/train_vanilla_{}.txt'.format(beam_size)
+    if cfg["reload_saved_beams"] or not os.path.exists(beam_save_path):
         print("Loading final beams")
         scorer = get_score_function('identity', cfg, models, None)
-        run_beam_search_with_rescorer(scorer, models, das, 3, only_rerank_final=True,
-                                      save_final_beam_path='output_files/saved_beams/train_vanilla_3.txt')
+        run_beam_search_with_rescorer(scorer, models, das, beam_size, only_rerank_final=True,
+                                      save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
-    final_beam = get_final_beam(3, True)
+    final_beam = get_final_beam(beam_size, True)
     text_seqs = []
     da_seqs = []
     scores = []
@@ -114,12 +116,12 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
         for i, (score, hyp, lp) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append(hyp)
             da_seqs.append(da)
-            scores.append(to_categorical([i], num_classes=3))
+            scores.append(to_categorical([i], num_classes=beam_size))
             log_probs.append(lp)
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
-    scores = np.array(scores).reshape((-1, 3))
+    scores = np.array(scores).reshape((-1, beam_size))
     log_probs = np.array(log_probs).reshape((-1, 1))
 
     # log probs need to be normalised
@@ -167,7 +169,7 @@ if "get_stats" in cfg and cfg["get_stats"]:
     #                               save_final_beam_path='output_files/saved_beams/vanilla_3.txt')
 
     test_da_embs = da_embedder.get_embeddings(test_das)
-    final_beam = get_final_beam(3)
+    final_beam = get_final_beam(cfg['beam_size'])
     beam_texts = [[text for text, _ in beam] for beam in final_beam]
     beam_tok_logprob = [[tp for _, tp in beam] for beam in final_beam]
     # test_text_embs = [text_embedder.get_embeddings(beam) for beam in beam_texts]
