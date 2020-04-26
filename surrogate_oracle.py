@@ -49,8 +49,8 @@ def get_scores_from_greedy_decode_dict(cfg, da_embedder, text_embedder, texts, d
         preds = run_beam_search_with_rescorer(scorer=scorer_func,
                                               beam_search_model=models,
                                               das=das[start_point:],
-                                              beam_size=3,
-                                              only_rerank_final=False,
+                                              beam_size=10,
+                                              only_rerank_final=True,
                                               save_final_beam_path=cfg.get('beam_save_path', None),
                                               callback_1000=save_scores_dict)
 

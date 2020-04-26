@@ -113,6 +113,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
     results = []
     save_file = None
+    final_beams = []
     if save_final_beam_path:
         save_file = open(save_final_beam_path.format(beam_size), "w+")
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
@@ -140,9 +141,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 break
 
         if save_file:
-            for path in paths:
-                save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
-            save_file.write("\n")
+            final_beams.append(paths)
 
         if only_rerank_final:
             path_scores = []
@@ -156,6 +155,12 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         results.append(pred_toks)
         if i % 1000 == 0 and callback_1000 is not None:
             callback_1000(i)
+    if save_file:
+        for paths in final_beams:
+            for path in paths:
+                save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
+            save_file.write("\n")
+
     if should_save_cache:
         beam_search_model.save_cache()
         print("Cache Saved")
