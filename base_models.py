@@ -20,6 +20,16 @@ from attention_keras.layers.attention import AttentionLayer
 from utils import START_TOK, get_hamming_distance, PAD_TOK, load_model_from_gpu
 
 
+def shuffle_data(arrs):
+    len_data = len(arrs[0])
+    order = list(range(len_data))
+    random.shuffle(order)
+    output = []
+    for arr in arrs:
+        output.append([arr[i] for i in order])
+    return output
+
+
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
         cfg = yaml.load(open(cfg_path, "r+"))
@@ -87,6 +97,11 @@ class TrainableReranker(object):
     def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
+        text_seqs, das_seqs, bleu_scores, log_probs = shuffle_data((text_seqs, das_seqs, bleu_scores, log_probs))
+        text_seqs = np.array(text_seqs)
+        das_seqs = np.array(das_seqs)
+        bleu_scores = np.array(bleu_scores)
+        log_probs = np.array(log_probs)
         valid_text_seqs = text_seqs[-valid_size:]
         valid_das = das_seqs[-valid_size:]
         valid_bleu_scores = bleu_scores[-valid_size:]
