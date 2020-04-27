@@ -43,9 +43,11 @@ class TrainableReranker(object):
         self.model = None
         self.min_log_prob = cfg["default_min_log_prob"]
         self.max_log_prob = cfg["default_max_log_prob"]
-        self.set_up_models(cfg["train_data_type"] == 'ordered_beams')
+        self.logprob_order = cfg["logprob_order"]
 
-    def set_up_models(self, order=False):
+        self.set_up_models(cfg["train_data_type"] == 'ordered_beams', cfg["logprob_order"])
+
+    def set_up_models(self, order=False, logprob_order=False):
         len_text = self.text_embedder.length
         len_vtext = self.text_embedder.vocab_length
         len_da = self.da_embedder.length
@@ -55,7 +57,10 @@ class TrainableReranker(object):
 
         text_inputs = Input(shape=(len_text,), name='text_inputs')
         da_inputs = Input(shape=(len_da,), name='da_inputs')
-        log_probs_inputs = Input(shape=(1,), name='log_probs_inputs')
+        if logprob_order:
+            log_probs_inputs = Input(shape=(self.beam_size,), name='log_probs_inputs')
+        else:
+            log_probs_inputs = Input(shape=(1,), name='log_probs_inputs')
 
         embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
         embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
