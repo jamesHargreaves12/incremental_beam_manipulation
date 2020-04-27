@@ -109,6 +109,8 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     log_probs = []
     for beam, real_texts, da in zip(final_beam, train_texts, train_das):
         beam_scores = []
+        min_lp = min([x for _,x in beam])
+        max_lp = max([x for _,x in beam])
         for hyp, lp in beam:
             bleu.reset()
             bleu.append(hyp, real_texts)
@@ -121,6 +123,8 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
             if cfg["logprob_order"]:
                 lp_pos = sum([1 for _, _, lp in beam_scores if lp > logprob + 0.000001])
                 log_probs.append(to_categorical([lp_pos], num_classes=beam_size))
+            elif cfg["logprob_beam_norm"]:
+                log_probs.append((logprob - min_lp)/(max_lp-min_lp))
             else:
                 log_probs.append(logprob)
 
