@@ -119,7 +119,10 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
         for i, (score, hyp, logprob) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append(hyp)
             da_seqs.append(da)
-            scores.append(to_categorical([i], num_classes=beam_size))
+            if cfg["score_format"] == 'bleu':
+                scores.append(score)
+            elif cfg["score_format"] == 'order':
+                scores.append(to_categorical([i], num_classes=beam_size))
             if cfg["logprob_order"]:
                 lp_pos = sum([1 for _, _, lp in beam_scores if lp > logprob + 0.000001])
                 log_probs.append(to_categorical([lp_pos], num_classes=beam_size))
@@ -130,7 +133,12 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
-    scores = np.array(scores).reshape((-1, beam_size))
+
+    if cfg["score_format"] == 'bleu':
+        scores = np.array(scores).reshape((-1, 1))
+    elif cfg["score_format"] == 'order':
+        scores = np.array(scores).reshape((-1, beam_size))
+
     if cfg["logprob_order"]:
         log_probs = np.array(log_probs).reshape((-1, beam_size))
     else:

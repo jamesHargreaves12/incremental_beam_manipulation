@@ -47,7 +47,7 @@ class TrainableReranker(object):
         self.logprob_order = cfg["logprob_order"]
         self.beam_normalised_lp = cfg["logprob_beam_norm"]
 
-        self.set_up_models(cfg["train_data_type"] == 'ordered_beams', cfg["logprob_order"])
+        self.set_up_models(cfg["train_data_type"] == 'ordered_beams' and cfg["score_format"] != 'bleu', cfg["logprob_order"])
 
     def set_up_models(self, order=False, logprob_order=False):
         len_text = self.text_embedder.length
