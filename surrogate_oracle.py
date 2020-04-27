@@ -98,7 +98,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     beam_save_path = 'output_files/saved_beams/train_vanilla_{}.txt'.format(beam_size)
     if cfg["reload_saved_beams"] or not os.path.exists(beam_save_path):
         print("Loading final beams")
-        scorer = get_score_function('identity', cfg, models, None)
+        scorer = get_score_function('identity', cfg, models, None, beam_size)
         run_beam_search_with_rescorer(scorer, models, das, beam_size, only_rerank_final=True,
                                       save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
@@ -220,7 +220,7 @@ if "get_stats" in cfg and cfg["get_stats"]:
     # print(mapping)
     preds = [x for x, _ in mapping]
     reals = [x for _, x in mapping]
-    plt.scatter(reals, preds, alpha=0.1)
+    plt.scatter(reals, preds, alpha=0.05)
     plt.plot([0, 1], [0, 1], color='red')
     plt.xlabel("Real Score")
     plt.ylabel("Predicted")
