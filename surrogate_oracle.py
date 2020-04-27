@@ -113,21 +113,23 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
             bleu.reset()
             bleu.append(hyp, real_texts)
             beam_scores.append((bleu.score(), hyp, lp))
-        for i, (score, hyp, lp) in enumerate(sorted(beam_scores, reverse=True)):
+
+        for i, (score, hyp, logprob) in enumerate(sorted(beam_scores, reverse=True)):
+            lp_pos = sum([1 for _, _, lp in beam_scores if lp > logprob + 0.000001])
             text_seqs.append(hyp)
             da_seqs.append(da)
             scores.append(to_categorical([i], num_classes=beam_size))
-            log_probs.append(lp)
+            log_probs.append(to_categorical([lp_pos], num_classes=beam_size))
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
     scores = np.array(scores).reshape((-1, beam_size))
-    log_probs = np.array(log_probs).reshape((-1, 1))
+    log_probs = np.array(log_probs).reshape((-1, beam_size))
 
     # log probs need to be normalised
-    print("Before: ", np.min(log_probs), np.ptp(log_probs))
-    log_probs = (log_probs - np.min(log_probs)) / np.ptp(log_probs)
-    print("After: ", np.min(log_probs), np.ptp(log_probs))
+    # print("Before: ", np.min(log_probs), np.ptp(log_probs))
+    # log_probs = (log_probs - np.min(log_probs)) / np.ptp(log_probs)
+    # print("After: ", np.min(log_probs), np.ptp(log_probs))
     return text_seqs, da_seqs, scores, log_probs
 
 
