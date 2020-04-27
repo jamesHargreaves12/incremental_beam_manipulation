@@ -71,15 +71,20 @@ def get_random_score_func():
     return func
 
 
-def get_learned_score_func(trainable_reranker, select_max=False):
+def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False):
     def func(path, logprob_rank, da_emb, da_i, enc_outs):
         text_emb = path[1]
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
                (trainable_reranker.text_embedder.length - len(text_emb))
+        if trainable_reranker.logprob_order:
+            logprob_rank = logprob_rank*trainable_reranker.beam_size // test_beam_size
+            logprob_val = to_categorical([logprob_rank], num_classes=trainable_reranker.beam_size)
+        else:
+            logprob_val = [path[0]]
         pred = trainable_reranker.predict_bleu_score(
             np.array([pads + text_emb]),
             np.array([da_emb]),
-            np.array(to_categorical([logprob_rank], num_classes=trainable_reranker.beam_size)))
+            np.array(logprob_val))
         if select_max:
             max_pred = np.argmax(pred[0])
             return 10-max_pred, pred[0][0]
@@ -89,7 +94,7 @@ def get_learned_score_func(trainable_reranker, select_max=False):
     return func
 
 
-def get_score_function(scorer, cfg, models, true_vals):
+def get_score_function(scorer, cfg, models, true_vals, beam_size):
     da_embedder = models.da_embedder
     text_embedder = models.text_embedder
     print("Using Scorer: {}".format(scorer))
@@ -111,7 +116,7 @@ def get_score_function(scorer, cfg, models, true_vals):
     elif scorer == 'greedy_decode_learned':
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
-        final_scorer = get_learned_score_func(learned)
+        final_scorer = get_learned_score_func(learned, beam_size)
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
     elif scorer in ['oracle', 'rev_oracle']:
         bleu_scorer = BLEUScore()
@@ -120,7 +125,7 @@ def get_score_function(scorer, cfg, models, true_vals):
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
         select_max = cfg.get("order_by_max_class", False)
-        return get_learned_score_func(learned,select_max)
+        return get_learned_score_func(learned, beam_size, select_max)
     elif scorer == 'random':
         return get_random_score_func()
     else:
