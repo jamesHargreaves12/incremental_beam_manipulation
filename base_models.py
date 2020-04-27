@@ -79,11 +79,11 @@ class TrainableReranker(object):
         hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
         optimizer = Adam(lr=0.001)
         if not order:
-            output = Dense(1, name="dense_1")(hidden_logistic)
+            output = Dense(1)(hidden_logistic)
             self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
             self.model.compile(optimizer=optimizer, loss='mean_squared_error')
         else:
-            output = Dense(self.beam_size, activation='softmax', name='dense_3')(hidden_logistic)
+            output = Dense(self.beam_size, activation='softmax')(hidden_logistic)
             self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
             self.model.compile(optimizer=optimizer, loss='categorical_crossentropy')
 
