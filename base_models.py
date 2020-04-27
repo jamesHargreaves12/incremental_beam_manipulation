@@ -45,6 +45,7 @@ class TrainableReranker(object):
         self.min_log_prob = cfg["default_min_log_prob"]
         self.max_log_prob = cfg["default_max_log_prob"]
         self.logprob_order = cfg["logprob_order"]
+        self.beam_normalised_lp = cfg["logprob_beam_norm"]
 
         self.set_up_models(cfg["train_data_type"] == 'ordered_beams', cfg["logprob_order"])
 
@@ -167,7 +168,7 @@ class TrainableReranker(object):
         self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
     def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
-        if not self.logprob_order:
+        if not self.logprob_order and not self.beam_normalised_lp:
             # need to normalise logprob_seqs
             logprob_seqs = ((logprob_seqs - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape((-1, 1))
         # print(text_seqs[0])
