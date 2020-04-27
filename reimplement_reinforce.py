@@ -129,9 +129,13 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
             # prune
             path_scores = []
+            logprobs = [x[0] for x in paths]
             for path, tp in zip(new_paths, tok_probs):
                 if not only_rerank_final:
-                    hyp_score = scorer(path, tp, da_emb, i, enc_outs)
+                    lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
+                    # TODO find better solution
+                    lp_pos = lp_pos // beam_size # the beam is 10x larger than would be expected by model
+                    hyp_score = scorer(path, lp_pos, da_emb, i, enc_outs)
                     path_scores.append((hyp_score, path))
                 else:
                     path_scores.append((path[0], path))
@@ -145,8 +149,10 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
         if only_rerank_final:
             path_scores = []
+            logprobs = [x[0] for x in paths]
             for path in paths:
-                hyp_score = scorer(path, 1, da_emb, i, enc_outs)
+                lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
+                hyp_score = scorer(path, lp_pos, da_emb, i, enc_outs)
                 path_scores.append((hyp_score, path))
             paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)]
 

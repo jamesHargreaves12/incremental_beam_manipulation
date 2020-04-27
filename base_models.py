@@ -2,6 +2,7 @@ import math
 import os
 import pickle
 import random
+import sys
 from math import log
 from time import time
 
@@ -126,6 +127,13 @@ class TrainableReranker(object):
                 text_batch = text_seqs[bi:bi + self.batch_size, :]
                 bleu_batch = bleu_scores[bi:bi + self.batch_size, :]
                 lp_batch = log_probs[bi:bi + self.batch_size, :]
+
+                # print(text_batch[0])
+                # print(da_batch[0])
+                # print(lp_batch[0])
+                # print(bleu_batch[0])
+                # sys.exit(0)
+
                 self.model.train_on_batch([text_batch, da_batch, lp_batch], bleu_batch)
                 losses += self.model.evaluate([text_batch, da_batch, lp_batch], bleu_batch, batch_size=self.batch_size,
                                               verbose=0)
@@ -159,9 +167,14 @@ class TrainableReranker(object):
         self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
     def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
-        # need to normalise logprob_seqs
-        logprob_seqs = (logprob_seqs - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)
-        return self.model.predict([text_seqs, da_seqs, logprob_seqs.reshape((-1, 1))])
+        if not self.logprob_order:
+            # need to normalise logprob_seqs
+            logprob_seqs = ((logprob_seqs - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape((-1, 1))
+        # print(text_seqs[0])
+        # print(da_seqs[0])
+        # print(logprob_seqs[0])
+        # sys.exit(0)
+        return self.model.predict([text_seqs, da_seqs, logprob_seqs])
 
 
 class TGEN_Reranker(object):
