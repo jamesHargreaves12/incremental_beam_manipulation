@@ -77,7 +77,7 @@ def get_learned_score_func(trainable_reranker, select_max=False):
         pred = trainable_reranker.predict_bleu_score(
             np.array([pads + text_emb]),
             np.array([da_emb]),
-            np.array([tp]))
+            np.array([path[0]]))
         if select_max:
             max_pred = np.argmax(pred[0])
             return 10-max_pred, pred[0][0]
