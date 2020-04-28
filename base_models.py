@@ -483,6 +483,14 @@ class TGEN_Model(object):
             with open(self.greedy_complete_cache_path, 'rb') as fp:
                 self.greedy_complete_cache = msgpack.load(fp, use_list=False, strict_map_key=False)
 
+    def naive_complete_greedy(self, path, enc_outs, max_length):
+        paths = [path]
+        for i in range(max_length):
+            paths, _ = self.beam_search_exapand(paths, enc_outs, 1)
+            if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
+                break
+        return paths[0]
+
     def complete_greedy(self, path, enc_outs, max_length):
         def get_key(max_length, path, enc_outs):
             return max_length, tuple(int(x) for x in path[1]), enc_outs

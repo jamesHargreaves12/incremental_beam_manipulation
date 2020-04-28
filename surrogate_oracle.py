@@ -1,12 +1,13 @@
 import argparse
 import os
+import pickle
 import sys
 import msgpack
 import numpy as np
 import yaml
 import matplotlib.pyplot as plt
 from keras.utils import to_categorical
-
+from sklearn.metrics import confusion_matrix
 from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables, \
     get_final_beam, get_test_das, get_true_sents
 from base_models import TGEN_Model, TrainableReranker
@@ -183,16 +184,42 @@ if "get_stats" in cfg and cfg["get_stats"]:
     test_das = get_test_das()
     test_texts = get_true_sents()
     # print("Loading final beams")
-    # scorer = get_score_function('identity', cfg, models, None)
-    # run_beam_search_with_rescorer(scorer, models, test_das, 3, only_rerank_final=False,
-    #                               save_final_beam_path='output_files/saved_beams/vanilla_3.txt')
-
+    # models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
+    # models.load_models()
+    # scorer = get_score_function('identity', cfg, models, None, 10)
+    # run_beam_search_with_rescorer(scorer, models, test_das, 10, only_rerank_final=True,
+    #                               save_final_beam_path='output_files/saved_beams/vanilla_10.pickle')
+    # sys.exit(0)
+    bleu = BLEUScore()
     test_da_embs = da_embedder.get_embeddings(test_das)
-    final_beam = get_final_beam(cfg['beam_size'])
+    final_beam = pickle.load(open('output_files/saved_beams/vanilla_{}.pickle'.format(cfg['beam_size']),'rb+'))
+    all_reals = []
+    all_preds = []
+    for da_emb, beam, true in zip(test_da_embs, final_beam, test_texts):
+        real_scores = []
+        lp_probs_beam = [x[0] for x in beam]
+        for i,path in enumerate(beam):
+            logp, text_emb, _ = path
+            toks = text_embedder.reverse_embedding(text_emb)
+            lp_rank = [sum([1 for x in lp_probs_beam if x > logp + 0.000001])]
+            lp_rank_cat = to_categorical([lp_rank], num_classes=10)
+            da_seqs = np.array([da_emb])
+            text_seqs = np.array(text_embedder.get_embeddings([toks], pad_from_end=False))
+            score = reranker.predict_bleu_score(text_seqs, da_seqs, lp_rank_cat)
+            score = 9-np.argmax(score[0])
+            all_preds.append(score)
+            pred = [x for x in toks if x not in [START_TOK, END_TOK, PAD_TOK]]
+            bleu.reset()
+            bleu.append(pred, true)
+            real_scores.append((bleu.score(),i))
+        sorted_reals = sorted(real_scores)
+        all_reals.extend([i for _, i in sorted_reals])
+    print(confusion_matrix(all_reals, all_preds))
+
+
     beam_texts = [[text for text, _ in beam] for beam in final_beam]
     beam_tok_logprob = [[tp for _, tp in beam] for beam in final_beam]
     # test_text_embs = [text_embedder.get_embeddings(beam) for beam in beam_texts]
-    bleu = BLEUScore()
     mapping = []
     order_correct_surrogate = 0
     order_correct_seq2seq = 0
@@ -208,7 +235,8 @@ if "get_stats" in cfg and cfg["get_stats"]:
             real = bleu.score()
             mapping.append((pred[0], real))
             beam_scores.append((real, pred[0], i, tp[0]))
-        best = sorted(beam_scores, reverse=True)[0][2]
+        sorted_beam_scores = sorted(beam_scores, reverse=True)
+        best = sorted_beam_scores[0][2]
         best_surrogate = sorted(beam_scores, key=lambda x: x[1])[0][2]
         best_seq2seq = sorted(beam_scores, key=lambda x: x[3], reverse=True)[0][2]
         if best == best_surrogate:

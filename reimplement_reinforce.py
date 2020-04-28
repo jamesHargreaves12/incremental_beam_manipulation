@@ -1,3 +1,4 @@
+import pickle
 from math import log
 
 from gensim.models import Word2Vec
@@ -43,7 +44,6 @@ def get_greedy_compelete_toks_logprob(beam_search_model, path, max_length, enc_o
         logprob = path[0]
     toks = [x for x in result.split(" ") if x not in [START_TOK, END_TOK, PAD_TOK]]
     return toks, logprob
-
 
 def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, regressor, text_embedder,
                        da_embedder, cfg,
@@ -114,8 +114,6 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     results = []
     save_file = None
     final_beams = []
-    if save_final_beam_path:
-        save_file = open(save_final_beam_path.format(beam_size), "w+")
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
         inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
         enc_outs = inf_enc_out[0]
@@ -129,11 +127,10 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
             # prune
             path_scores = []
-            logprobs = [x[0] for x in paths]
+            logprobs = [x[0] for x in new_paths]
             for path, tp in zip(new_paths, tok_probs):
                 if not only_rerank_final:
                     lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
-                    # TODO find better solution
                     lp_pos = lp_pos // beam_size # the beam is 10x larger than would be expected by model
                     hyp_score = scorer(path, lp_pos, da_emb, i, enc_outs)
                     path_scores.append((hyp_score, path))
@@ -144,7 +141,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
             if all([p[1][-1] in end_tokens for p in paths]):
                 break
 
-        if save_file:
+        if save_final_beam_path:
             final_beams.append(paths)
 
         if only_rerank_final:
@@ -159,13 +156,16 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
+        # print(" ".join(pred_toks))
         if i % 1000 == 0 and callback_1000 is not None:
             callback_1000(i)
-    if save_file:
-        for paths in final_beams:
-            for path in paths:
-                save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
-            save_file.write("\n")
+    if save_final_beam_path:
+        print("Saving final beam states at ", save_final_beam_path)
+        pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
+        # for paths in final_beams:
+        #     for path in paths:
+        #         save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
+        #     save_file.write("\n")
 
     if should_save_cache:
         beam_search_model.save_cache()
