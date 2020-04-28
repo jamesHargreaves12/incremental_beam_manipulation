@@ -46,6 +46,7 @@ class TrainableReranker(object):
         self.max_log_prob = cfg["default_max_log_prob"]
         self.logprob_order = cfg["logprob_order"]
         self.beam_normalised_lp = cfg["logprob_beam_norm"]
+        self.have_printed_data = False
 
         self.set_up_models(cfg["train_data_type"] == 'ordered_beams' and cfg["score_format"] not in ['bleu', "order_continuous"], cfg["logprob_order"])
 
@@ -128,17 +129,12 @@ class TrainableReranker(object):
                 bleu_batch = bleu_scores[bi:bi + self.batch_size, :]
                 lp_batch = log_probs[bi:bi + self.batch_size, :]
 
-                # print(text_batch[0])
-                # print(da_batch[0])
-                # print(lp_batch[0])
-                # print(bleu_batch[0])
-                # sys.exit(0)
                 if ep == 0 and bi == batch_indexes[0]:
                     print("Training on the following data")
-                    print(text_batch[0])
-                    print(da_batch[0])
-                    print(lp_batch[0])
-                    print(bleu_batch[0])
+                    print("Text:", text_batch[0])
+                    print("DA:", da_batch[0])
+                    print("LP:", lp_batch[0])
+                    print("Score:", bleu_batch[0])
                     print("*******************************")
 
                 self.model.train_on_batch([text_batch, da_batch, lp_batch], bleu_batch)
@@ -177,11 +173,17 @@ class TrainableReranker(object):
         if not self.logprob_order and not self.beam_normalised_lp:
             # need to normalise logprob_seqs
             logprob_seqs = ((logprob_seqs - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape((-1, 1))
-        # print(text_seqs[0])
-        # print(da_seqs[0])
-        # print(logprob_seqs[0])
-        # sys.exit(0)
-        return self.model.predict([text_seqs, da_seqs, logprob_seqs])
+
+        result = self.model.predict([text_seqs, da_seqs, logprob_seqs])
+        if not self.have_printed_data:
+            print("Predicting the following")
+            print("Text:", text_seqs[0])
+            print("DA:", da_seqs[0])
+            print("LP:", logprob_seqs[0])
+            print("Score:", result)
+            print("*******************************")
+            self.have_printed_data = True
+        return result
 
 
 class TGEN_Reranker(object):
