@@ -70,7 +70,7 @@ def get_random_score_func():
     return func
 
 
-def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False):
+def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False, output_type=None):
     def func(path, logprob, da_emb, da_i, enc_outs):
         text_emb = path[1]
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
@@ -84,6 +84,10 @@ def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False)
             np.array([pads + text_emb]),
             np.array([da_emb]),
             np.array(logprob_val))
+
+        if output_type in ["order_continuous"]:
+            return 1-pred[0][0]
+
         if select_max:
             max_pred = np.argmax(pred[0])
             return 10-max_pred, pred[0][0]
@@ -115,7 +119,7 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
     elif scorer == 'greedy_decode_learned':
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
-        final_scorer = get_learned_score_func(learned, beam_size)
+        final_scorer = get_learned_score_func(learned, beam_size, output_type=cfg["score_format"])
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
     elif scorer == 'greedy_id':
         final_scorer = get_identity_score_func()
@@ -127,7 +131,7 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
         select_max = cfg.get("order_by_max_class", False)
-        return get_learned_score_func(learned, beam_size, select_max)
+        return get_learned_score_func(learned, beam_size, select_max, cfg["score_format"])
     elif scorer == 'random':
         return get_random_score_func()
     else:
