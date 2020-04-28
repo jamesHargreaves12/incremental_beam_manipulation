@@ -2,6 +2,8 @@ import argparse
 import os
 import pickle
 import sys
+from collections import Counter
+
 import msgpack
 import numpy as np
 import yaml
@@ -141,6 +143,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
     if cfg["score_format"] in ['bleu','order_continuous']:
+        print("SCORES: ", Counter(scores))
         scores = np.array(scores).reshape((-1, 1))
     elif cfg["score_format"] == 'order':
         scores = np.array(scores).reshape((-1, beam_size))
