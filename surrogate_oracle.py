@@ -103,34 +103,37 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
         run_beam_search_with_rescorer(scorer, models, das, beam_size, only_rerank_final=True,
                                       save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
-    final_beam = get_final_beam(beam_size, True)
+    # final_beam = get_final_beam(beam_size, True)
+    final_beam = pickle.loads(open(beam_save_path, "rb+"))
     text_seqs = []
     da_seqs = []
     scores = []
     log_probs = []
     for beam, real_texts, da in zip(final_beam, train_texts, train_das):
         beam_scores = []
-        min_lp = min([x for _,x in beam])
-        max_lp = max([x for _,x in beam])
-        for hyp, lp in beam:
+        min_lp = min([p[0] for _, p in beam])
+        max_lp = max([p[0] for _, p in beam])
+        for path in beam:
             bleu.reset()
+            hyp = [x for x in text_embedder.reverse_embedding(path[1]) if x not in [START_TOK, END_TOK, PAD_TOK]]
             bleu.append(hyp, real_texts)
-            beam_scores.append((bleu.score(), hyp, lp))
+            beam_scores.append((bleu.score(), hyp, path))
 
-        for i, (score, hyp, logprob) in enumerate(sorted(beam_scores, reverse=True)):
+        for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append(hyp)
             da_seqs.append(da)
             if cfg["score_format"] == 'bleu':
                 scores.append(score)
             elif cfg["score_format"] == 'order':
                 scores.append(to_categorical([i], num_classes=beam_size))
+
             if cfg["logprob_order"]:
-                lp_pos = sum([1 for _, _, lp in beam_scores if lp > logprob + 0.000001])
+                lp_pos = sum([1 for _, _, p in beam_scores if p[0] > path[0] + 0.000001])
                 log_probs.append(to_categorical([lp_pos], num_classes=beam_size))
             elif cfg["logprob_beam_norm"]:
-                log_probs.append((logprob - min_lp)/(max_lp-min_lp))
+                log_probs.append((path[0] - min_lp) / (max_lp - min_lp))
             else:
-                log_probs.append(logprob)
+                log_probs.append(path[0])
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
@@ -176,7 +179,7 @@ if "train" in cfg and cfg["train"]:
     elif cfg["train_data_type"] == 'ordered_beams':
         text_seqs, da_seqs, scores, log_probs = \
             get_scores_ordered_beam(cfg, da_embedder, text_embedder)
-
+    print(log_probs)
     valid_size = cfg["valid_size"]
     reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], valid_size, cfg.get("min_passes", 5))
 
@@ -192,13 +195,13 @@ if "get_stats" in cfg and cfg["get_stats"]:
     # sys.exit(0)
     bleu = BLEUScore()
     test_da_embs = da_embedder.get_embeddings(test_das)
-    final_beam = pickle.load(open('output_files/saved_beams/vanilla_{}.pickle'.format(cfg['beam_size']),'rb+'))
+    final_beam = pickle.load(open('output_files/saved_beams/vanilla_{}.pickle'.format(cfg['beam_size']), 'rb+'))
     all_reals = []
     all_preds = []
     for da_emb, beam, true in zip(test_da_embs, final_beam, test_texts):
         real_scores = []
         lp_probs_beam = [x[0] for x in beam]
-        for i,path in enumerate(beam):
+        for i, path in enumerate(beam):
             logp, text_emb, _ = path
             toks = text_embedder.reverse_embedding(text_emb)
             lp_rank = [sum([1 for x in lp_probs_beam if x > logp + 0.000001])]
@@ -206,16 +209,15 @@ if "get_stats" in cfg and cfg["get_stats"]:
             da_seqs = np.array([da_emb])
             text_seqs = np.array(text_embedder.get_embeddings([toks], pad_from_end=False))
             score = reranker.predict_bleu_score(text_seqs, da_seqs, lp_rank_cat)
-            score = 9-np.argmax(score[0])
+            score = 9 - np.argmax(score[0])
             all_preds.append(score)
             pred = [x for x in toks if x not in [START_TOK, END_TOK, PAD_TOK]]
             bleu.reset()
             bleu.append(pred, true)
-            real_scores.append((bleu.score(),i))
+            real_scores.append((bleu.score(), i))
         sorted_reals = sorted(real_scores)
         all_reals.extend([i for _, i in sorted_reals])
     print(confusion_matrix(all_reals, all_preds))
-
 
     beam_texts = [[text for text, _ in beam] for beam in final_beam]
     beam_tok_logprob = [[tp for _, tp in beam] for beam in final_beam]
