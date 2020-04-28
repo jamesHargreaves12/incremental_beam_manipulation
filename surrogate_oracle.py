@@ -104,7 +104,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
                                       save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
     # final_beam = get_final_beam(beam_size, True)
-    final_beam = pickle.loads(open(beam_save_path, "rb"))
+    final_beam = pickle.load(open(beam_save_path, "rb"))
     text_seqs = []
     da_seqs = []
     scores = []
