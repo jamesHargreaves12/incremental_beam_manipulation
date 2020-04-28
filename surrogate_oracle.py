@@ -111,8 +111,8 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     log_probs = []
     for beam, real_texts, da in zip(final_beam, train_texts, train_das):
         beam_scores = []
-        min_lp = min([p[0] for _, p in beam])
-        max_lp = max([p[0] for _, p in beam])
+        min_lp = min([p[0] for p in beam])
+        max_lp = max([p[0] for p in beam])
         for path in beam:
             bleu.reset()
             hyp = [x for x in text_embedder.reverse_embedding(path[1]) if x not in [START_TOK, END_TOK, PAD_TOK]]
