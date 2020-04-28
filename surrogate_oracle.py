@@ -96,7 +96,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
     models.load_models()
     train_texts, train_das = get_multi_reference_training_variables()
-    beam_save_path = 'output_files/saved_beams/train_vanilla_{}.txt'.format(beam_size)
+    beam_save_path = 'output_files/saved_beams/train_vanilla_{}.pickle'.format(beam_size)
     if cfg["reload_saved_beams"] or not os.path.exists(beam_save_path):
         print("Loading final beams")
         scorer = get_score_function('identity', cfg, models, None, beam_size)
@@ -104,7 +104,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
                                       save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
     # final_beam = get_final_beam(beam_size, True)
-    final_beam = pickle.loads(open(beam_save_path, "rb+"))
+    final_beam = pickle.loads(open(beam_save_path, "rb"))
     text_seqs = []
     da_seqs = []
     scores = []
