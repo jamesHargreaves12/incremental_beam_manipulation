@@ -47,7 +47,7 @@ class TrainableReranker(object):
         self.logprob_order = cfg["logprob_order"]
         self.beam_normalised_lp = cfg["logprob_beam_norm"]
 
-        self.set_up_models(cfg["train_data_type"] == 'ordered_beams' and cfg["score_format"] != 'bleu', cfg["logprob_order"])
+        self.set_up_models(cfg["train_data_type"] == 'ordered_beams' and cfg["score_format"] not in ['bleu', "order_continuous"], cfg["logprob_order"])
 
     def set_up_models(self, order=False, logprob_order=False):
         len_text = self.text_embedder.length
@@ -117,7 +117,6 @@ class TrainableReranker(object):
         das_seqs = das_seqs[:-valid_size]
         bleu_scores = bleu_scores[:-valid_size]
         log_probs = log_probs[:-valid_size]
-
         for ep in range(epoch):
             start = time()
             losses = 0
@@ -134,6 +133,13 @@ class TrainableReranker(object):
                 # print(lp_batch[0])
                 # print(bleu_batch[0])
                 # sys.exit(0)
+                if ep == 0 and bi == batch_indexes[0]:
+                    print("Training on the following data")
+                    print(text_batch[0])
+                    print(da_batch[0])
+                    print(lp_batch[0])
+                    print(bleu_batch[0])
+                    print("*******************************")
 
                 self.model.train_on_batch([text_batch, da_batch, lp_batch], bleu_batch)
                 losses += self.model.evaluate([text_batch, da_batch, lp_batch], bleu_batch, batch_size=self.batch_size,
