@@ -126,6 +126,8 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
                 scores.append(score)
             elif cfg["score_format"] == 'order':
                 scores.append(to_categorical([i], num_classes=beam_size))
+            elif cfg["score_format"] == 'order_continuous':
+                scores.append(i / (beam_size-1))
 
             if cfg["logprob_order"]:
                 lp_pos = sum([1 for _, _, p in beam_scores if p[0] > path[0] + 0.000001])
@@ -138,7 +140,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
-    if cfg["score_format"] == 'bleu':
+    if cfg["score_format"] in ['bleu','order_continuous']:
         scores = np.array(scores).reshape((-1, 1))
     elif cfg["score_format"] == 'order':
         scores = np.array(scores).reshape((-1, beam_size))
