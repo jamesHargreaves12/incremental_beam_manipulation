@@ -34,7 +34,7 @@ def shuffle_data(arrs):
 
 
 def get_training_set_min_max_lp(beam_size):
-    if os.path.exists(TRAIN_BEAM_SAVE_FORMAT.format(beam_size))
+    if os.path.exists(TRAIN_BEAM_SAVE_FORMAT.format(beam_size)):
         beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
         final_beams = pickle.load(open(beam_save_path, "rb"))
         lps = []
