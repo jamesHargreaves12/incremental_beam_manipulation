@@ -56,7 +56,12 @@ class TrainableReranker(object):
         self.beam_size = cfg["beam_size"]
         self.embedding_size = cfg['embedding_size']
         self.lstm_size = cfg['hidden_size']
-        self.batch_size = cfg['training_batch_size']
+        if cfg['output_type'] == 'regression_reranker_relative':
+            self.batch_size = self.beam_size
+            if cfg['training_batch_size']:
+                print('training_batch_size variable ignored due to output type')
+        else:
+            self.batch_size = cfg['training_batch_size']
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
         self.save_location = cfg.get('reranker_loc',
@@ -132,7 +137,8 @@ class TrainableReranker(object):
     def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
-        text_seqs, das_seqs, bleu_scores, log_probs = shuffle_data((text_seqs, das_seqs, bleu_scores, log_probs))
+        if self.output_type != 'regression_reranker_relative':
+            text_seqs, das_seqs, bleu_scores, log_probs = shuffle_data((text_seqs, das_seqs, bleu_scores, log_probs))
         text_seqs = np.array(text_seqs)
         das_seqs = np.array(das_seqs)
         bleu_scores = np.array(bleu_scores)
@@ -145,23 +151,26 @@ class TrainableReranker(object):
         das_seqs = das_seqs[:-valid_size]
         bleu_scores = bleu_scores[:-valid_size]
         log_probs = log_probs[:-valid_size]
+        batch_indexes = list(range(0, text_seqs.shape[0] - self.batch_size, self.batch_size))
         for ep in range(epoch):
             start = time()
             losses = 0
-            batch_indexes = list(range(0, text_seqs.shape[0] - self.batch_size, self.batch_size))
             random.shuffle(batch_indexes)
             for bi in tqdm(batch_indexes):
                 da_batch = das_seqs[bi:bi + self.batch_size, :]
                 text_batch = text_seqs[bi:bi + self.batch_size, :]
                 bleu_batch = bleu_scores[bi:bi + self.batch_size, :]
                 lp_batch = log_probs[bi:bi + self.batch_size, :]
-
+                text_batch, da_batch, bleu_batch, lp_batch = \
+                    shuffle_data((text_batch, da_batch, bleu_batch, lp_batch))
+                text_batch, da_batch, bleu_batch, lp_batch = \
+                    np.array(text_batch), np.array(da_batch), np.array(bleu_batch), np.array(lp_batch)
                 if ep == 0 and bi == batch_indexes[0]:
                     print("Training on the following data")
                     print("Text:", text_batch[0])
                     print("DA:", da_batch[0])
                     print("LP:", lp_batch[0])
-                    print("Score:", bleu_batch[0])
+                    print("All Scores:", " ".join([str(x) for x in bleu_batch]))
                     print("*******************************")
 
                 self.model.train_on_batch([text_batch, da_batch, lp_batch], bleu_batch)
