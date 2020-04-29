@@ -11,86 +11,12 @@ import matplotlib.pyplot as plt
 from keras.utils import to_categorical
 from sklearn.metrics import confusion_matrix
 from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables, \
-    get_final_beam, get_test_das, get_true_sents
+    get_final_beam, get_test_das, get_true_sents, TRAIN_BEAM_SAVE_FORMAT, TEST_BEAM_SAVE_FORMAT
 from base_models import TGEN_Model, TrainableReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_oracle_score_func, get_greedy_decode_score_func, get_score_function
-
-surrogte_train_dict = {}
-
-
-def save_scores_dict(i):
-    print("Saving surrogate_train_dict after {} iterations".format(i))
-    with open(cfg["surrogate_train_data_path"], 'wb+') as fp:
-        msgpack.dump(surrogte_train_dict, fp)
-
-
-def get_scores_from_greedy_decode_dict(cfg, da_embedder, text_embedder, texts, das):
-    global surrogte_train_dict
-    models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
-    models.load_models()
-
-    bleu_scorer = BLEUScore()
-    texts = [[x for x in xs if x not in [START_TOK, END_TOK, PAD_TOK]] for xs in texts]
-    final_scorer = get_oracle_score_func(bleu_scorer, texts, text_embedder, reverse=False)
-    should_load_data = os.path.exists(cfg["surrogate_train_data_path"]) and cfg["load_surrogate_data"]
-
-    models.populate_cache()
-
-    if should_load_data:
-        print("Loading Training data")
-        surrogte_train_dict = msgpack.load(open(cfg["surrogate_train_data_path"], 'rb+'), use_list=False,
-                                           strict_map_key=False)
-    if not should_load_data or cfg["get_rest_surrogate_data"]:
-        print("Creating Training data")
-        scorer_func = get_greedy_decode_score_func(models, final_scorer=final_scorer,
-                                                   max_length_out=text_embedder.length,
-                                                   save_scores=surrogte_train_dict)
-        start_point = cfg.get("surrogate_data_start_point", 0)
-        preds = run_beam_search_with_rescorer(scorer=scorer_func,
-                                              beam_search_model=models,
-                                              das=das[start_point:],
-                                              beam_size=10,
-                                              only_rerank_final=True,
-                                              save_final_beam_path=cfg.get('beam_save_path', None),
-                                              callback_1000=save_scores_dict)
-
-        print("Saving training data")
-        save_scores_dict(-1)
-        models.save_cache()
-
-    text_seqs = []
-    da_seqs = []
-    scores = []
-    log_probs = []
-    print(len(surrogte_train_dict))
-    for (da_emb, text_emb), (score, log_prob) in surrogte_train_dict.items():
-        da_seqs.append(da_embedder.add_pad_to_embed(da_emb, to_start=True))
-        text_seqs.append(text_embedder.add_pad_to_embed(text_emb, to_start=True))
-        scores.append(score)
-        log_probs.append(log_prob)
-
-    text_seqs = np.array(text_seqs)
-    da_seqs = np.array(da_seqs)
-    scores = np.array(scores).reshape((-1, 1))
-    log_probs = np.array(log_probs).reshape((-1, 1))
-
-    # log probs need to be normalised
-    print("Before: ", np.min(log_probs), np.ptp(log_probs))
-    log_probs = (log_probs - np.min(log_probs)) / np.ptp(log_probs)
-    print("After: ", np.min(log_probs), np.ptp(log_probs))
-    if cfg['renormalise_scores']:
-        orig_mean = scores.mean()
-        orig_sd = scores.std()
-        new_mean = 0.5
-        new_sd = 0.4  # clip range is approx 0.45-> 0.9 (20% of data is clipped)
-        new_scores = (scores - orig_mean) / orig_sd * new_sd + new_mean
-        new_scores = new_scores.clip(0, 1)
-        print("(μ,σ) = ({},{}) -> ({},{})".format(orig_mean, orig_sd, new_scores.mean(), new_scores.std()))
-        scores = new_scores
-    return text_seqs, da_seqs, scores, log_probs
 
 
 def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
@@ -98,14 +24,13 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
     models.load_models()
     train_texts, train_das = get_multi_reference_training_variables()
-    beam_save_path = 'output_files/saved_beams/train_vanilla_{}.pickle'.format(beam_size)
-    if cfg["reload_saved_beams"] or not os.path.exists(beam_save_path):
-        print("Loading final beams")
+    beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
+    if not os.path.exists(beam_save_path):
+        print("Creating test final beams")
         scorer = get_score_function('identity', cfg, models, None, beam_size)
         run_beam_search_with_rescorer(scorer, models, das, beam_size, only_rerank_final=True,
                                       save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
-    # final_beam = get_final_beam(beam_size, True)
     final_beam = pickle.load(open(beam_save_path, "rb"))
     text_seqs = []
     da_seqs = []
@@ -124,17 +49,17 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
         for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append(hyp)
             da_seqs.append(da)
-            if cfg["score_format"] == 'bleu':
+            if cfg["output_type"] == 'bleu':
                 scores.append(score)
-            elif cfg["score_format"] == 'order':
+            elif cfg["output_type"] == 'order_discrete':
                 scores.append(to_categorical([i], num_classes=beam_size))
-            elif cfg["score_format"] == 'order_continuous':
+            elif cfg["output_type"] == 'regression_ranker':
                 scores.append(i / (beam_size-1))
 
-            if cfg["logprob_order"]:
+            if cfg["logprob_preprocess_type"] == 'categorical_order':
                 lp_pos = sum([1 for _, _, p in beam_scores if p[0] > path[0] + 0.000001])
                 log_probs.append(to_categorical([lp_pos], num_classes=beam_size))
-            elif cfg["logprob_beam_norm"]:
+            elif cfg["logprob_preprocess_type"] == 'original_normalised':
                 log_probs.append((path[0] - min_lp) / (max_lp - min_lp))
             else:
                 log_probs.append(path[0])
@@ -142,20 +67,20 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
-    if cfg["score_format"] in ['bleu','order_continuous']:
+    if cfg["output_type"] in ['regression_ranker', 'bleu']:
         print("SCORES: ", Counter(scores))
         scores = np.array(scores).reshape((-1, 1))
-    elif cfg["score_format"] == 'order':
+    elif cfg["output_type"] == 'order_discrete':
         scores = np.array(scores).reshape((-1, beam_size))
 
-    if cfg["logprob_order"]:
-        log_probs = np.array(log_probs).reshape((-1, beam_size))
-    else:
+    if cfg["logprob_preprocess_type"] == 'original_normalised':
         log_probs = np.array(log_probs).reshape((-1, 1))
-        # log probs need to be normalised
-        print("Before: ", np.min(log_probs), np.ptp(log_probs))
+        print("Before Normalised : ", np.min(log_probs), np.ptp(log_probs))
         log_probs = (log_probs - np.min(log_probs)) / np.ptp(log_probs)
-        print("After: ", np.min(log_probs), np.ptp(log_probs))
+    elif cfg["logprob_preprocess_type"] == "beam_normalised":
+        log_probs = np.array(log_probs).reshape(-1, 1)
+    else:
+        log_probs = np.array(log_probs).reshape(-1, beam_size)
     return text_seqs, da_seqs, scores, log_probs
 
 
@@ -172,35 +97,30 @@ da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 texts_flat, _ = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts_flat)
 
-print("Training")
 
 reranker = TrainableReranker(da_embedder, text_embedder, cfg_path)
 reranker.load_model()
 
-if "train" in cfg and cfg["train"]:
-    if cfg["train_data_type"] == 'default':
-        text_seqs, da_seqs, scores, log_probs = \
-            get_scores_from_greedy_decode_dict(cfg, da_embedder, text_embedder, texts, das)
-    elif cfg["train_data_type"] == 'ordered_beams':
-        text_seqs, da_seqs, scores, log_probs = \
-            get_scores_ordered_beam(cfg, da_embedder, text_embedder)
-    print(log_probs)
-    valid_size = cfg["valid_size"]
-    reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], valid_size, cfg.get("min_passes", 5))
+if cfg["train"]:
+    print("Training")
+    text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder)
+    reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"], cfg.get("min_training_passes", 5))
 
-if "get_stats" in cfg and cfg["get_stats"]:
+if cfg["show_reranker_post_training_stats"]:
     test_das = get_test_das()
     test_texts = get_true_sents()
-    # print("Loading final beams")
-    # models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
-    # models.load_models()
-    # scorer = get_score_function('identity', cfg, models, None, 10)
-    # run_beam_search_with_rescorer(scorer, models, test_das, 10, only_rerank_final=True,
-    #                               save_final_beam_path='output_files/saved_beams/vanilla_10.pickle')
-    # sys.exit(0)
+    final_beam_path=TEST_BEAM_SAVE_FORMAT.format(10)
+
+    if not os.path.exists(final_beam_path):
+        print("Creating final beams file")
+        models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
+        models.load_models()
+        scorer = get_score_function('identity', cfg, models, None, 10)
+        run_beam_search_with_rescorer(scorer, models, test_das, 10, only_rerank_final=True, save_final_beam_path=final_beam_path)
+
     bleu = BLEUScore()
     test_da_embs = da_embedder.get_embeddings(test_das)
-    final_beam = pickle.load(open('output_files/saved_beams/vanilla_{}.pickle'.format(cfg['beam_size']), 'rb+'))
+    final_beam = pickle.load(open(final_beam_path, 'rb+'))
     all_reals = []
     all_preds = []
     for da_emb, beam, true in zip(test_da_embs, final_beam, test_texts):

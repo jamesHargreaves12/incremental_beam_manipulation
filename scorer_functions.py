@@ -75,17 +75,18 @@ def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False,
         text_emb = path[1]
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
                (trainable_reranker.text_embedder.length - len(text_emb))
-        if trainable_reranker.logprob_order:
+        if trainable_reranker.logprob_preprocess_type == 'categorical_order':
             logprob_rank = logprob*trainable_reranker.beam_size // test_beam_size
             logprob_val = to_categorical([logprob_rank], num_classes=trainable_reranker.beam_size)
         else:
             logprob_val = [path[0]]
+
         pred = trainable_reranker.predict_bleu_score(
             np.array([pads + text_emb]),
             np.array([da_emb]),
             np.array(logprob_val))
 
-        if output_type in ["order_continuous"]:
+        if trainable_reranker.output_type in ["regression_ranker"]:
             return 1-pred[0][0]
 
         if select_max:
@@ -119,7 +120,7 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
     elif scorer == 'greedy_decode_learned':
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
-        final_scorer = get_learned_score_func(learned, beam_size, output_type=cfg["score_format"])
+        final_scorer = get_learned_score_func(learned, beam_size, output_type=cfg["output_type"])
         return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
     elif scorer == 'greedy_id':
         final_scorer = get_identity_score_func()
@@ -130,8 +131,9 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
     elif scorer == 'learned':
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
+        print(cfg)
         select_max = cfg.get("order_by_max_class", False)
-        return get_learned_score_func(learned, beam_size, select_max, cfg["score_format"])
+        return get_learned_score_func(learned, beam_size, select_max)
     elif scorer == 'random':
         return get_random_score_func()
     else:

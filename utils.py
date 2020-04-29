@@ -20,6 +20,9 @@ START_TOK = '<S>'
 END_TOK = '<E>'
 PAD_TOK = '<>'
 RESULTS_DIR = 'output_files/out-text-dir-v3'
+TRAIN_BEAM_SAVE_FORMAT = 'output_files/saved_beams/train_vanilla_{}.pickle'
+TEST_BEAM_SAVE_FORMAT = 'output_files/saved_beams/vanilla_{}.pickle'
+
 
 def construct_logs(beam_size):
     debug_stream = open("output_files/debug_files/output_gen_{}.txt".format(beam_size), "w+")

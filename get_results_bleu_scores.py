@@ -1,10 +1,13 @@
+import datetime
 import os
+import sys
+import time
 
 from e2e_metrics.metrics.pymteval import BLEUScore
 from e2e_metrics.measure_scores import load_data
 from utils import RESULTS_DIR
 
-#RESULTS_DIR = 'output_files/from_gpu_2/out-text-dir-v3'
+# RESULTS_DIR = 'output_files/from_gpu_2/out-text-dir-v3'
 
 
 def test_res_official(pred_file_name):
@@ -24,10 +27,13 @@ def test_res_official(pred_file_name):
     return bleu
 
 
+day_seconds = 24*60*60
+print(sys.argv)
 filename_bs = []
 for filename in os.listdir(RESULTS_DIR):
     beam_size = int("".join([x for x in filename if x.isdigit()]))
-    filename_bs.append((filename, beam_size))
+    if (len(sys.argv) > 1 and sys.argv[1] == 'all') or os.path.getmtime(os.path.join(RESULTS_DIR,filename)) > time.time() - day_seconds:
+        filename_bs.append((filename, beam_size))
 
 for filename, bs in sorted(filename_bs, key=lambda x: (''.join([s for s in x[0] if s.isalpha()]), x[1])):
     print(filename, bs, test_res_official(filename))

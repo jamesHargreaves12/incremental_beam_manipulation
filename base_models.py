@@ -6,11 +6,13 @@ import sys
 from math import log
 from time import time
 
+import keras
 import msgpack
 import numpy as np
 import yaml
 
 from tensorflow.test import is_gpu_available
+import keras.backend as K
 from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.utils import to_categorical
 from tensorflow.python.keras.models import Model, load_model
@@ -18,7 +20,7 @@ from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concate
 from tqdm import tqdm
 
 from attention_keras.layers.attention import AttentionLayer
-from utils import START_TOK, get_hamming_distance, PAD_TOK, load_model_from_gpu
+from utils import START_TOK, get_hamming_distance, PAD_TOK, load_model_from_gpu, TRAIN_BEAM_SAVE_FORMAT
 
 
 def shuffle_data(arrs):
@@ -31,6 +33,15 @@ def shuffle_data(arrs):
     return output
 
 
+def get_training_set_min_max_lp(beam_size):
+    beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
+    final_beams = pickle.load(open(beam_save_path, "rb"))
+    lps = []
+    for beam in final_beams:
+        lps.extend([p[0] for p in beam])
+    return min(lps), max(lps)
+
+
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
         cfg = yaml.load(open(cfg_path, "r+"))
@@ -40,17 +51,19 @@ class TrainableReranker(object):
         self.batch_size = cfg['training_batch_size']
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
-        self.save_location = cfg["reranker_loc"]
+        self.save_location = cfg.get('reranker_loc', "model/surrogate_{}_{}_{}".format(cfg['output_type'], self.beam_size, cfg['logprob_preprocess_type']))
         self.model = None
-        self.min_log_prob = cfg["default_min_log_prob"]
-        self.max_log_prob = cfg["default_max_log_prob"]
-        self.logprob_order = cfg["logprob_order"]
-        self.beam_normalised_lp = cfg["logprob_beam_norm"]
+        self.min_log_prob, self.max_log_prob= get_training_set_min_max_lp(self.beam_size)
         self.have_printed_data = False
+        self.output_type = cfg['output_type']
+        self.logprob_preprocess_type = cfg["logprob_preprocess_type"]
+        self.set_up_models(
+            score_categoric=self.output_type == 'order_discrete'
+            ,
+            logprob_categoric=self.logprob_preprocess_type == 'categorical_order'
+            )
 
-        self.set_up_models(cfg["train_data_type"] == 'ordered_beams' and cfg["score_format"] not in ['bleu', "order_continuous"], cfg["logprob_order"])
-
-    def set_up_models(self, order=False, logprob_order=False):
+    def set_up_models(self, score_categoric=False, logprob_categoric=False):
         len_text = self.text_embedder.length
         len_vtext = self.text_embedder.vocab_length
         len_da = self.da_embedder.length
@@ -60,7 +73,7 @@ class TrainableReranker(object):
 
         text_inputs = Input(shape=(len_text,), name='text_inputs')
         da_inputs = Input(shape=(len_da,), name='da_inputs')
-        if logprob_order:
+        if logprob_categoric:
             log_probs_inputs = Input(shape=(self.beam_size,), name='log_probs_inputs')
         else:
             log_probs_inputs = Input(shape=(1,), name='log_probs_inputs')
@@ -80,7 +93,7 @@ class TrainableReranker(object):
 
         hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
         optimizer = Adam(lr=0.001)
-        if not order:
+        if not score_categoric:
             output = Dense(1)(hidden_logistic)
             self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
             self.model.compile(optimizer=optimizer, loss='mean_squared_error')
@@ -170,9 +183,10 @@ class TrainableReranker(object):
         self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
     def predict_bleu_score(self, text_seqs, da_seqs, logprob_seqs):
-        if not self.logprob_order and not self.beam_normalised_lp:
+        if self.logprob_preprocess_type == 'original_normalised':
             # need to normalise logprob_seqs
-            logprob_seqs = ((logprob_seqs - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape((-1, 1))
+            logprob_seqs = ((logprob_seqs - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape(
+                (-1, 1))
 
         result = self.model.predict([text_seqs, da_seqs, logprob_seqs])
         if not self.have_printed_data:
