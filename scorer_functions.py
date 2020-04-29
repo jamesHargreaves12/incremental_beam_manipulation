@@ -86,7 +86,7 @@ def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False,
             np.array([da_emb]),
             np.array(logprob_val))
 
-        if trainable_reranker.output_type in ["regression_ranker"]:
+        if trainable_reranker.output_type in ["regression_ranker", "regression_reranker_relative"]:
             return 1-pred[0][0]
 
         if select_max:

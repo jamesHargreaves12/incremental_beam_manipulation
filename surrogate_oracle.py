@@ -53,7 +53,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
                 scores.append(score)
             elif cfg["output_type"] == 'order_discrete':
                 scores.append(to_categorical([i], num_classes=beam_size))
-            elif cfg["output_type"] == 'regression_ranker':
+            elif cfg["output_type"] in ['regression_ranker','regression_reranker_relative']:
                 scores.append(i / (beam_size-1))
 
             if cfg["logprob_preprocess_type"] == 'categorical_order':
@@ -67,7 +67,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
-    if cfg["output_type"] in ['regression_ranker', 'bleu']:
+    if cfg["output_type"] in ['regression_ranker', 'bleu', 'regression_reranker_relative']:
         print("SCORES: ", Counter(scores))
         scores = np.array(scores).reshape((-1, 1))
     elif cfg["output_type"] == 'order_discrete':

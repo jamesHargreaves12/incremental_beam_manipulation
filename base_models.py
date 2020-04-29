@@ -10,6 +10,7 @@ import keras
 import msgpack
 import numpy as np
 import yaml
+from keras.losses import mean_squared_error
 
 from tensorflow.test import is_gpu_available
 import keras.backend as K
@@ -33,6 +34,10 @@ def shuffle_data(arrs):
     return output
 
 
+def relative_mae_loss(actual, pred):
+    return mean_squared_error(actual - K.mean(actual), pred - K.mean(pred))
+
+
 def get_training_set_min_max_lp(beam_size):
     if os.path.exists(TRAIN_BEAM_SAVE_FORMAT.format(beam_size)):
         beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
@@ -42,7 +47,8 @@ def get_training_set_min_max_lp(beam_size):
             lps.extend([p[0] for p in beam])
         return min(lps), max(lps)
     else:
-        return -1,-255
+        return -1, -255
+
 
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
@@ -53,20 +59,18 @@ class TrainableReranker(object):
         self.batch_size = cfg['training_batch_size']
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
-        self.save_location = cfg.get('reranker_loc', "model/surrogate_{}_{}_{}".format(cfg['output_type'], self.beam_size, cfg['logprob_preprocess_type']))
+        self.save_location = cfg.get('reranker_loc',
+                                     "model/surrogate_{}_{}_{}".format(cfg['output_type'], self.beam_size,
+                                                                       cfg['logprob_preprocess_type']))
         self.model = None
         if cfg['logprob_preprocess_type'] == 'original_normalised':
-            self.min_log_prob, self.max_log_prob= get_training_set_min_max_lp(self.beam_size)
+            self.min_log_prob, self.max_log_prob = get_training_set_min_max_lp(self.beam_size)
         self.have_printed_data = False
         self.output_type = cfg['output_type']
         self.logprob_preprocess_type = cfg["logprob_preprocess_type"]
-        self.set_up_models(
-            score_categoric=self.output_type == 'order_discrete'
-            ,
-            logprob_categoric=self.logprob_preprocess_type == 'categorical_order'
-            )
+        self.set_up_models(cfg)
 
-    def set_up_models(self, score_categoric=False, logprob_categoric=False):
+    def set_up_models(self, cfg):
         len_text = self.text_embedder.length
         len_vtext = self.text_embedder.vocab_length
         len_da = self.da_embedder.length
@@ -76,7 +80,7 @@ class TrainableReranker(object):
 
         text_inputs = Input(shape=(len_text,), name='text_inputs')
         da_inputs = Input(shape=(len_da,), name='da_inputs')
-        if logprob_categoric:
+        if cfg['logprob_preprocess_type'] == 'categorical_order':
             log_probs_inputs = Input(shape=(self.beam_size,), name='log_probs_inputs')
         else:
             log_probs_inputs = Input(shape=(1,), name='log_probs_inputs')
@@ -96,14 +100,21 @@ class TrainableReranker(object):
 
         hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
         optimizer = Adam(lr=0.001)
-        if not score_categoric:
-            output = Dense(1)(hidden_logistic)
-            self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
-            self.model.compile(optimizer=optimizer, loss='mean_squared_error')
+        out_layer_size = 1
+        loss_function = 'mean_squared_error'
+        out_layer_activation = 'linear'
+        if cfg['output_type'] == 'order_discrete':
+            out_layer_size = self.beam_size
+            loss_function = 'categorical_crossentropy'
+            out_layer_activation = 'softmax'
+        elif cfg['output_type'] == 'regression_reranker_relative':
+            loss_function = relative_mae_loss
         else:
-            output = Dense(self.beam_size, activation='softmax')(hidden_logistic)
-            self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
-            self.model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+            pass # use defaults
+
+        output = Dense(out_layer_size, activation=out_layer_activation)(hidden_logistic)
+        self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
+        self.model.compile(optimizer=optimizer, loss=loss_function)
 
         self.model.summary()
 

@@ -138,6 +138,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                     path_scores.append((path[0], path))
             paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
 
+
             if all([p[1][-1] in end_tokens for p in paths]):
                 break
 
@@ -152,6 +153,12 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 hyp_score = scorer(path, lp_pos, da_emb, i, enc_outs)
                 path_scores.append((hyp_score, path))
             paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)]
+
+            if i == 0:
+                print("First beam Score Distribution:")
+                print([x[0] for x in path_scores])
+                print("******************************")
+
 
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
