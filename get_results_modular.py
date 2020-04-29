@@ -54,3 +54,7 @@ for beam_size in cfg["beam_sizes"]:
         with open(save_path, "w+") as out_file:
             for pa in post_abstr:
                 out_file.write(" ".join(pa) + '\n')
+    elif cfg['scorer'] in ['surrogate', 'greedy_decode_surrogate']:
+        # Example surrogate-regression_reranker_relative-categorical_order_10_10.txt
+        surrogate_cfg = yaml.load(open(cfg["trainable_reranker_config"],'r+'))
+        save_filename = "{}-{}-{}-{}-{}.txt".format(cfg['scorer'],surrogate_cfg["output_type"], surrogate_cfg["logprob_preprocess_type"], surrogate_cfg['beam_size'], beam_size)
