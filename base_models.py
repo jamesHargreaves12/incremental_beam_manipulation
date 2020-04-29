@@ -34,13 +34,15 @@ def shuffle_data(arrs):
 
 
 def get_training_set_min_max_lp(beam_size):
-    beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
-    final_beams = pickle.load(open(beam_save_path, "rb"))
-    lps = []
-    for beam in final_beams:
-        lps.extend([p[0] for p in beam])
-    return min(lps), max(lps)
-
+    if os.path.exists(TRAIN_BEAM_SAVE_FORMAT.format(beam_size))
+        beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
+        final_beams = pickle.load(open(beam_save_path, "rb"))
+        lps = []
+        for beam in final_beams:
+            lps.extend([p[0] for p in beam])
+        return min(lps), max(lps)
+    else:
+        return -1,-255
 
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
@@ -53,7 +55,8 @@ class TrainableReranker(object):
         self.da_embedder = da_embedder
         self.save_location = cfg.get('reranker_loc', "model/surrogate_{}_{}_{}".format(cfg['output_type'], self.beam_size, cfg['logprob_preprocess_type']))
         self.model = None
-        self.min_log_prob, self.max_log_prob= get_training_set_min_max_lp(self.beam_size)
+        if cfg['logprob_preprocess_type'] == 'original_normalised':
+            self.min_log_prob, self.max_log_prob= get_training_set_min_max_lp(self.beam_size)
         self.have_printed_data = False
         self.output_type = cfg['output_type']
         self.logprob_preprocess_type = cfg["logprob_preprocess_type"]
