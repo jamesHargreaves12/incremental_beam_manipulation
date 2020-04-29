@@ -46,6 +46,13 @@ class TokEmbeddingSeq2SeqExtractor(object):
     def remove_pad_from_embed(self, emb):
         return [x for x in emb if x != self.tok_to_embed[PAD_TOK]]
 
+    def pad_to_length(self, text_emb, to_start=True):
+        pads = [self.tok_to_embed[PAD_TOK]] * (self.length - len(text_emb))
+        if to_start:
+            return pads + text_emb
+        else:
+            return text_emb + pads
+
 
 class DAEmbeddingSeq2SeqExtractor(object):
     UNK_ACT = 'UNK_ACT'

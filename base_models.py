@@ -122,6 +122,7 @@ class PairwiseReranker(object):
 
     def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
             valid_loss = 0
+            err = []
             for bi in range(0, valid_das_seqs.shape[0] - self.beam_size + 1, self.beam_size):
                 valid_da_batch = valid_das_seqs[bi:bi + self.beam_size, :]
                 valid_text_batch = valid_text_seqs[bi:bi + self.beam_size, :]
@@ -147,7 +148,10 @@ class PairwiseReranker(object):
                     signal_bleu.append(1 if valid_bleu_batch[i1][0] > valid_bleu_batch[i2][0] else 0)
 
                 valid_loss += self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu, batch_size=self.num_comparisons_train, verbose=0)
-            return valid_loss
+                preds = self.model.predict([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2])
+                preds = [1 if p[0] > 0.5 else 0 for p in preds]
+                err.append(get_hamming_distance(preds, signal_bleu))
+            return valid_loss, sum(err)/len(err)/self.num_comparisons_train
 
     def load_model(self):
         print("Loading pairwise reranker from {}".format(self.save_location))
@@ -228,8 +232,8 @@ class PairwiseReranker(object):
                                               verbose=0)
             train_loss = losses / das_seqs.shape[0] * self.num_comparisons_train
             time_spent = time() - start
-            valid_loss = self.get_valid_loss(valid_das, valid_text_seqs, valid_log_probs, valid_bleu_scores)
-            print('{} Epoch {} Train: {:.4f} Valid: {:.4f}'.format(time_spent, ep, train_loss, valid_loss))
+            valid_loss, valid_err = self.get_valid_loss(valid_das, valid_text_seqs, valid_log_probs, valid_bleu_scores)
+            print('{} Epoch {} Train: {:.4f} Valid: {:.4f} {}'.format(time_spent, ep, train_loss, valid_loss, valid_err))
             if valid_loss < min_valid_loss:
                 min_valid_loss = valid_loss
                 epoch_since_minimum = 0
@@ -258,7 +262,7 @@ class PairwiseReranker(object):
             print("Score:", result)
             print("*******************************")
             self.have_printed_data = True
-        return result
+        return result[0][0]
 
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):

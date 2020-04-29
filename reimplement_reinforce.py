@@ -11,6 +11,7 @@ import yaml
 import tensorflow as tf
 from keras.layers import Dense
 from keras.optimizers import RMSprop
+from keras.utils import to_categorical
 from tqdm import tqdm
 
 from base_models import TGEN_Model, Regressor
@@ -199,19 +200,27 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     return results
 
 
-def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
+def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
+    da_emb = np.array([da_emb])
     for i in range(len(beam)):
         new_beam = []
-        piv = random.randint(0, len(beam)-1)
+        piv = random.randint(0, len(beam) - 1)
+
         orig_path = beam[piv]
+        text_1 = np.array([text_embedder.pad_to_length(orig_path[1])])
+        lp_rank_1 = sum([1 for lp, _, _ in beam if lp > orig_path[0] + 0.000001])
+        lp_1 = to_categorical([lp_rank_1], pair_wise_model.beam_size)
         for i in range(len(beam)):
             if i == piv:
                 continue
             comp_path = beam[i]
+            text_2 = np.array([text_embedder.pad_to_length(comp_path[1])])
+            lp_rank_2 = sum([1 for lp, _, _ in beam if lp > comp_path[0] + 0.000001])
+            lp_2 = to_categorical([lp_rank_2], pair_wise_model.beam_size)
 
-            result = pair_wise_model.predict_order(da_emb, orig_path[1], comp_path[1], orig_path[0], comp_path[0])
+            result = pair_wise_model.predict_order(da_emb, text_1, text_2, lp_1, lp_2)
             if result > 0.5:
-                new_beam.append(result)
+                new_beam.append(comp_path)
         if not new_beam:
             return orig_path
         else:
@@ -219,7 +228,8 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
     raise ValueError("Should never reach this point")
 
 
-def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False, save_final_beam_path=''):
+def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False,
+                             save_final_beam_path=''):
     results = []
     load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
     if not only_rerank_final:
@@ -227,7 +237,7 @@ def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pair
 
     for i, da_emb in tqdm(list(enumerate(beam_search_model.da_embedder.get_embeddings(das)))):
         paths = load_final_beams[i]
-        best_path = get_best_from_beam_pairwise(paths, pairwise_model, da_emb)
+        best_path = get_best_from_beam_pairwise(paths, pairwise_model, da_emb, beam_search_model.text_embedder)
         pred_toks = beam_search_model.text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
 
