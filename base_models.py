@@ -38,6 +38,10 @@ def relative_mae_loss(actual, pred):
     return mean_squared_error(actual - K.mean(actual), pred - K.mean(pred))
 
 
+def pair_wise_loss(actual, pred):
+    return
+
+
 def get_training_set_min_max_lp(beam_size):
     if os.path.exists(TRAIN_BEAM_SAVE_FORMAT.format(beam_size)):
         beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
@@ -49,6 +53,212 @@ def get_training_set_min_max_lp(beam_size):
     else:
         return -1, -255
 
+
+class PairwiseReranker(object):
+    def __init__(self, da_embedder, text_embedder, cfg_path):
+        self.num_comparisons_train = 10
+        cfg = yaml.load(open(cfg_path, "r+"))
+        self.beam_size = cfg["beam_size"]
+        self.embedding_size = cfg['embedding_size']
+        self.lstm_size = cfg['hidden_size']
+
+        self.text_embedder = text_embedder
+        self.da_embedder = da_embedder
+        self.save_location = cfg.get('reranker_loc',
+                                     "model/surrogate_{}_{}_{}".format('pairwise', self.beam_size,
+                                                                       cfg['logprob_preprocess_type']))
+        self.model = None
+        if cfg['logprob_preprocess_type'] == 'original_normalised':
+            self.min_log_prob, self.max_log_prob = get_training_set_min_max_lp(self.beam_size)
+        self.have_printed_data = False
+        self.logprob_preprocess_type = cfg["logprob_preprocess_type"]
+        self.set_up_models(cfg)
+
+    def set_up_models(self, cfg):
+        len_text = self.text_embedder.length
+        len_vtext = self.text_embedder.vocab_length
+        len_da = self.da_embedder.length
+        len_vda = self.da_embedder.vocab_length
+
+        lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
+
+        text_inputs_1 = Input(shape=(len_text,), name='text_inputs')
+        da_inputs_1 = Input(shape=(len_da,), name='da_inputs')
+        text_inputs_2 = Input(shape=(len_text,), name='text_inputs_2')
+        if cfg['logprob_preprocess_type'] == 'categorical_order':
+            log_probs_inputs_1 = Input(shape=(self.beam_size,), name='log_probs_inputs')
+            log_probs_inputs_2 = Input(shape=(self.beam_size,), name='log_probs_inputs_2')
+        else:
+            log_probs_inputs_1 = Input(shape=(1,), name='log_probs_inputs')
+            log_probs_inputs_2 = Input(shape=(1,), name='log_probs_inputs_2')
+
+        embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
+        embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
+
+        text_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
+        da_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
+
+        text_lstm_out_1 = text_lstm(embed_text(text_inputs_1))
+        da_lstm_out_1 = da_lstm(embed_da(da_inputs_1))
+        text_lstm_out_2 = text_lstm(embed_text(text_inputs_2))
+
+        h_n_text_1 = text_lstm_out_1[1:]
+        h_n_da = da_lstm_out_1[1:]
+        h_n_text_2 = text_lstm_out_2[1:]
+
+        in_logistic_layer = Concatenate(axis=-1)(h_n_da + h_n_text_1 + h_n_text_2 + [log_probs_inputs_1, log_probs_inputs_2])
+
+        hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
+        optimizer = Adam(lr=0.001)
+        out_layer_size = 1
+        loss_function = 'binary_crossentropy'
+        out_layer_activation = 'sigmoid'
+
+        output = Dense(out_layer_size, activation=out_layer_activation)(hidden_logistic)
+        self.model = Model(inputs=[da_inputs_1, text_inputs_1, text_inputs_2, log_probs_inputs_1, log_probs_inputs_2], outputs=output)
+        self.model.compile(optimizer=optimizer, loss=loss_function)
+
+        self.model.summary()
+
+    def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
+            valid_loss = 0
+            for bi in range(0, valid_das_seqs.shape[0] - self.beam_size + 1, self.beam_size):
+                valid_da_batch = valid_das_seqs[bi:bi + self.beam_size, :]
+                valid_text_batch = valid_text_seqs[bi:bi + self.beam_size, :]
+                valid_lp_batch = valid_log_probs[bi:bi + self.beam_size, :]
+                valid_bleu_scores = valid_bleu_scores[bi:bi + self.beam_size, :]
+
+                signal_da = []
+                signal_text_1 = []
+                signal_text_2 = []
+                signal_lp_1 = []
+                signal_lp_2 = []
+                signal_bleu = []
+                for i in range(self.num_comparisons_train):
+                    i1 = random.randint(0, self.beam_size-1)
+                    i2 = random.randint(0, self.beam_size-2)
+                    if i2 >= i1:
+                        i2 += 1
+                    signal_da.append(valid_da_batch[0])
+                    signal_text_1.append(valid_text_batch[i1])
+                    signal_text_2.append(valid_text_batch[i2])
+                    signal_lp_1.append(valid_lp_batch[i1])
+                    signal_lp_2.append(valid_lp_batch[i2])
+                    signal_bleu.append(1 if valid_bleu_scores[i1] > valid_bleu_scores[i2] else 0)
+
+                valid_loss += self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu, batch_size=self.num_comparisons_train, verbose=0)
+            return valid_loss
+
+    def load_model(self):
+        print("Loading pairwise reranker from {}".format(self.save_location))
+        model_path = os.path.join(self.save_location, "model.h5")
+        if os.path.exists(model_path):
+            # self.model = load_model(model_path)
+            load_model_from_gpu(self.model, model_path)
+        else:
+            print("Model does not exist yet")
+
+    def save_model(self):
+        print("Saving pairwise reranker at {}".format(self.save_location))
+        if not os.path.exists(self.save_location):
+            os.makedirs(self.save_location)
+        self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
+
+    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, min_passes=5):
+        min_valid_loss = math.inf
+        epoch_since_minimum = 0
+        print("Number of each input =", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
+        valid_text_seqs = text_seqs[-valid_size:]
+        valid_das = das_seqs[-valid_size:]
+        valid_bleu_scores = bleu_scores[-valid_size:]
+        valid_log_probs = log_probs[-valid_size:]
+        text_seqs = text_seqs[:-valid_size]
+        das_seqs = das_seqs[:-valid_size]
+        bleu_scores = bleu_scores[:-valid_size]
+        log_probs = log_probs[:-valid_size]
+        batch_indexes = list(range(0, text_seqs.shape[0] - self.beam_size, self.beam_size))
+        for ep in range(epoch):
+            start = time()
+            losses = 0
+            random.shuffle(batch_indexes)
+            for bi in tqdm(batch_indexes):
+                da_batch = das_seqs[bi:bi + self.beam_size]
+                text_batch = text_seqs[bi:bi + self.beam_size]
+                bleu_batch = bleu_scores[bi:bi + self.beam_size]
+                lp_batch = log_probs[bi:bi + self.beam_size]
+                text_batch, da_batch, bleu_batch, lp_batch = \
+                    shuffle_data((text_batch, da_batch, bleu_batch, lp_batch))
+                text_batch, da_batch, bleu_batch, lp_batch = \
+                    np.array(text_batch), np.array(da_batch), np.array(bleu_batch), np.array(lp_batch)
+                signal_da = []
+                signal_text_1 = []
+                signal_text_2 = []
+                signal_lp_1 = []
+                signal_lp_2 = []
+                signal_bleu = []
+                for i in range(self.num_comparisons_train):
+                    i1 = random.randint(0, self.beam_size-1)
+                    i2 = random.randint(0, self.beam_size-2)
+                    if i2 >= i1:
+                        i2 += 1
+                    signal_da.append(da_batch[0])
+                    signal_text_1.append(text_batch[i1])
+                    signal_text_2.append(text_batch[i2])
+                    signal_lp_1.append(lp_batch[i1])
+                    signal_lp_2.append(lp_batch[i2])
+                    signal_bleu.append(1 if bleu_batch[i1] > bleu_batch[i2] else 0)
+
+                if ep == 0 and bi == batch_indexes[0]:
+                    print("Training on the following data")
+                    print("DA:", signal_da[0])
+                    print("Text_1:", signal_text_1[0])
+                    print("Text_2:", signal_text_2[0])
+                    print("LP_1:", signal_lp_1[0])
+                    print("LP_2:", signal_lp_2[0])
+                    print("All Scores:", " ".join([str(x) for x in signal_bleu]))
+                    print("*******************************")
+                signal_da = np.array(signal_da)
+                signal_text_1 = np.array(signal_text_1)
+                signal_text_2 = np.array(signal_text_2)
+                signal_lp_1 = np.array(signal_lp_1)
+                signal_lp_2 = np.array(signal_lp_2)
+                signal_bleu = np.array(signal_bleu)
+                self.model.train_on_batch([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu)
+                losses += self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu, batch_size=self.num_comparisons_train,
+                                              verbose=0)
+            train_loss = losses / das_seqs.shape[0] * self.num_comparisons_train
+            time_spent = time() - start
+            valid_loss = self.get_valid_loss(valid_das, valid_text_seqs, valid_log_probs, valid_bleu_scores)
+            print('{} Epoch {} Train: {:.4f} Valid: {:.4f}'.format(time_spent, ep, train_loss, valid_loss))
+            if valid_loss < min_valid_loss:
+                min_valid_loss = valid_loss
+                epoch_since_minimum = 0
+                self.save_model()
+            else:
+                epoch_since_minimum += 1
+                if epoch_since_minimum > min_passes:
+                    break
+        self.load_model()
+
+    def predict_order(self, da_emb, text_1, text_2, lp_1, lp_2):
+        if self.logprob_preprocess_type == 'original_normalised':
+            lp_1 = ((lp_1 - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape(
+                (-1, 1))
+            lp_2 = ((lp_2 - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape(
+                (-1, 1))
+
+        result = self.model.predict([da_emb, text_1, text_2, lp_1, lp_2])
+        if not self.have_printed_data:
+            print("Predicting the following")
+            print("DA:", da_emb[0])
+            print("Text_1:", text_1[0])
+            print("Text_2:", text_2[0])
+            print("LP_1:", lp_1[0])
+            print("LP_2:", lp_2[0])
+            print("Score:", result)
+            print("*******************************")
+            self.have_printed_data = True
+        return result
 
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
@@ -113,9 +323,10 @@ class TrainableReranker(object):
             loss_function = 'categorical_crossentropy'
             out_layer_activation = 'softmax'
         elif cfg['output_type'] == 'regression_reranker_relative':
+            print("Using loss with average reset to 0")
             loss_function = relative_mae_loss
         else:
-            pass # use defaults
+            pass  # use defaults
 
         output = Dense(out_layer_size, activation=out_layer_activation)(hidden_logistic)
         self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)

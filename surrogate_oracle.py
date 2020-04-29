@@ -12,7 +12,7 @@ from keras.utils import to_categorical
 from sklearn.metrics import confusion_matrix
 from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables, \
     get_final_beam, get_test_das, get_true_sents, TRAIN_BEAM_SAVE_FORMAT, TEST_BEAM_SAVE_FORMAT
-from base_models import TGEN_Model, TrainableReranker
+from base_models import TGEN_Model, TrainableReranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from reimplement_reinforce import run_beam_search_with_rescorer
@@ -49,7 +49,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
         for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append(hyp)
             da_seqs.append(da)
-            if cfg["output_type"] == 'bleu':
+            if cfg["output_type"] in ['bleu', 'pair']:
                 scores.append(score)
             elif cfg["output_type"] == 'order_discrete':
                 scores.append(to_categorical([i], num_classes=beam_size))
@@ -67,8 +67,8 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
-    if cfg["output_type"] in ['regression_ranker', 'bleu', 'regression_reranker_relative']:
-        print("SCORES: ", Counter(scores))
+    if cfg["output_type"] in ['regression_ranker', 'bleu', 'regression_reranker_relative', 'pair']:
+        # print("SCORES: ", Counter(scores))
         scores = np.array(scores).reshape((-1, 1))
     elif cfg["output_type"] == 'order_discrete':
         scores = np.array(scores).reshape((-1, beam_size))
@@ -97,9 +97,13 @@ da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 texts_flat, _ = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts_flat)
 
+if cfg['output_type'] != 'pair':
+    reranker = TrainableReranker(da_embedder, text_embedder, cfg_path)
+else:
+    reranker = PairwiseReranker(da_embedder, text_embedder, cfg_path)
 
-reranker = TrainableReranker(da_embedder, text_embedder, cfg_path)
 reranker.load_model()
+
 
 if cfg["train"]:
     print("Training")

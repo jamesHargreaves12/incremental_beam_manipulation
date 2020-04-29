@@ -3,10 +3,10 @@ import os
 import sys
 import yaml
 
-from base_models import TGEN_Model, TGEN_Reranker
+from base_models import TGEN_Model, TGEN_Reranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
-from reimplement_reinforce import run_beam_search_with_rescorer
+from reimplement_reinforce import run_beam_search_with_rescorer, run_beam_search_pairwise
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
     get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR
@@ -42,9 +42,13 @@ for beam_size in cfg["beam_sizes"]:
     beam_save_path = cfg.get('beam_save_path', '')
     if beam_save_path:
         beam_save_path = beam_save_path.format(beam_size)
-    scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
-    preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'],
-                                          beam_save_path, should_save_cache=should_update_cache)
+    if cfg["pairwise_flag"]:
+        pairwise_model = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
+        preds = run_beam_search_pairwise(models, das_test, beam_size, pairwise_model, only_rerank_final=True, save_final_beam_path=beam_save_path)
+    else:
+        scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
+        preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'],
+                                              beam_save_path, should_save_cache=should_update_cache)
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
         save_filename = cfg["res_save_format"].format(beam_size)

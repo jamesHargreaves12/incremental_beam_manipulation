@@ -106,7 +106,8 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
         print(" ".join(test_res[0]))
 
 
-def _run_beam_search_with_rescorer_indiv(i, da_emb, paths, enc_outs, beam_size, max_pred_len, beam_search_model, rescorer=None):
+def _run_beam_search_with_rescorer_indiv(i, da_emb, paths, enc_outs, beam_size, max_pred_len, beam_search_model,
+                                         rescorer=None):
     end_tokens = beam_search_model.text_embedder.end_embs
 
     for step in range(max_pred_len):
@@ -162,7 +163,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 beam_size=beam_size,
                 max_pred_len=max_predict_len,
                 beam_search_model=beam_search_model,
-                rescorer= scorer if not only_rerank_final else None
+                rescorer=scorer if not only_rerank_final else None
             )
 
         if should_save_beams:
@@ -191,45 +192,43 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     if should_save_beams:
         print("Saving final beam states at ", save_final_beam_path)
         pickle.dump(save_final_beams, open(save_final_beam_path, "wb+"))
-        # for paths in final_beams:
-        #     for path in paths:
-        #         save_file.write(" ".join(text_embedder.reverse_embedding(path[1])) + " " + str(path[0]) + "\n")
-        #     save_file.write("\n")
 
     if should_save_cache:
         beam_search_model.save_cache()
         print("Cache Saved")
     return results
 
-# if __name__ == "__main__":
-#     beam_size = 3
-#     cfg = yaml.load(open("config_reinforce.yaml", "r"))
-#     train_data_location = "output_files/training_data/{}_.csv".format(beam_size)
-#     das, texts = get_training_das_texts()
-#     print(das[0], texts[0])
-#     # sys.exit(0)
-#     text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
-#     da_embedder = DAEmbeddingSeq2SeqExtractor(das)
-#     das = das[:cfg['use_size']]
-#     texts = texts[:cfg['use_size']]
-#     n_in = cfg["hidden_size"] * 2 + cfg["w2v_size"] * 2 + 3
-#
-#     text_vsize, text_len = text_embedder.vocab_length, text_embedder.length
-#     da_vsize, da_len = da_embedder.vocab_length, da_embedder.length
-#     print(da_vsize, text_vsize, da_len, text_len)
-#
-#     models = TGEN_Model(da_embedder, text_embedder, cfg)
-#     models.load_models()
-#
-#     regressor = Regressor(n_in, batch_size=1, max_len=max([len(x) for x in texts]))
-#     if cfg["classif_from_file"]:
-#         regressor.load_model(cfg["model_save_loc"])
-#     elif os.path.exists(train_data_location) and cfg["pretrain"]:
-#         feats, labs = load_rein_data(train_data_location)
-#         if feats:
-#             regressor.train(feats, labs)
-#
-#     reinforce_learning(beam_size, train_data_location, models, das, texts, regressor, text_embedder, da_embedder, cfg)
-#     # save_path = "output_files/out-text-dir-v2/rein_{}.txt".format(beam_size)
-#     # absts = smart_load_absts('tgen/e2e-challenge/input/train-abst.txt')
-#     # print(run_classifier_bs(classifier, models, None, None, text_embedder, da_embedder, das[:1], beam_size, cfg))
+
+def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
+    for i in range(len(beam)):
+        new_beam = []
+        piv = random.randint(0, len(beam)-1)
+        orig_path = beam[piv]
+        for i in range(len(beam)):
+            if i == piv:
+                continue
+            comp_path = beam[i]
+
+            result = pair_wise_model.predict_order(da_emb, orig_path[1], comp_path[1], orig_path[0], comp_path[0])
+            if result > 0.5:
+                new_beam.append(result)
+        if not new_beam:
+            return orig_path
+        else:
+            beam = new_beam
+    raise ValueError("Should never reach this point")
+
+
+def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False, save_final_beam_path=''):
+    results = []
+    load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
+    if not only_rerank_final:
+        raise NotImplementedError("Currently only works for reranker")
+
+    for i, da_emb in tqdm(list(enumerate(beam_search_model.da_embedder.get_embeddings(das)))):
+        paths = load_final_beams[i]
+        best_path = get_best_from_beam_pairwise(paths, pairwise_model, da_emb)
+        pred_toks = beam_search_model.text_embedder.reverse_embedding(best_path[1])
+        results.append(pred_toks)
+
+    return results
