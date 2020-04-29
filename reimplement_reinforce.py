@@ -209,7 +209,7 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
 
         orig_path = beam[piv]
         text_1 = np.array([text_embedder.pad_to_length(orig_path[1])])
-        lp_rank_1 = sum([1 for lp, _, _ in beam if lp > orig_path[0] + 0.000001])\
+        lp_rank_1 = sum([1 for lp, _, _ in beam if lp > orig_path[0] + 0.000001])
         lp_rank_1 = lp_rank_1*pair_wise_model.beam_size // inf_beam_size
         lp_1 = to_categorical([lp_rank_1], pair_wise_model.beam_size)
         for i in range(len(beam)):
