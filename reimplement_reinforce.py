@@ -157,7 +157,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
             paths = _run_beam_search_with_rescorer_indiv(
                 i=i,
                 da_emb=da_emb,
-                paths=[paths],
+                paths=paths,
                 enc_outs=enc_outs,
                 beam_size=beam_size,
                 max_pred_len=max_predict_len,
