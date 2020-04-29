@@ -144,7 +144,7 @@ class PairwiseReranker(object):
                     signal_text_2.append(valid_text_batch[i2])
                     signal_lp_1.append(valid_lp_batch[i1])
                     signal_lp_2.append(valid_lp_batch[i2])
-                    signal_bleu.append(1 if valid_bleu_scores[i1] > valid_bleu_scores[i2] else 0)
+                    signal_bleu.append(1 if valid_bleu_scores[i1][0] > valid_bleu_scores[i2][0] else 0)
 
                 valid_loss += self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu, batch_size=self.num_comparisons_train, verbose=0)
             return valid_loss
