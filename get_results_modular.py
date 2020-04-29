@@ -39,9 +39,12 @@ if should_use_cache:
 absts = get_abstss_test()
 for beam_size in cfg["beam_sizes"]:
     print("Beam size = {} ".format(beam_size))
+    beam_save_path = cfg.get('beam_save_path', '')
+    if beam_save_path:
+        beam_save_path = beam_save_path.format(beam_size)
     scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
     preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'],
-                                          cfg.get('beam_save_path', None), should_save_cache=should_update_cache)
+                                          beam_save_path, should_save_cache=should_update_cache)
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
         save_filename = cfg["res_save_format"].format(beam_size)
