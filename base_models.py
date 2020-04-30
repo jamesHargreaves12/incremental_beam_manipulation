@@ -61,7 +61,7 @@ class PairwiseReranker(object):
         self.num_comparisons_train = self.beam_size // 2
         self.embedding_size = cfg['embedding_size']
         self.lstm_size = cfg['hidden_size']
-
+        self.batch_size = cfg['training_batch_size']
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
         self.save_location = cfg.get('reranker_loc',
@@ -120,38 +120,20 @@ class PairwiseReranker(object):
 
         self.model.summary()
 
-    def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
+    def get_valid_loss(self, das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set):
         err = []
-        for bi in range(0, valid_das_seqs.shape[0] - self.beam_size + 1, self.beam_size):
-            valid_da_batch = valid_das_seqs[bi:bi + self.beam_size, :]
-            valid_text_batch = valid_text_seqs[bi:bi + self.beam_size, :]
-            valid_lp_batch = valid_log_probs[bi:bi + self.beam_size, :]
-            valid_bleu_batch = valid_bleu_scores[bi:bi + self.beam_size, :]
-            if self.logprob_preprocess_type == "beam_normalised":
-                valid_lp_batch = (valid_lp_batch - valid_lp_batch.min()) / valid_lp_batch.ptp()
+        for bi in range(0, das_set.shape[0] - self.beam_size + 1, self.beam_size):
+            batch_das_set = das_set[bi:bi + self.batch_size]
+            batch_text_1_set = text_1_set[bi:bi + self.batch_size]
+            batch_text_2_set = text_2_set[bi:bi + self.batch_size]
+            batch_lp_1_set = lp_1_set[bi:bi + self.batch_size]
+            batch_lp_2_set = lp_2_set[bi:bi + self.batch_size]
+            batch_output_set = output_set[bi:bi + self.batch_size]
 
-            signal_da = []
-            signal_text_1 = []
-            signal_text_2 = []
-            signal_lp_1 = []
-            signal_lp_2 = []
-            signal_bleu = []
-            for i in range(self.num_comparisons_train):
-                i1 = random.randint(0, self.beam_size - 1)
-                i2 = random.randint(0, self.beam_size - 2)
-                if i2 >= i1:
-                    i2 += 1
-                signal_da.append(valid_da_batch[0])
-                signal_text_1.append(valid_text_batch[i1])
-                signal_text_2.append(valid_text_batch[i2])
-                signal_lp_1.append(valid_lp_batch[i1])
-                signal_lp_2.append(valid_lp_batch[i2])
-                signal_bleu.append(1 if valid_bleu_batch[i1][0] > valid_bleu_batch[i2][0] else 0)
-
-            preds = self.model.predict([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2])
-            preds = [1 if p[0] > 0.5 else 0 for p in preds]
-            err.append(get_hamming_distance(preds, signal_bleu))
-        return sum(err) / len(err) / self.num_comparisons_train
+            err.append(self.model.evaluate([batch_das_set, batch_text_1_set, batch_text_2_set, batch_lp_1_set,
+                                            batch_lp_2_set], batch_output_set, batch_size=self.batch_size,
+                                           verbose=0)[-1])
+        return sum(err) / len(err)
 
     def load_model(self):
         print("Loading pairwise reranker from {}".format(self.save_location))
@@ -168,95 +150,106 @@ class PairwiseReranker(object):
             os.makedirs(self.save_location)
         self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
-    def setup_lps(self, beam):
+    def setup_lps(self, lps):
         if self.logprob_preprocess_type == 'beam_normalised':
-            lps = np.array([x[0] for x in beam])
-            beam = [([(lp - lps.min()) / (lps.ptp())], p, r) for lp, p, r in beam]
+            return (lps - lps.min()) / (lps.ptp())
         elif self.logprob_preprocess_type == 'original_normalised':
-            beam = [([(lp - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)], p, r) for lp, p, r in beam]
+            return (lps - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)
         elif self.logprob_preprocess_type == 'categorical_order':
-            new_beam = []
-            for logprob,p,r in beam:
-                lp_rank_1 = sum([1 for lp, _, _ in beam if lp > logprob + 0.000001])
-                lp_rank_1 = lp_rank_1 * self.beam_size // len(beam)
-                lp_1 = to_categorical([lp_rank_1], self.beam_size)
-                new_beam.append((lp_1, p, r))
-
-            beam = new_beam
+            lp_ranks = []
+            for lp in lps:
+                lp_rank = sum([1 for x in lps if x > lp + 0.000001])
+                lp_ranks.append(lp_rank * self.beam_size // len(lps))
+            return to_categorical(lp_ranks, self.beam_size)
         else:
             raise NotImplementedError()
-        return beam
+
+    def _get_train_set(self, text_seqs, das_seqs, bleu_scores, log_probs):
+        start_beam_indices = list(range(0, text_seqs.shape[0] - self.beam_size, self.beam_size))
+        text_1_set = []
+        text_2_set = []
+        das_set = []
+        lp_1_set = []
+        lp_2_set = []
+        output_set = []
+        for bi in start_beam_indices:
+            beam_texts = text_seqs[bi:bi + self.beam_size]
+            beam_das = das_seqs[bi:bi + self.beam_size]
+            beam_lps = self.setup_lps(log_probs[bi:bi + self.beam_size])
+            beam_scores = bleu_scores[bi:bi + self.beam_size]
+            beam_texts, beam_das, beam_lps, beam_scores = \
+                shuffle_data((beam_texts, beam_das, beam_lps, beam_scores))
+            beam_das_val = beam_das[0]
+            assert (all([tuple(x) == tuple(beam_das_val) for x in beam_das]))
+            for i in range(self.beam_size):
+                for j in range(i + 1, self.beam_size):
+                    das_set.append(beam_das_val)
+                    text_1_set.append(beam_texts[i])
+                    lp_1_set.append(beam_lps[i])
+                    text_2_set.append(beam_texts[j])
+                    lp_2_set.append(beam_lps[j])
+                    output_set.append(1 if beam_scores[i] > beam_scores[j] else 0)
+        return das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set
 
     def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
         print("Number of each input = ", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
-        valid_text_seqs = text_seqs[-valid_size:]
-        valid_das = das_seqs[-valid_size:]
-        valid_bleu_scores = bleu_scores[-valid_size:]
-        valid_log_probs = log_probs[-valid_size:]
-        text_seqs = text_seqs[:-valid_size]
-        das_seqs = das_seqs[:-valid_size]
-        bleu_scores = bleu_scores[:-valid_size]
-        log_probs = log_probs[:-valid_size]
-        batch_indexes = list(range(0, text_seqs.shape[0] - self.beam_size, self.beam_size))
+        das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set = \
+            self._get_train_set(text_seqs, das_seqs, bleu_scores, log_probs)
+        valid_das_set = das_set[-valid_size:]
+        valid_text_1_set = text_1_set[-valid_size:]
+        valid_text_2_set = text_2_set[-valid_size:]
+        valid_lp_1_set = lp_1_set[-valid_size:]
+        valid_lp_2_set = lp_2_set[-valid_size:]
+        valid_output_set = output_set[-valid_size:]
+
+        das_set = das_set[:-valid_size]
+        text_1_set = text_1_set[:-valid_size]
+        text_2_set = text_2_set[:-valid_size]
+        lp_1_set = lp_1_set[:-valid_size]
+        lp_2_set = lp_2_set[:-valid_size]
+        output_set = output_set[:-valid_size]
+
+        das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set = \
+            shuffle_data((das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set))
+
+        das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set = \
+            np.array(das_set), np.array(text_1_set), np.array(text_2_set), np.array(lp_1_set), np.array(
+                lp_2_set), np.array(output_set)
+
+        batch_indexes = list(range(0, text_1_set.shape[0] - self.batch_size, self.batch_size))
         for ep in range(epoch):
             start = time()
             losses = []
             random.shuffle(batch_indexes)
             for bi in tqdm(batch_indexes):
-                da_batch = das_seqs[bi:bi + self.beam_size]
-                assert (all([tuple(x) == tuple(da_batch[0]) for x in da_batch]))
-                text_batch = text_seqs[bi:bi + self.beam_size]
-                bleu_batch = bleu_scores[bi:bi + self.beam_size]
-                lp_batch = log_probs[bi:bi + self.beam_size]
-                text_batch, da_batch, bleu_batch, lp_batch = \
-                    shuffle_data((text_batch, da_batch, bleu_batch, lp_batch))
-                text_batch, da_batch, bleu_batch, lp_batch = \
-                    np.array(text_batch), np.array(da_batch), np.array(bleu_batch), np.array(lp_batch)
-                if self.logprob_preprocess_type == "beam_normalised":
-                    lp_batch = (lp_batch - lp_batch.min()) / lp_batch.ptp()
-                signal_da = []
-                signal_text_1 = []
-                signal_text_2 = []
-                signal_lp_1 = []
-                signal_lp_2 = []
-                signal_bleu = []
-                for i in range(self.num_comparisons_train):
-                    i1 = random.randint(0, self.beam_size - 1)
-                    i2 = random.randint(0, self.beam_size - 2)
-                    if i2 >= i1:
-                        i2 += 1
-                    signal_da.append(da_batch[0])
-                    signal_text_1.append(text_batch[i1])
-                    signal_text_2.append(text_batch[i2])
-                    signal_lp_1.append(lp_batch[i1])
-                    signal_lp_2.append(lp_batch[i2])
-                    signal_bleu.append(1 if bleu_batch[i1] > bleu_batch[i2] else 0)
-
                 if ep == 0 and bi == batch_indexes[0]:
                     print("Training on the following data")
-                    print("DA:", signal_da[0])
-                    print("Text_1:", signal_text_1[0])
-                    print("Text_2:", signal_text_2[0])
-                    print("LP_1:", signal_lp_1[0])
-                    print("LP_2:", signal_lp_2[0])
-                    print("All Scores:", " ".join([str(x) for x in signal_bleu]))
+                    print("DA:", das_set[0])
+                    print("Text_1:", text_1_set[0])
+                    print("Text_2:", text_2_set[0])
+                    print("LP_1:", lp_1_set[0])
+                    print("LP_2:", lp_2_set[0])
+                    print("All Scores:", " ".join([str(x) for x in output_set]))
                     print("*******************************")
-                signal_da = np.array(signal_da)
-                signal_text_1 = np.array(signal_text_1)
-                signal_text_2 = np.array(signal_text_2)
-                signal_lp_1 = np.array(signal_lp_1)
-                signal_lp_2 = np.array(signal_lp_2)
-                signal_bleu = np.array(signal_bleu)
-                self.model.train_on_batch([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2],
-                                          signal_bleu)
-                losses.append(self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2],
-                                                  signal_bleu, batch_size=self.num_comparisons_train,
+                batch_das_set = das_set[bi:bi + self.batch_size]
+                batch_text_1_set = text_1_set[bi:bi + self.batch_size]
+                batch_text_2_set = text_2_set[bi:bi + self.batch_size]
+                batch_lp_1_set = lp_1_set[bi:bi + self.batch_size]
+                batch_lp_2_set = lp_2_set[bi:bi + self.batch_size]
+                batch_output_set = output_set[bi:bi + self.batch_size]
+
+                self.model.train_on_batch([batch_das_set, batch_text_1_set, batch_text_2_set, batch_lp_1_set,
+                                           batch_lp_2_set], batch_output_set)
+                losses.append(self.model.evaluate([batch_das_set, batch_text_1_set, batch_text_2_set, batch_lp_1_set,
+                                                   batch_lp_2_set],
+                                                  batch_output_set, batch_size=self.batch_size,
                                                   verbose=0)[-1])
             train_loss = sum(losses) / len(losses)
             time_spent = time() - start
-            valid_err = self.get_valid_loss(valid_das, valid_text_seqs, valid_log_probs, valid_bleu_scores)
+            valid_err = self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set,
+                                            valid_lp_2_set, valid_output_set)
             print('{} Epoch {} Train: {:.4f} Valid_miss: {:.4f}'.format(time_spent, ep, train_loss, valid_err))
             if valid_err < min_valid_loss:
                 min_valid_loss = valid_err
