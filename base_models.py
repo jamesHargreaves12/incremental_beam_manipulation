@@ -10,7 +10,6 @@ import keras
 import msgpack
 import numpy as np
 import yaml
-from keras.layers import Dropout
 from keras.losses import mean_squared_error
 
 from tensorflow.test import is_gpu_available
@@ -18,7 +17,7 @@ import keras.backend as K
 from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.utils import to_categorical
 from tensorflow.python.keras.models import Model, load_model
-from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM
+from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM, Dropout
 from tqdm import tqdm
 
 from attention_keras.layers.attention import AttentionLayer
