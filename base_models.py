@@ -171,9 +171,9 @@ class PairwiseReranker(object):
     def setup_lps(self, beam):
         if self.logprob_preprocess_type == 'beam_normalised':
             lps = np.array([x[0] for x in beam])
-            beam = [((lp - lps.min()) / (lps.ptp()), p, r) for lp, p, r in beam]
+            beam = [([(lp - lps.min()) / (lps.ptp())], p, r) for lp, p, r in beam]
         elif self.logprob_preprocess_type == 'original_normalised':
-            beam = [((lp - self.min_log_prob) / (self.max_log_prob - self.min_log_prob), p, r) for lp, p, r in beam]
+            beam = [([(lp - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)], p, r) for lp, p, r in beam]
         elif self.logprob_preprocess_type == 'categorical_order':
             new_beam = []
             for logprob,p,r in beam:
