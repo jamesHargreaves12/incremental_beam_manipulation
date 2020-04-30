@@ -18,7 +18,6 @@ def test_res_official(pred_file_name):
 
     bleu = BLEUScore()
     for sents_ref, sent_sys in zip(data_ref, data_sys):
-
         bleu.append(sent_sys, sents_ref)
 
     # return the computed scores
@@ -27,13 +26,21 @@ def test_res_official(pred_file_name):
     return bleu
 
 
-day_seconds = 24*60*60
-print(sys.argv)
-filename_bs = []
-for filename in os.listdir(RESULTS_DIR):
-    beam_size = int("".join([x for x in filename if x.isdigit()]))
-    if (len(sys.argv) > 1 and sys.argv[1] == 'all') or os.path.getmtime(os.path.join(RESULTS_DIR,filename)) > time.time() - day_seconds:
-        filename_bs.append((filename, beam_size))
+def print_results():
+    day_seconds = 24 * 60 * 60
+    print(sys.argv)
+    filename_bs = []
+    for filename in os.listdir(RESULTS_DIR):
+        splits = filename.split('-')
+        beam_size = int(splits[-1].split('.')[0])
+        filter_name = '-'.join(splits[:-1])
+        if (len(sys.argv) > 1 and sys.argv[1] == 'all') or os.path.getmtime(
+                os.path.join(RESULTS_DIR, filename)) > time.time() - day_seconds:
+            filename_bs.append((filter_name, filename, beam_size))
 
-for filename, bs in sorted(filename_bs, key=lambda x: (''.join([s for s in x[0] if s.isalpha()]), x[1])):
-    print(filename, bs, test_res_official(filename))
+    for _, filename, bs in sorted(filename_bs, key=lambda x: (x[0], int(x[2]))):
+        print(filename, bs, test_res_official(filename))
+
+
+if __name__ == "__main__":
+    print_results()

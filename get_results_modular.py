@@ -6,6 +6,7 @@ import yaml
 from base_models import TGEN_Model, TGEN_Reranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
+from get_results_bleu_scores import print_results
 from reimplement_reinforce import run_beam_search_with_rescorer, run_beam_search_pairwise
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
@@ -72,6 +73,6 @@ for beam_size in cfg["beam_sizes"]:
         for pa in post_abstr:
             out_file.write(" ".join(pa) + '\n')
 
-    import get_results_bleu_scores
+    print_results()
 
 
