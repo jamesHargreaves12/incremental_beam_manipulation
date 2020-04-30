@@ -150,14 +150,14 @@ class PairwiseReranker(object):
             os.makedirs(self.save_location)
         self.model.save(os.path.join(self.save_location, "model.h5"), save_format='h5')
 
-    def setup_lps(self, lps):
+    def setup_lps(self, beam_lps):
         if self.logprob_preprocess_type == 'beam_normalised':
-            return (lps - lps.min()) / (lps.ptp())
+            return (beam_lps - beam_lps.min()) / (beam_lps.ptp())
         elif self.logprob_preprocess_type == 'original_normalised':
-            return (lps - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)
+            return (beam_lps - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)
         elif self.logprob_preprocess_type == 'categorical_order':
             lp_ranks = []
-            for lp in lps:
+            for lp in beam_lps:
                 lp_rank = sum([1 for x in lps if x > lp + 0.000001])
                 lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(lps) - 1))))
             return to_categorical(lp_ranks, self.beam_size).reshape(-1, 1, self.beam_size)
@@ -359,6 +359,20 @@ class TrainableReranker(object):
         self.model.compile(optimizer=optimizer, loss=loss_function)
 
         self.model.summary()
+
+    def setup_lps(self, beam_lps):
+        if self.logprob_preprocess_type == 'beam_normalised':
+            return (beam_lps - beam_lps.min()) / (beam_lps.ptp())
+        elif self.logprob_preprocess_type == 'original_normalised':
+            return (beam_lps - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)
+        elif self.logprob_preprocess_type == 'categorical_order':
+            lp_ranks = []
+            for lp in beam_lps:
+                lp_rank = sum([1 for x in lps if x > lp + 0.000001])
+                lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(lps) - 1))))
+            return to_categorical(lp_ranks, self.beam_size).reshape(-1, 1, self.beam_size)
+        else:
+            raise NotImplementedError()
 
     def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
         valid_loss = 0
