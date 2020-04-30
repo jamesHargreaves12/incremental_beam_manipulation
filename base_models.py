@@ -269,12 +269,6 @@ class PairwiseReranker(object):
         self.load_model()
 
     def predict_order(self, da_emb, text_1, text_2, lp_1, lp_2):
-        if self.logprob_preprocess_type == 'original_normalised':
-            lp_1 = ((lp_1 - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape(
-                (-1, 1))
-            lp_2 = ((lp_2 - self.min_log_prob) / (self.max_log_prob - self.min_log_prob)).reshape(
-                (-1, 1))
-
         result = self.model.predict([da_emb, text_1, text_2, lp_1, lp_2])
         if not self.have_printed_data:
             print("Predicting the following")
