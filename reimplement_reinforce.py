@@ -241,30 +241,6 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
     best = sorted(tourn_wins.items(), key=lambda x: x[1])[-1][0]
     return beam[best]
 
-
-
-    # for _ in range(inf_beam_size):
-    #     new_beam = []
-    #     piv = random.randint(0, len(beam) - 1)
-    #
-    #     text_1 = np.array([text_embedder.pad_to_length(beam[piv][1])])
-    #     lp_1 = lps[piv]
-    #     for i in range(len(beam)):
-    #         if i == piv:
-    #             continue
-    #         text_2 = np.array([text_embedder.pad_to_length(beam[i][1])])
-    #         lp_2 = lps[i]
-    #
-    #         result = pair_wise_model.predict_order(da_emb, text_1, text_2, lp_1, lp_2)
-    #         if result > 0.5:
-    #             new_beam.append(beam[i])
-    #     if not new_beam:
-    #         return beam[piv]
-    #     else:
-    #         beam = new_beam
-    # raise ValueError("Should never reach this point")
-
-
 def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False,
                              save_final_beam_path=''):
     results = []

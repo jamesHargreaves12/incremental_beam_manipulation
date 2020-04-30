@@ -282,7 +282,7 @@ class PairwiseReranker(object):
             print("Text_2:", text_2[0])
             print("LP_1:", lp_1[0])
             print("LP_2:", lp_2[0])
-            print("Score:", result)
+            print("Score:", ' '.join([str(x[0]) for x in result]))
             print("*******************************")
             self.have_printed_data = True
         return result

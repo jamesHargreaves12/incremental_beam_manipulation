@@ -9,13 +9,20 @@ from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2Seq
 from reimplement_reinforce import run_beam_search_with_rescorer, run_beam_search_pairwise
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
-    get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR
+    get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR, CONFIGS_MODEL_DIR, CONFIGS_DIR
 
 parser = argparse.ArgumentParser()
-parser.add_argument('config_path')
+parser.add_argument('-c', default=None)
 args = parser.parse_args()
 
-cfg_path = args.config_path
+cfg_path = args.c
+print(cfg_path)
+if cfg_path is None:
+    filenames = os.listdir(CONFIGS_DIR)
+    filepaths = [os.path.join(CONFIGS_DIR, filename) for filename in filenames]
+    mod_times = [(os.path.getmtime(x), i) for i, x in enumerate(filepaths) if not os.path.isdir(x)]
+    cfg_path = filepaths[max(mod_times)[1]]
+
 print("Using config from: {}".format(cfg_path))
 cfg = yaml.load(open(cfg_path, "r"))
 texts, das = get_training_variables()

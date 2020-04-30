@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 from keras.utils import to_categorical
 from sklearn.metrics import confusion_matrix
 from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables, \
-    get_final_beam, get_test_das, get_true_sents, TRAIN_BEAM_SAVE_FORMAT, TEST_BEAM_SAVE_FORMAT
+    get_final_beam, get_test_das, get_true_sents, TRAIN_BEAM_SAVE_FORMAT, TEST_BEAM_SAVE_FORMAT, RESULTS_DIR, \
+    CONFIGS_MODEL_DIR
 from base_models import TGEN_Model, TrainableReranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
@@ -86,10 +87,17 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('config_path')
+parser.add_argument('-c', default=None)
 args = parser.parse_args()
 
-cfg_path = args.config_path
+cfg_path = args.c
+print(cfg_path)
+if cfg_path is None:
+    filenames = os.listdir(CONFIGS_MODEL_DIR)
+    filepaths = [os.path.join(CONFIGS_MODEL_DIR, filename) for filename in filenames]
+    mod_times = [(os.path.getmtime(x), i) for i, x in enumerate(filepaths)]
+    cfg_path = filepaths[max(mod_times)[1]]
+
 print("Using config from: {}".format(cfg_path))
 cfg = yaml.load(open(cfg_path, "r"))
 texts, das = get_multi_reference_training_variables()
