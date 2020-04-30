@@ -122,7 +122,6 @@ class PairwiseReranker(object):
 
     def get_valid_loss(self, das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set):
         err = []
-        das_set = np.array(das_set)
         for bi in range(0, das_set.shape[0] - self.beam_size + 1, self.beam_size):
             batch_das_set = das_set[bi:bi + self.batch_size]
             batch_text_1_set = text_1_set[bi:bi + self.batch_size]
@@ -218,8 +217,13 @@ class PairwiseReranker(object):
         das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set = \
             np.array(das_set), np.array(text_1_set), np.array(text_2_set), np.array(lp_1_set), np.array(
                 lp_2_set), np.array(output_set)
+        valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set, valid_lp_2_set, valid_output_set = \
+            np.array(valid_das_set), np.array(valid_text_1_set), np.array(valid_text_2_set), np.array(valid_lp_1_set), np.array(
+                valid_lp_2_set), np.array(valid_output_set)
 
         batch_indexes = list(range(0, text_1_set.shape[0] - self.batch_size, self.batch_size))
+
+        print("Initial Valid loss", self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set, valid_lp_2_set, valid_output_set))
         for ep in range(epoch):
             start = time()
             losses = []
