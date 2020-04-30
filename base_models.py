@@ -108,20 +108,17 @@ class PairwiseReranker(object):
 
         in_logistic_layer = Concatenate(axis=-1)(h_n_da + h_n_text_1 + h_n_text_2 + [log_probs_inputs_1, log_probs_inputs_2])
 
-        hidden_logistic = Dense(128, activation='relu')(in_logistic_layer)
+        hidden_logistic_1 = Dense(1024, activation='relu')(in_logistic_layer)
+        hidden_logistic_2 = Dense(128, activation='relu')(hidden_logistic_1)
         optimizer = Adam(lr=0.001)
-        out_layer_size = 1
-        loss_function = 'binary_crossentropy'
-        out_layer_activation = 'sigmoid'
 
-        output = Dense(out_layer_size, activation=out_layer_activation)(hidden_logistic)
+        output = Dense(1, activation='sigmoid')(hidden_logistic_2)
         self.model = Model(inputs=[da_inputs_1, text_inputs_1, text_inputs_2, log_probs_inputs_1, log_probs_inputs_2], outputs=output)
-        self.model.compile(optimizer=optimizer, loss=loss_function)
+        self.model.compile(optimizer=optimizer, loss='binary_crossentropy')
 
         self.model.summary()
 
     def get_valid_loss(self, valid_das_seqs, valid_text_seqs, valid_log_probs, valid_bleu_scores):
-            valid_loss = 0
             err = []
             for bi in range(0, valid_das_seqs.shape[0] - self.beam_size + 1, self.beam_size):
                 valid_da_batch = valid_das_seqs[bi:bi + self.beam_size, :]
