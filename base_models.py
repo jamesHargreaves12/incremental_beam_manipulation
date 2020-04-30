@@ -98,10 +98,10 @@ class PairwiseReranker(object):
 
         text_lstm = lstm_type(self.lstm_size, return_state=True)
         da_lstm = lstm_type(self.lstm_size, return_state=True)
-
+        dropout = Dropout(cfg['dropout'])
         da_lstm_out_1 = da_lstm(embed_da(da_inputs_1))
-        text_lstm_out_1 = text_lstm(Dropout(cfg['dropout'])(embed_text(text_inputs_1)))
-        text_lstm_out_2 = text_lstm(Dropout(cfg['dropout'])(embed_text(text_inputs_2)))
+        text_lstm_out_1 = text_lstm(dropout(embed_text(text_inputs_1)))
+        text_lstm_out_2 = text_lstm(dropout(embed_text(text_inputs_2)))
 
         h_n_text_1 = text_lstm_out_1[1:]
         h_n_da = da_lstm_out_1[1:]
