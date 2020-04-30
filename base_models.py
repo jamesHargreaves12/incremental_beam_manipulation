@@ -369,7 +369,7 @@ class TrainableReranker(object):
             lp_ranks = []
             for lp in beam_lps:
                 lp_rank = sum([1 for x in beam_lps if x > lp + 0.000001])
-                lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(lps) - 1))))
+                lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(beam_lps) - 1))))
             return to_categorical(lp_ranks, self.beam_size).reshape(-1, 1, self.beam_size)
         else:
             raise NotImplementedError()
