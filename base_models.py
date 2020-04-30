@@ -162,7 +162,7 @@ class PairwiseReranker(object):
             for lp in beam_lps:
                 lp_rank = sum([1 for x in beam_lps if x > lp + 0.000001])
                 lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(beam_lps) - 1))))
-            return to_categorical(lp_ranks, self.beam_size).reshape(-1, 1, self.beam_size)
+            return to_categorical(lp_ranks, self.beam_size).reshape(-1, self.beam_size)
         else:
             raise NotImplementedError()
 
@@ -401,7 +401,7 @@ class TrainableReranker(object):
             beam_lp = log_probs[beam_start: beam_start + self.beam_size]
             norm_log_probs.extend(self.setup_lps(beam_lp))
 
-        log_probs = np.array(norm_log_probs).reshape(-1, 3)
+        log_probs = np.array(norm_log_probs).reshape(-1, self.beam_size)
         valid_text_seqs = text_seqs[-valid_size:]
         valid_das = das_seqs[-valid_size:]
         valid_bleu_scores = bleu_scores[-valid_size:]

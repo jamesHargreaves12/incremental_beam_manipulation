@@ -62,7 +62,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
             # elif cfg["logprob_preprocess_type"] == 'original_normalised':
             #     log_probs.append((path[0] - min_lp) / (max_lp - min_lp))
             # else:
-            log_probs.append(path[0])
+            log_probs.append([path[0]])
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))

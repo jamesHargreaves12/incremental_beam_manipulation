@@ -216,15 +216,15 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
     for i in range(inf_beam_size):
         text_1 = np.array([text_embedder.pad_to_length(beam[i][1])])
         lp_1 = lps[i]
-        for j in range(i+1,inf_beam_size):
+        for j in range(i+1, inf_beam_size):
             text_2 = np.array([text_embedder.pad_to_length(beam[j][1])])
             lp_2 = lps[j]
 
             da_emb_set.append(da_emb)
             text_1_set.append(text_1[0])
             text_2_set.append(text_2[0])
-            lp_1_set.append(lp_1[0])
-            lp_2_set.append(lp_2[0])
+            lp_1_set.append(lp_1)
+            lp_2_set.append(lp_2)
     da_emb_set, text_1_set, text_2_set, lp_1_set, lp_2_set = \
         np.array(da_emb_set), np.array(text_1_set), np.array(text_2_set), np.array(lp_1_set), np.array(lp_2_set)
 
