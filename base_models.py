@@ -122,6 +122,7 @@ class PairwiseReranker(object):
 
     def get_valid_loss(self, das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set):
         err = []
+        das_set = np.array(das_set)
         for bi in range(0, das_set.shape[0] - self.beam_size + 1, self.beam_size):
             batch_das_set = das_set[bi:bi + self.batch_size]
             batch_text_1_set = text_1_set[bi:bi + self.batch_size]
@@ -224,6 +225,12 @@ class PairwiseReranker(object):
             losses = []
             random.shuffle(batch_indexes)
             for bi in tqdm(batch_indexes):
+                batch_das_set = das_set[bi:bi + self.batch_size]
+                batch_text_1_set = text_1_set[bi:bi + self.batch_size]
+                batch_text_2_set = text_2_set[bi:bi + self.batch_size]
+                batch_lp_1_set = lp_1_set[bi:bi + self.batch_size]
+                batch_lp_2_set = lp_2_set[bi:bi + self.batch_size]
+                batch_output_set = output_set[bi:bi + self.batch_size]
                 if ep == 0 and bi == batch_indexes[0]:
                     print("Training on the following data")
                     print("DA:", das_set[0])
@@ -231,14 +238,8 @@ class PairwiseReranker(object):
                     print("Text_2:", text_2_set[0])
                     print("LP_1:", lp_1_set[0])
                     print("LP_2:", lp_2_set[0])
-                    print("All Scores:", " ".join([str(x) for x in output_set]))
+                    print("All Scores:", " ".join([str(x) for x in batch_output_set]))
                     print("*******************************")
-                batch_das_set = das_set[bi:bi + self.batch_size]
-                batch_text_1_set = text_1_set[bi:bi + self.batch_size]
-                batch_text_2_set = text_2_set[bi:bi + self.batch_size]
-                batch_lp_1_set = lp_1_set[bi:bi + self.batch_size]
-                batch_lp_2_set = lp_2_set[bi:bi + self.batch_size]
-                batch_output_set = output_set[bi:bi + self.batch_size]
 
                 self.model.train_on_batch([batch_das_set, batch_text_1_set, batch_text_2_set, batch_lp_1_set,
                                            batch_lp_2_set], batch_output_set)
