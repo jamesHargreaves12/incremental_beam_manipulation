@@ -1,4 +1,6 @@
 import pickle
+from collections import defaultdict
+from itertools import product
 from math import log
 
 from gensim.models import Word2Vec
@@ -201,30 +203,66 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
 
 def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
-    da_emb = np.array([da_emb])
+    da_emb = np.array(da_emb)
     inf_beam_size = len(beam)
     lps = np.array([x[0] for x in beam])
     lps = pair_wise_model.setup_lps(lps)
+    da_emb_set = []
+    text_1_set = []
+    text_2_set = []
+    lp_1_set = []
+    lp_2_set = []
+
     for i in range(inf_beam_size):
-        new_beam = []
-        piv = random.randint(0, len(beam) - 1)
+        text_1 = np.array([text_embedder.pad_to_length(beam[i][1])])
+        lp_1 = lps[i]
+        for j in range(i+1,inf_beam_size):
+            text_2 = np.array([text_embedder.pad_to_length(beam[j][1])])
+            lp_2 = lps[j]
 
-        text_1 = np.array([text_embedder.pad_to_length(beam[piv][1])])
-        lp_1 = lps[piv]
-        for i in range(len(beam)):
-            if i == piv:
-                continue
-            text_2 = np.array([text_embedder.pad_to_length(beam[i][1])])
-            lp_2 = lps[i]
+            da_emb_set.append(da_emb)
+            text_1_set.append(text_1[0])
+            text_2_set.append(text_2[0])
+            lp_1_set.append(lp_1[0])
+            lp_2_set.append(lp_2[0])
+    da_emb_set, text_1_set, text_2_set, lp_1_set, lp_2_set = \
+        np.array(da_emb_set), np.array(text_1_set), np.array(text_2_set), np.array(lp_1_set), np.array(lp_2_set)
 
-            result = pair_wise_model.predict_order(da_emb, text_1, text_2, lp_1, lp_2)
-            if result > 0.5:
-                new_beam.append(beam[i])
-        if not new_beam:
-            return beam[piv]
-        else:
-            beam = new_beam
-    raise ValueError("Should never reach this point")
+    results = pair_wise_model.predict_order(da_emb_set, text_1_set, text_2_set, lp_1_set, lp_2_set)
+    res_pos = 0
+    tourn_wins = defaultdict(int)
+    for i in range(inf_beam_size):
+        for j in range(i+1, inf_beam_size):
+            if results[res_pos][0] > 0.5:
+                tourn_wins[i] += 1
+            else:
+                tourn_wins[j] += 1
+            res_pos += 1
+    best = sorted(tourn_wins.items(), key=lambda x: x[1])[-1][0]
+    return beam[best]
+
+
+
+    # for _ in range(inf_beam_size):
+    #     new_beam = []
+    #     piv = random.randint(0, len(beam) - 1)
+    #
+    #     text_1 = np.array([text_embedder.pad_to_length(beam[piv][1])])
+    #     lp_1 = lps[piv]
+    #     for i in range(len(beam)):
+    #         if i == piv:
+    #             continue
+    #         text_2 = np.array([text_embedder.pad_to_length(beam[i][1])])
+    #         lp_2 = lps[i]
+    #
+    #         result = pair_wise_model.predict_order(da_emb, text_1, text_2, lp_1, lp_2)
+    #         if result > 0.5:
+    #             new_beam.append(beam[i])
+    #     if not new_beam:
+    #         return beam[piv]
+    #     else:
+    #         beam = new_beam
+    # raise ValueError("Should never reach this point")
 
 
 def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False,

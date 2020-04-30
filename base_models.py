@@ -92,15 +92,17 @@ class PairwiseReranker(object):
             log_probs_inputs_1 = Input(shape=(1,), name='log_probs_inputs')
             log_probs_inputs_2 = Input(shape=(1,), name='log_probs_inputs_2')
 
-        embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
+        embed_text_1 = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
+        embed_text_2 = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
         embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
 
-        text_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
+        text_lstm_1 = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
+        text_lstm_2 = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
         da_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
 
-        text_lstm_out_1 = text_lstm(embed_text(text_inputs_1))
         da_lstm_out_1 = da_lstm(embed_da(da_inputs_1))
-        text_lstm_out_2 = text_lstm(embed_text(text_inputs_2))
+        text_lstm_out_1 = text_lstm_1(embed_text_1(text_inputs_1))
+        text_lstm_out_2 = text_lstm_2(embed_text_2(text_inputs_2))
 
         h_n_text_1 = text_lstm_out_1[1:]
         h_n_da = da_lstm_out_1[1:]
@@ -283,7 +285,7 @@ class PairwiseReranker(object):
             print("Score:", result)
             print("*******************************")
             self.have_printed_data = True
-        return result[0][0]
+        return result
 
 
 class TrainableReranker(object):
@@ -397,10 +399,9 @@ class TrainableReranker(object):
         norm_log_probs = []
         for beam_start in range(0, text_seqs.shape[0] - self.beam_size, self.beam_size):
             beam_lp = log_probs[beam_start: beam_start + self.beam_size]
-            norm_log_probs.append(self.setup_lps(beam_lp))
+            norm_log_probs.extend(self.setup_lps(beam_lp))
 
-
-        log_probs = np.array(norm_log_probs)
+        log_probs = np.array(norm_log_probs).reshape(-1, 3)
         valid_text_seqs = text_seqs[-valid_size:]
         valid_das = das_seqs[-valid_size:]
         valid_bleu_scores = bleu_scores[-valid_size:]
