@@ -108,7 +108,7 @@ class PairwiseReranker(object):
 
         in_logistic_layer = Concatenate(axis=-1)(h_n_da + h_n_text_1 + h_n_text_2 + [log_probs_inputs_1, log_probs_inputs_2])
 
-        hidden_logistic_1 = Dense(1024, activation='relu')(in_logistic_layer)
+        hidden_logistic_1 = Dense(256, activation='relu')(in_logistic_layer)
         hidden_logistic_2 = Dense(128, activation='relu')(hidden_logistic_1)
         optimizer = Adam(lr=0.001)
 
