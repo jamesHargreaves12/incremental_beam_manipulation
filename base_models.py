@@ -64,6 +64,7 @@ class PairwiseReranker(object):
         self.batch_size = cfg['training_batch_size']
         self.text_embedder = text_embedder
         self.da_embedder = da_embedder
+        self.too_close_limit = cfg['too_close_limit']
         self.save_location = cfg.get('reranker_loc',
                                      "models/surrogate_{}_{}_{}".format('pairwise', self.beam_size,
                                                                         cfg['logprob_preprocess_type']))
@@ -183,7 +184,7 @@ class PairwiseReranker(object):
             assert (all([tuple(x) == tuple(beam_das_val) for x in beam_das]))
             for i in range(self.beam_size):
                 for j in range(i + 1, self.beam_size):
-                    if abs(beam_scores[i] - beam_scores[j]) < 0.05:
+                    if abs(beam_scores[i] - beam_scores[j]) < self.too_close_limit:
                         continue
                     das_set.append(beam_das_val)
                     text_1_set.append(beam_texts[i])

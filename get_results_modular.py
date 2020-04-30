@@ -72,4 +72,6 @@ for beam_size in cfg["beam_sizes"]:
         for pa in post_abstr:
             out_file.write(" ".join(pa) + '\n')
 
+    import get_results_bleu_scores
+
 
