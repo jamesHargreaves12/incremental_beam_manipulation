@@ -158,7 +158,7 @@ class PairwiseReranker(object):
         elif self.logprob_preprocess_type == 'categorical_order':
             lp_ranks = []
             for lp in beam_lps:
-                lp_rank = sum([1 for x in lps if x > lp + 0.000001])
+                lp_rank = sum([1 for x in beam_lps if x > lp + 0.000001])
                 lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(lps) - 1))))
             return to_categorical(lp_ranks, self.beam_size).reshape(-1, 1, self.beam_size)
         else:
@@ -368,7 +368,7 @@ class TrainableReranker(object):
         elif self.logprob_preprocess_type == 'categorical_order':
             lp_ranks = []
             for lp in beam_lps:
-                lp_rank = sum([1 for x in lps if x > lp + 0.000001])
+                lp_rank = sum([1 for x in beam_lps if x > lp + 0.000001])
                 lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(lps) - 1))))
             return to_categorical(lp_ranks, self.beam_size).reshape(-1, 1, self.beam_size)
         else:
@@ -393,7 +393,14 @@ class TrainableReranker(object):
         text_seqs = np.array(text_seqs)
         das_seqs = np.array(das_seqs)
         bleu_scores = np.array(bleu_scores)
-        log_probs = np.array(log_probs)
+
+        norm_log_probs = []
+        for beam_start in range(0, text_seqs.shape[0] - self.beam_size, self.beam_size):
+            beam_lp = log_probs[beam_start: beam_start + self.beam_size]
+            norm_log_probs.append(self.setup_lps(beam_lp))
+
+
+        log_probs = np.array(norm_log_probs)
         valid_text_seqs = text_seqs[-valid_size:]
         valid_das = das_seqs[-valid_size:]
         valid_bleu_scores = bleu_scores[-valid_size:]
@@ -402,6 +409,7 @@ class TrainableReranker(object):
         das_seqs = das_seqs[:-valid_size]
         bleu_scores = bleu_scores[:-valid_size]
         log_probs = log_probs[:-valid_size]
+
         batch_indexes = list(range(0, text_seqs.shape[0] - self.batch_size, self.batch_size))
         for ep in range(epoch):
             start = time()
