@@ -133,7 +133,7 @@ class PairwiseReranker(object):
             err.append(self.model.evaluate([batch_das_set, batch_text_1_set, batch_text_2_set, batch_lp_1_set,
                                             batch_lp_2_set], batch_output_set, batch_size=self.batch_size,
                                            verbose=0)[-1])
-        return sum(err) / len(err)
+        return 1- sum(err) / len(err)
 
     def load_model(self):
         print("Loading pairwise reranker from {}".format(self.save_location))
@@ -183,6 +183,8 @@ class PairwiseReranker(object):
             assert (all([tuple(x) == tuple(beam_das_val) for x in beam_das]))
             for i in range(self.beam_size):
                 for j in range(i + 1, self.beam_size):
+                    if abs(beam_scores[i] - beam_scores[j]) < 0.05:
+                        continue
                     das_set.append(beam_das_val)
                     text_1_set.append(beam_texts[i])
                     lp_1_set.append(beam_lps[i])
