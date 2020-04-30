@@ -47,7 +47,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
             beam_scores.append((bleu.score(), hyp, path))
 
         for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
-            text_seqs.append(hyp)
+            text_seqs.append([START_TOK]+hyp+[END_TOK])
             da_seqs.append(da)
             if cfg["output_type"] in ['bleu', 'pair']:
                 scores.append(score)
@@ -113,7 +113,7 @@ if cfg["train"]:
 if cfg["show_reranker_post_training_stats"]:
     test_das = get_test_das()
     test_texts = get_true_sents()
-    final_beam_path=TEST_BEAM_SAVE_FORMAT.format(10)
+    final_beam_path = TEST_BEAM_SAVE_FORMAT.format(10)
 
     if not os.path.exists(final_beam_path):
         print("Creating final beams file")

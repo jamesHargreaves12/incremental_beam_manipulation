@@ -114,7 +114,7 @@ class PairwiseReranker(object):
 
         output = Dense(1, activation='sigmoid')(hidden_logistic_2)
         self.model = Model(inputs=[da_inputs_1, text_inputs_1, text_inputs_2, log_probs_inputs_1, log_probs_inputs_2], outputs=output)
-        self.model.compile(optimizer=optimizer, loss='binary_crossentropy')
+        self.model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
 
         self.model.summary()
 
@@ -144,7 +144,6 @@ class PairwiseReranker(object):
                     signal_lp_2.append(valid_lp_batch[i2])
                     signal_bleu.append(1 if valid_bleu_batch[i1][0] > valid_bleu_batch[i2][0] else 0)
 
-                # valid_loss += self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu, batch_size=self.num_comparisons_train, verbose=0)
                 preds = self.model.predict([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2])
                 preds = [1 if p[0] > 0.5 else 0 for p in preds]
                 err.append(get_hamming_distance(preds, signal_bleu))
@@ -180,10 +179,11 @@ class PairwiseReranker(object):
         batch_indexes = list(range(0, text_seqs.shape[0] - self.beam_size, self.beam_size))
         for ep in range(epoch):
             start = time()
-            losses = 0
+            losses = []
             random.shuffle(batch_indexes)
             for bi in tqdm(batch_indexes):
                 da_batch = das_seqs[bi:bi + self.beam_size]
+                assert(all([tuple(x)==tuple(da_batch[0]) for x in da_batch]))
                 text_batch = text_seqs[bi:bi + self.beam_size]
                 bleu_batch = bleu_scores[bi:bi + self.beam_size]
                 lp_batch = log_probs[bi:bi + self.beam_size]
@@ -225,9 +225,9 @@ class PairwiseReranker(object):
                 signal_lp_2 = np.array(signal_lp_2)
                 signal_bleu = np.array(signal_bleu)
                 self.model.train_on_batch([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu)
-                losses += self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu, batch_size=self.num_comparisons_train,
-                                              verbose=0)
-            train_loss = losses / das_seqs.shape[0] * self.num_comparisons_train
+                losses.append(self.model.evaluate([signal_da, signal_text_1, signal_text_2, signal_lp_1, signal_lp_2], signal_bleu, batch_size=self.num_comparisons_train,
+                                              verbose=0)[-1])
+            train_loss = sum(losses)/len(losses)
             time_spent = time() - start
             valid_err = self.get_valid_loss(valid_das, valid_text_seqs, valid_log_probs, valid_bleu_scores)
             print('{} Epoch {} Train: {:.4f} Valid_miss: {:.4f}'.format(time_spent, ep, train_loss, valid_err))
