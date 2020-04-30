@@ -133,7 +133,7 @@ class PairwiseReranker(object):
             err.append(self.model.evaluate([batch_das_set, batch_text_1_set, batch_text_2_set, batch_lp_1_set,
                                             batch_lp_2_set], batch_output_set, batch_size=self.batch_size,
                                            verbose=0)[-1])
-        return 1- sum(err) / len(err)
+        return 1 - sum(err) / len(err)
 
     def load_model(self):
         print("Loading pairwise reranker from {}".format(self.save_location))
@@ -159,8 +159,8 @@ class PairwiseReranker(object):
             lp_ranks = []
             for lp in lps:
                 lp_rank = sum([1 for x in lps if x > lp + 0.000001])
-                lp_ranks.append(lp_rank * self.beam_size // len(lps))
-            return to_categorical(lp_ranks, self.beam_size)
+                lp_ranks.append(int(round(lp_rank * (self.beam_size - 1) / (len(lps) - 1))))
+            return to_categorical(lp_ranks, self.beam_size).reshape(-1, 1, self.beam_size)
         else:
             raise NotImplementedError()
 
@@ -220,12 +220,15 @@ class PairwiseReranker(object):
             np.array(das_set), np.array(text_1_set), np.array(text_2_set), np.array(lp_1_set), np.array(
                 lp_2_set), np.array(output_set)
         valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set, valid_lp_2_set, valid_output_set = \
-            np.array(valid_das_set), np.array(valid_text_1_set), np.array(valid_text_2_set), np.array(valid_lp_1_set), np.array(
+            np.array(valid_das_set), np.array(valid_text_1_set), np.array(valid_text_2_set), np.array(
+                valid_lp_1_set), np.array(
                 valid_lp_2_set), np.array(valid_output_set)
 
         batch_indexes = list(range(0, text_1_set.shape[0] - self.batch_size, self.batch_size))
 
-        print("Initial Valid loss", self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set, valid_lp_2_set, valid_output_set))
+        print("Initial Valid loss",
+              self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set, valid_lp_2_set,
+                                  valid_output_set))
         for ep in range(epoch):
             start = time()
             losses = []

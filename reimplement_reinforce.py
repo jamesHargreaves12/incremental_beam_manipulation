@@ -203,7 +203,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
     da_emb = np.array([da_emb])
     inf_beam_size = len(beam)
-    lps = np.array(x[0] for x in beam)
+    lps = np.array([x[0] for x in beam])
     lps = pair_wise_model.setup_lps(lps)
     for i in range(inf_beam_size):
         new_beam = []
