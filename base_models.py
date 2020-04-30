@@ -92,17 +92,15 @@ class PairwiseReranker(object):
             log_probs_inputs_1 = Input(shape=(1,), name='log_probs_inputs')
             log_probs_inputs_2 = Input(shape=(1,), name='log_probs_inputs_2')
 
-        embed_text_1 = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
-        embed_text_2 = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
+        embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
         embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
 
-        text_lstm_1 = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
-        text_lstm_2 = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
-        da_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True)
+        text_lstm = lstm_type(self.lstm_size, return_state=True, dropout=cfg['dropout'])
+        da_lstm = lstm_type(self.lstm_size, return_state=True)
 
         da_lstm_out_1 = da_lstm(embed_da(da_inputs_1))
-        text_lstm_out_1 = text_lstm_1(embed_text_1(text_inputs_1))
-        text_lstm_out_2 = text_lstm_2(embed_text_2(text_inputs_2))
+        text_lstm_out_1 = text_lstm(embed_text(text_inputs_1))
+        text_lstm_out_2 = text_lstm(embed_text(text_inputs_2))
 
         h_n_text_1 = text_lstm_out_1[1:]
         h_n_da = da_lstm_out_1[1:]
