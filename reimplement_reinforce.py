@@ -203,24 +203,20 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
     da_emb = np.array([da_emb])
     inf_beam_size = len(beam)
+    beam = pair_wise_model.setup_lps(beam)
     for i in range(inf_beam_size):
         new_beam = []
         piv = random.randint(0, len(beam) - 1)
 
         orig_path = beam[piv]
         text_1 = np.array([text_embedder.pad_to_length(orig_path[1])])
-        lp_rank_1 = sum([1 for lp, _, _ in beam if lp > orig_path[0] + 0.000001])
-        lp_rank_1 = lp_rank_1*pair_wise_model.beam_size // inf_beam_size
-        lp_1 = to_categorical([lp_rank_1], pair_wise_model.beam_size)
+        lp_1 = orig_path[0]
         for i in range(len(beam)):
             if i == piv:
                 continue
             comp_path = beam[i]
             text_2 = np.array([text_embedder.pad_to_length(comp_path[1])])
-            lp_rank_2 = sum([1 for lp, _, _ in beam if lp > comp_path[0] + 0.000001])
-            lp_rank_2 = lp_rank_2 * pair_wise_model.beam_size // inf_beam_size
-
-            lp_2 = to_categorical([lp_rank_2], pair_wise_model.beam_size)
+            lp_2 = comp_path[0]
 
             result = pair_wise_model.predict_order(da_emb, text_1, text_2, lp_1, lp_2)
             if result > 0.5:
