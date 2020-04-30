@@ -10,6 +10,7 @@ import keras
 import msgpack
 import numpy as np
 import yaml
+from keras.layers import Dropout
 from keras.losses import mean_squared_error
 
 from tensorflow.test import is_gpu_available
@@ -95,12 +96,12 @@ class PairwiseReranker(object):
         embed_text = Embedding(input_dim=len_vtext, output_dim=self.embedding_size)
         embed_da = Embedding(input_dim=len_vda, output_dim=self.embedding_size)
 
-        text_lstm = lstm_type(self.lstm_size, return_state=True, dropout=cfg['dropout'])
+        text_lstm = lstm_type(self.lstm_size, return_state=True)
         da_lstm = lstm_type(self.lstm_size, return_state=True)
 
         da_lstm_out_1 = da_lstm(embed_da(da_inputs_1))
-        text_lstm_out_1 = text_lstm(embed_text(text_inputs_1))
-        text_lstm_out_2 = text_lstm(embed_text(text_inputs_2))
+        text_lstm_out_1 = text_lstm(Dropout(cfg['dropout'])(embed_text(text_inputs_1)))
+        text_lstm_out_2 = text_lstm(Dropout(cfg['dropout'])(embed_text(text_inputs_2)))
 
         h_n_text_1 = text_lstm_out_1[1:]
         h_n_da = da_lstm_out_1[1:]
