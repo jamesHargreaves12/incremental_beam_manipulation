@@ -214,6 +214,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
     return results
 
+
 def score_beam_pairwise(beam, pair_wise_model, da_emb):
     text_embedder = pair_wise_model.text_embedder
     da_emb = np.array(da_emb)
@@ -254,9 +255,11 @@ def score_beam_pairwise(beam, pair_wise_model, da_emb):
     scores = [(tourn_wins[i], beam[i]) for i in range(inf_beam_size)]
     return scores
 
+
 def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
-    scores = score_beam_pairwise(beam, pair_wise_model, da_emb)
-    # return beam[order[0]]
+    path_scores = score_beam_pairwise(beam, pair_wise_model, da_emb)
+    sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
+    return [x[1] for x in sorted_paths]
 
 
 def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False,

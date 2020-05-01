@@ -56,7 +56,7 @@ for beam_size in cfg["beam_sizes"]:
     else:
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
         preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'],
-                                              beam_save_path, greedy_complete=cfg["gredy_complete_flag"])
+                                              beam_save_path, greedy_complete=cfg["greedy_complete_flag"])
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
         save_filename = cfg["res_save_format"].format(beam_size)
