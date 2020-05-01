@@ -724,7 +724,7 @@ class TGEN_Model(object):
         while len(filled_paths) < beam_size:
             filled_paths.append(paths[0])
 
-        batch_enc_outs = np.array([enc_outs[0]] * beam_size)
+        batch_enc_outs = np.array([enc_outs[0]] * len(filled_paths))
         batch_dec_state_0 = []
         batch_dec_state_1 = []
         batch_tok = []
@@ -795,33 +795,36 @@ class TGEN_Model(object):
                 break
         return paths[0]
 
-    def complete_greedy(self, path, enc_outs, max_length):
-        def get_key(max_length, path, enc_outs):
-            return max_length, tuple(int(x) for x in path[1]), enc_outs
+    def beam_complete_greedy(self, paths, enc_outs, max_length):
+        pass
 
-        key_enc_outs = tuple(float(x) for x in enc_outs.sum(axis=2).reshape(-1))
-        so_far = []  # (key, next tok)
-        paths = [path]
-        completed = ""
-        completed_logprob = 0
-        for i in range(max_length):
-            key = get_key(max_length - i, paths[0], key_enc_outs)
-            if key in self.greedy_complete_cache:
-                completed, completed_logprob = self.greedy_complete_cache[key]
-                break
-            else:
-                paths, _ = self.beam_search_exapand(paths, enc_outs, 1)
-                completed_logprob = paths[0][0]
-                so_far.append((key, self.text_embedder.embed_to_tok[paths[0][1][-1]]))
-                if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
-                    break
-        for key, tok in reversed(so_far):
-            if completed:
-                completed = tok + " " + completed
-            else:
-                completed = tok
-            self.greedy_complete_cache[key] = (completed, completed_logprob)
-        return completed, completed_logprob
+    # def complete_greedy(self, path, enc_outs, max_length):
+    #     def get_key(max_length, path, enc_outs):
+    #         return max_length, tuple(int(x) for x in path[1]), enc_outs
+    #
+    #     key_enc_outs = tuple(float(x) for x in enc_outs.sum(axis=2).reshape(-1))
+    #     so_far = []  # (key, next tok)
+    #     paths = [path]
+    #     completed = ""
+    #     completed_logprob = 0
+    #     for i in range(max_length):
+    #         key = get_key(max_length - i, paths[0], key_enc_outs)
+    #         if key in self.greedy_complete_cache:
+    #             completed, completed_logprob = self.greedy_complete_cache[key]
+    #             break
+    #         else:
+    #             paths, _ = self.beam_search_exapand(paths, enc_outs, 1)
+    #             completed_logprob = paths[0][0]
+    #             so_far.append((key, self.text_embedder.embed_to_tok[paths[0][1][-1]]))
+    #             if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
+    #                 break
+    #     for key, tok in reversed(so_far):
+    #         if completed:
+    #             completed = tok + " " + completed
+    #         else:
+    #             completed = tok
+    #         self.greedy_complete_cache[key] = (completed, completed_logprob)
+    #     return completed, completed_logprob
 
     def set_up_models(self):
         len_in = self.da_embedder.length

@@ -4,7 +4,6 @@ from keras.utils import to_categorical
 
 from base_models import TGEN_Reranker, TrainableReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
-from reimplement_reinforce import get_greedy_compelete_toks_logprob
 from utils import START_TOK, END_TOK, PAD_TOK, get_features
 
 

@@ -34,19 +34,19 @@ def load_rein_data(filepath):
         return features, labs
 
 
-def get_greedy_compelete_toks_logprob(beam_search_model, path, max_length, enc_outs):
-    text_embedder = beam_search_model.text_embedder
-
-    result = " ".join(text_embedder.reverse_embedding(path[1]))
-    if path[1][-1] not in text_embedder.end_embs:
-        rest, logprob = beam_search_model.complete_greedy(path, enc_outs, max_length)
-        if rest:
-            result = result + " " + rest
-
-    else:
-        logprob = path[0]
-    toks = [x for x in result.split(" ") if x not in [START_TOK, END_TOK, PAD_TOK]]
-    return toks, logprob
+# def get_greedy_compelete_toks_logprob(beam_search_model, path, max_length, enc_outs):
+#     text_embedder = beam_search_model.text_embedder
+#
+#     result = " ".join(text_embedder.reverse_embedding(path[1]))
+#     if path[1][-1] not in text_embedder.end_embs:
+#         rest, logprob = beam_search_model.complete_greedy(path, enc_outs, max_length)
+#         if rest:
+#             result = result + " " + rest
+#
+#     else:
+#         logprob = path[0]
+#     toks = [x for x in result.split(" ") if x not in [START_TOK, END_TOK, PAD_TOK]]
+#     return toks, logprob
 
 
 def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, regressor, text_embedder,
@@ -109,6 +109,20 @@ def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model,
         print(" ".join(test_res[0]))
 
 
+def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, enc_outs):
+    path_scores = []
+    logprobs = [x[0] for x in beam]
+    for path in beam:
+        if rescorer:
+            lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
+            hyp_score = rescorer(path, lp_pos, da_emb, i, enc_outs)
+            path_scores.append((hyp_score, path))
+        else:
+            path_scores.append((path[0], path))
+    sorted_paths = sorted(path_scores, reverse=True, key=lambda x:x[0])
+    return [x[1] for x in sorted_paths]
+
+
 def _run_beam_search_with_rescorer_indiv(i, da_emb, paths, enc_outs, beam_size, max_pred_len, beam_search_model,
                                          rescorer=None):
     end_tokens = beam_search_model.text_embedder.end_embs
@@ -118,17 +132,19 @@ def _run_beam_search_with_rescorer_indiv(i, da_emb, paths, enc_outs, beam_size, 
         new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, enc_outs, beam_size)
 
         # prune
-        path_scores = []
-        logprobs = [x[0] for x in new_paths]
-        for path, tp in zip(new_paths, tok_probs):
-            if rescorer:
-                lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
-                lp_pos = lp_pos // beam_size  # the beam is 10x larger than would be expected by model
-                hyp_score = rescorer(path, lp_pos, da_emb, i, enc_outs)
-                path_scores.append((hyp_score, path))
-            else:
-                path_scores.append((path[0], path))
-        paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
+        paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, enc_outs)
+        paths = paths[:beam_size]
+        # path_scores = []
+        # logprobs = [x[0] for x in new_paths]
+        # for path, tp in zip(new_paths, tok_probs):
+        #     if rescorer:
+        #         lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
+        #         lp_pos = lp_pos // beam_size  # the beam is 10x larger than would be expected by model
+        #         hyp_score = rescorer(path, lp_pos, da_emb, i, enc_outs)
+        #         path_scores.append((hyp_score, path))
+        #     else:
+        #         path_scores.append((path[0], path))
+        # paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
 
         if all([p[1][-1] in end_tokens for p in paths]):
             break
@@ -216,7 +232,7 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
     for i in range(inf_beam_size):
         text_1 = np.array([text_embedder.pad_to_length(beam[i][1])])
         lp_1 = lps[i]
-        for j in range(i+1, inf_beam_size):
+        for j in range(i + 1, inf_beam_size):
             text_2 = np.array([text_embedder.pad_to_length(beam[j][1])])
             lp_2 = lps[j]
 
@@ -232,7 +248,7 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
     res_pos = 0
     tourn_wins = defaultdict(int)
     for i in range(inf_beam_size):
-        for j in range(i+1, inf_beam_size):
+        for j in range(i + 1, inf_beam_size):
             if results[res_pos][0] > 0.5:
                 tourn_wins[i] += 1
             else:
@@ -241,15 +257,34 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb, text_embedder):
     best = sorted(tourn_wins.items(), key=lambda x: x[1])[-1][0]
     return beam[best]
 
+
 def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False,
                              save_final_beam_path=''):
     results = []
     load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
-    if not only_rerank_final:
-        raise NotImplementedError("Currently only works for reranker")
+    from_saved_beams = only_rerank_final
+    max_pred_length = 60
 
     for i, da_emb in tqdm(list(enumerate(beam_search_model.da_embedder.get_embeddings(das)))):
-        paths = load_final_beams[i]
+        if from_saved_beams:
+            paths = load_final_beams[i]
+        else:
+            inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
+            enc_outs = inf_enc_out[0]
+            enc_last_state = inf_enc_out[1:]
+            init_path = [(log(1.0), beam_search_model.text_embedder.start_emb, enc_last_state)]
+
+            paths = _run_beam_search_with_rescorer_indiv(
+                i=i,
+                da_emb=da_emb,
+                paths=init_path,
+                enc_outs=enc_outs,
+                beam_size=beam_size,
+                max_pred_len=max_pred_length,
+                beam_search_model=beam_search_model,
+                rescorer=scorer if not only_rerank_final else None
+            )
+
         best_path = get_best_from_beam_pairwise(paths, pairwise_model, da_emb, beam_search_model.text_embedder)
         pred_toks = beam_search_model.text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)

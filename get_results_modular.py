@@ -17,7 +17,6 @@ parser.add_argument('-c', default=None)
 args = parser.parse_args()
 
 cfg_path = args.c
-print(cfg_path)
 if cfg_path is None:
     filenames = os.listdir(CONFIGS_DIR)
     filepaths = [os.path.join(CONFIGS_DIR, filename) for filename in filenames]
@@ -73,6 +72,6 @@ for beam_size in cfg["beam_sizes"]:
         for pa in post_abstr:
             out_file.write(" ".join(pa) + '\n')
 
-    print_results()
+print_results()
 
 
