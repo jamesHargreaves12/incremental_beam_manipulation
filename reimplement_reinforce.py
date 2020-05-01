@@ -148,7 +148,7 @@ def score_beams_pairwise(beam, pair_wise_model, da_emb):
             else:
                 tourn_wins[j] += 1
             res_pos += 1
-    scores = [(tourn_wins[i], beam[i]) for i in range(inf_beam_size)]
+    scores = [(-tourn_wins[i], beam[i]) for i in range(inf_beam_size)]
     return scores
 
 

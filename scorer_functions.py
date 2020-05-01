@@ -32,20 +32,16 @@ def get_identity_score_func():
     return func
 
 
-def get_greedy_decode_score_func(models, final_scorer, max_length_out, save_scores=None):
-    def func(path, logprob, da_emb, da_i, enc_outs):
-        path = models.naive_complete_greedy(path, enc_outs, max_length_out - len(path[1]))
-        score = final_scorer(path, logprob, da_emb, da_i, enc_outs)
-        if save_scores is not None:
-            if type(save_scores) is dict:
-                raise NotImplementedError("This bit need to be rewritten")
-                # text_emb = models.text_embedder.get_embeddings(tokenised_texts=[toks])[0]
-                # text_emb = models.text_embedder.remove_pad_from_embed(text_emb)
-                # da_emb = models.da_embedder.remove_pad_from_embed(da_emb)
-                # save_scores[(tuple(da_emb), tuple(text_emb))] = (score, log_prob)
-        return score
-
-    return func
+# def get_greedy_decode_score_func(models, final_scorer, max_length_out, save_scores=None):
+#     def func(path, logprob, da_emb, da_i, enc_outs):
+#         path = models.naive_complete_greedy(path, enc_outs, max_length_out - len(path[1]))
+#         score = final_scorer(path, logprob, da_emb, da_i, enc_outs)
+#         if save_scores is not None:
+#             if type(save_scores) is dict:
+#                 raise NotImplementedError("This bit need to be rewritten")
+#         return score
+#
+#     return func
 
 
 def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
@@ -107,23 +103,23 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
         return get_tgen_rerank_score_func(tgen_reranker, da_embedder)
     elif scorer == 'identity':
         return get_identity_score_func()
-    elif scorer == 'greedy_decode_oracle':
-        bleu_scorer = BLEUScore()
-        final_scorer = get_oracle_score_func(bleu_scorer, true_vals, text_embedder, reverse=False)
-        return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
-    elif scorer == 'greedy_decode_tgen':
-        tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg['tgen_reranker_config'])
-        tgen_reranker.load_model()
-        final_scorer = get_tgen_rerank_score_func(tgen_reranker, da_embedder)
-        return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
-    elif scorer == 'greedy_decode_surrogate':
-        learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
-        learned.load_model()
-        final_scorer = get_learned_score_func(learned, beam_size, output_type=cfg["output_type"])
-        return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
-    elif scorer == 'greedy_id':
-        final_scorer = get_identity_score_func()
-        return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
+    # elif scorer == 'greedy_decode_oracle':
+    #     bleu_scorer = BLEUScore()
+    #     final_scorer = get_oracle_score_func(bleu_scorer, true_vals, text_embedder, reverse=False)
+    #     return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
+    # elif scorer == 'greedy_decode_tgen':
+    #     tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg['tgen_reranker_config'])
+    #     tgen_reranker.load_model()
+    #     final_scorer = get_tgen_rerank_score_func(tgen_reranker, da_embedder)
+    #     return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
+    # elif scorer == 'greedy_decode_surrogate':
+    #     learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
+    #     learned.load_model()
+    #     final_scorer = get_learned_score_func(learned, beam_size, output_type=cfg["output_type"])
+    #     return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
+    # elif scorer == 'greedy_id':
+    #     final_scorer = get_identity_score_func()
+    #     return get_greedy_decode_score_func(models, final_scorer=final_scorer, max_length_out=text_embedder.length)
     elif scorer in ['oracle', 'rev_oracle']:
         bleu_scorer = BLEUScore()
         return get_oracle_score_func(bleu_scorer, true_vals, text_embedder, reverse=(scorer == 'rev_oracle'))
