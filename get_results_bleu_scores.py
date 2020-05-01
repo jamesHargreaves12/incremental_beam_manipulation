@@ -7,7 +7,6 @@ from e2e_metrics.metrics.pymteval import BLEUScore
 from e2e_metrics.measure_scores import load_data
 from utils import RESULTS_DIR
 
-# RESULTS_DIR = 'output_files/from_gpu_2/out-text-dir-v3'
 
 
 def test_res_official(pred_file_name):
@@ -43,4 +42,5 @@ def print_results():
 
 
 if __name__ == "__main__":
+    RESULTS_DIR = 'output_files/from_gpu_2/out-text-dir-v3'
     print_results()

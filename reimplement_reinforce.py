@@ -110,112 +110,7 @@ from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w
 #         print(" ".join(test_res[0]))
 #
 
-def score_beams(rescorer, beam, da_emb, i, enc_outs):
-    path_scores = []
-    logprobs = [x[0] for x in beam]
-    for path in beam:
-        lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
-        hyp_score = rescorer(path, lp_pos, da_emb, i, enc_outs)
-        path_scores.append((hyp_score, path))
-    return path_scores
-
-
-def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, enc_outs):
-    if rescorer != 'pair':
-        path_scores = score_beams(rescorer, beam, da_emb, i, enc_outs)
-        sorted_paths = sorted(path_scores, reverse=True, key=lambda x:x[0])
-    else:
-        pass
-    return [x[1] for x in sorted_paths]
-
-
-def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len):
-    finished_beam = beam.copy()
-    for step in range(max_pred_len):
-        finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
-        if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
-            break
-    scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i, enc_outs)
-    order = sorted(enumerate(scored_finished_beams), reverse=True, key=lambda x:x[1][0])
-    result = [beam[i] for i,_ in order]
-    return result
-
-
-def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq,
-                                   rescorer=None, greedy_complete=False):
-    end_tokens = seq2seq.text_embedder.end_embs
-
-    for step in range(max_pred_len):
-        # expand
-        new_paths, tok_probs = seq2seq.beam_search_exapand(paths, enc_outs, beam_size)
-        # prune
-        if greedy_complete:
-            paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len)
-        else:
-            paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, enc_outs)
-        paths = paths[:beam_size]
-
-        if all([p[1][-1] in end_tokens for p in paths]):
-            break
-    return paths
-
-
-def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rerank_final=False,
-                                  save_final_beam_path='', greedy_complete=False):
-    da_embedder = beam_search_model.da_embedder
-    text_embedder = beam_search_model.text_embedder
-    max_predict_len = 60
-
-    results = []
-    should_save_beams = save_final_beam_path and not os.path.exists(save_final_beam_path)
-    should_load_beams = save_final_beam_path and os.path.exists(save_final_beam_path)
-    load_final_beams = []
-    final_beams = []
-    if should_load_beams:
-        load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
-
-    for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
-        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
-        enc_outs = inf_enc_out[0]
-        enc_last_state = inf_enc_out[1:]
-        paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
-
-        if should_load_beams:
-            paths = load_final_beams[i]
-        else:
-            paths = _run_beam_search_with_rescorer(
-                i=i,
-                da_emb=da_emb,
-                paths=paths,
-                enc_outs=enc_outs,
-                beam_size=beam_size,
-                max_pred_len=max_predict_len,
-                seq2seq=beam_search_model,
-                rescorer=scorer if not only_rerank_final else get_identity_score_func(),
-                greedy_complete=greedy_complete
-            )
-
-        final_beams.append(paths)
-
-        if only_rerank_final:
-            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, enc_outs)
-            if i == 0:
-                print("First beam Score Distribution:")
-                print([x[0] for x in paths])
-                print("******************************")
-
-        best_path = paths[0]
-        pred_toks = text_embedder.reverse_embedding(best_path[1])
-        results.append(pred_toks)
-
-    if should_save_beams:
-        print("Saving final beam states at ", save_final_beam_path)
-        pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
-
-    return results
-
-
-def score_beam_pairwise(beam, pair_wise_model, da_emb):
+def score_beams_pairwise(beam, pair_wise_model, da_emb):
     text_embedder = pair_wise_model.text_embedder
     da_emb = np.array(da_emb)
     inf_beam_size = len(beam)
@@ -256,8 +151,115 @@ def score_beam_pairwise(beam, pair_wise_model, da_emb):
     return scores
 
 
+def score_beams(rescorer, beam, da_emb, i, enc_outs):
+    path_scores = []
+    logprobs = [x[0] for x in beam]
+    for path in beam:
+        lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
+        hyp_score = rescorer(path, lp_pos, da_emb, i, enc_outs)
+        path_scores.append((hyp_score, path))
+    return path_scores
+
+
+def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, enc_outs, pairwise_flag):
+    # In a horrible way of doing things the pairwise model is passed as the rescorer
+    if pairwise_flag:
+        path_scores = score_beams_pairwise(beam, rescorer, da_emb)
+    else:
+        path_scores = score_beams(rescorer, beam, da_emb, i, enc_outs)
+    sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
+    return [x[1] for x in sorted_paths]
+
+
+def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len):
+    finished_beam = beam.copy()
+    for step in range(max_pred_len):
+        finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
+        if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
+            break
+    scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i, enc_outs)
+    order = sorted(enumerate(scored_finished_beams), reverse=True, key=lambda x:x[1][0])
+    result = [beam[i] for i,_ in order]
+    return result
+
+
+def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq,
+                                   rescorer=None, greedy_complete=False, pairwise_flag=False):
+    end_tokens = seq2seq.text_embedder.end_embs
+
+    for step in range(max_pred_len):
+        # expand
+        new_paths, tok_probs = seq2seq.beam_search_exapand(paths, enc_outs, beam_size)
+        # prune
+        if greedy_complete:
+            paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len)
+        else:
+            paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, enc_outs, pairwise_flag)
+        paths = paths[:beam_size]
+
+        if all([p[1][-1] in end_tokens for p in paths]):
+            break
+    return paths
+
+
+def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rerank_final=False,
+                                  save_final_beam_path='', greedy_complete=False, pairwise_flag=False):
+    da_embedder = beam_search_model.da_embedder
+    text_embedder = beam_search_model.text_embedder
+    max_predict_len = 60
+
+    results = []
+    should_save_beams = save_final_beam_path and not os.path.exists(save_final_beam_path)
+    should_load_beams = save_final_beam_path and os.path.exists(save_final_beam_path)
+    load_final_beams = []
+    final_beams = []
+    if should_load_beams:
+        load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
+
+    for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
+        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
+        enc_outs = inf_enc_out[0]
+        enc_last_state = inf_enc_out[1:]
+        paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
+
+        if should_load_beams:
+            paths = load_final_beams[i]
+        else:
+            paths = _run_beam_search_with_rescorer(
+                i=i,
+                da_emb=da_emb,
+                paths=paths,
+                enc_outs=enc_outs,
+                beam_size=beam_size,
+                max_pred_len=max_predict_len,
+                seq2seq=beam_search_model,
+                rescorer=scorer if not only_rerank_final else get_identity_score_func(),
+                greedy_complete=greedy_complete,
+                pairwise_flag=pairwise_flag
+            )
+
+        final_beams.append(paths)
+
+        if only_rerank_final:
+            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, enc_outs, pairwise_flag)
+            if i == 0:
+                print("First beam Score Distribution:")
+                print([x[0] for x in paths])
+                print("******************************")
+
+        best_path = paths[0]
+        pred_toks = text_embedder.reverse_embedding(best_path[1])
+        results.append(pred_toks)
+
+    if should_save_beams:
+        print("Saving final beam states at ", save_final_beam_path)
+        pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
+
+    return results
+
+
 def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
-    path_scores = score_beam_pairwise(beam, pair_wise_model, da_emb)
+    path_scores = score_beams_pairwise(beam, pair_wise_model, da_emb)
     sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
     return [x[1] for x in sorted_paths]
 

@@ -49,14 +49,17 @@ for beam_size in cfg["beam_sizes"]:
     beam_save_path = cfg.get('beam_save_path', '')
     if beam_save_path:
         beam_save_path = beam_save_path.format(beam_size)
+    # This is a horrible hack
     if cfg["pairwise_flag"]:
-        pairwise_model = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
-        preds = run_beam_search_pairwise(models, das_test, beam_size, pairwise_model, only_rerank_final=True,
-                                         save_final_beam_path=beam_save_path)
+        scorer_func = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
+        # preds = run_beam_search_pairwise(models, das_test, beam_size, pairwise_model, only_rerank_final=True,
+        #                                  save_final_beam_path=beam_save_path)
     else:
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
-        preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'],
-                                              beam_save_path, greedy_complete=cfg["greedy_complete_flag"])
+    preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size, cfg['only_rerank_final'],
+                                          beam_save_path, greedy_complete=cfg["greedy_complete_flag"],
+                                          pairwise_flag=cfg['pairwise_flag'])
+
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
         save_filename = cfg["res_save_format"].format(beam_size)
