@@ -7,6 +7,7 @@ from gensim.models import Word2Vec
 import random
 import sys
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 from time import time
 import numpy as np
 import yaml
@@ -209,8 +210,8 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     max_predict_len = 60
 
     results = []
-    should_save_beams = save_final_beam_path and not os.path.exists(save_final_beam_path)
-    should_load_beams = save_final_beam_path and os.path.exists(save_final_beam_path)
+    should_save_beams = save_final_beam_path and not os.path.exists(save_final_beam_path) and only_rerank_final
+    should_load_beams = save_final_beam_path and os.path.exists(save_final_beam_path) and only_rerank_final
     load_final_beams = []
     final_beams = []
     if should_load_beams:
