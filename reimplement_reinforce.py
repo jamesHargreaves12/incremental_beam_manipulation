@@ -125,7 +125,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, enc_outs):
         path_scores = score_beams(rescorer, beam, da_emb, i, enc_outs)
         sorted_paths = sorted(path_scores, reverse=True, key=lambda x:x[0])
     else:
-
+        pass
     return [x[1] for x in sorted_paths]
 
 
