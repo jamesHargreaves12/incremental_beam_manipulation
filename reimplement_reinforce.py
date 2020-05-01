@@ -185,14 +185,14 @@ def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2se
 
 
 def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq,
-                                   rescorer=None, greedy_complete=False, pairwise_flag=False):
+                                   rescorer=None, greedy_complete=[], pairwise_flag=False):
     end_tokens = seq2seq.text_embedder.end_embs
 
     for step in range(max_pred_len):
         # expand
         new_paths, tok_probs = seq2seq.beam_search_exapand(paths, enc_outs, beam_size)
         # prune
-        if greedy_complete:
+        if step in greedy_complete:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len)
         else:
             paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, enc_outs, pairwise_flag)
@@ -204,10 +204,10 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
 
 
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rerank_final=False,
-                                  save_final_beam_path='', greedy_complete=False, pairwise_flag=False):
+                                  save_final_beam_path='', greedy_complete=[], pairwise_flag=False, max_pred_len=60):
     da_embedder = beam_search_model.da_embedder
     text_embedder = beam_search_model.text_embedder
-    max_predict_len = 60
+    max_pred_len = 60
 
     results = []
     should_save_beams = save_final_beam_path and not os.path.exists(save_final_beam_path) and only_rerank_final
@@ -232,7 +232,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 paths=paths,
                 enc_outs=enc_outs,
                 beam_size=beam_size,
-                max_pred_len=max_predict_len,
+                max_pred_len=max_pred_len,
                 seq2seq=beam_search_model,
                 rescorer=scorer if not only_rerank_final else get_identity_score_func(),
                 greedy_complete=greedy_complete,
