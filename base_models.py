@@ -741,10 +741,9 @@ class TGEN_Model(object):
             dec_outs, dec_states = out[0], out[2:]
         new_paths = []
         tok_probs = []
-        for p, dec_out, ds0, ds1 in zip(paths, dec_outs, dec_states[0], dec_states[1]):
-            logprob, toks, ds = p
+        for (lp, toks, ds), dec_out, ds0, ds1 in zip(paths, dec_outs, dec_states[0], dec_states[1]):
             if toks[-1] in self.text_embedder.end_embs:
-                new_paths.append((logprob, toks, ds))
+                new_paths.append((lp, toks, ds))
                 continue
             top_k = np.argsort(dec_out, axis=-1)[0][-beam_size:]
             ds0 = ds0.reshape((1, -1))
@@ -752,7 +751,7 @@ class TGEN_Model(object):
             tok_prob = dec_out[0][top_k]
             for new_tok, tp in zip(top_k, tok_prob):
                 tok_probs.append(tp)
-                new_paths.append((logprob + log(tp), toks + [new_tok], [ds0, ds1]))
+                new_paths.append((lp + log(tp), toks + [new_tok], [ds0, ds1]))
         return new_paths, tok_probs
 
     def make_prediction(self, encoder_in, beam_size=1, prev_tok=None, max_length=20):
@@ -796,7 +795,11 @@ class TGEN_Model(object):
         return paths[0]
 
     def beam_complete_greedy(self, paths, enc_outs, max_length):
-        pass
+        for i in range(max_length):
+            paths,_ = self.beam_search_exapand(paths, enc_outs, 1)
+            if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
+                break
+        return paths
 
     # def complete_greedy(self, path, enc_outs, max_length):
     #     def get_key(max_length, path, enc_outs):
