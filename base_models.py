@@ -56,7 +56,7 @@ def get_training_set_min_max_lp(beam_size):
 
 class PairwiseReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
-        cfg = yaml.load(open(cfg_path, "r+"))
+        cfg = yaml.safe_load(open(cfg_path, "r+"))
         self.beam_size = cfg["beam_size"]
         self.num_comparisons_train = self.beam_size // 2
         self.embedding_size = cfg['embedding_size']
@@ -289,7 +289,7 @@ class PairwiseReranker(object):
 
 class TrainableReranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
-        cfg = yaml.load(open(cfg_path, "r+"))
+        cfg = yaml.safe_load(open(cfg_path, "r+"))
         self.beam_size = cfg["beam_size"]
         self.embedding_size = cfg['embedding_size']
         self.lstm_size = cfg['hidden_size']
@@ -484,7 +484,7 @@ class TrainableReranker(object):
 
 class TGEN_Reranker(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
-        cfg = yaml.load(open(cfg_path, "r+"))
+        cfg = yaml.safe_load(open(cfg_path, "r+"))
         self.batch_size = cfg['training_batch_size']
         self.lstm_size = cfg["hidden_size"]
         self.embedding_size = cfg['embedding_size']
@@ -628,7 +628,7 @@ class Regressor(object):
 
 class TGEN_Model(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
-        cfg = yaml.load(open(cfg_path, "r+"))
+        cfg = yaml.safe_load(open(cfg_path, "r+"))
         self.da_embedder = da_embedder
         self.text_embedder = text_embedder
         self.batch_size = cfg["train_batch_size"]

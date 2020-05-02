@@ -195,7 +195,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         if step in greedy_complete:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len)
         else:
-            paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, enc_outs, pairwise_flag)
+            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, enc_outs, pairwise_flag)
         paths = paths[:beam_size]
 
         if save_progress_file:

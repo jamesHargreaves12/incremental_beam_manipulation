@@ -24,7 +24,7 @@ if cfg_path is None:
     cfg_path = filepaths[max(mod_times)[1]]
 
 print("Using config from: {}".format(cfg_path))
-cfg = yaml.load(open(cfg_path, "r"))
+cfg = yaml.safe_load(open(cfg_path, "r"))
 texts, das = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
