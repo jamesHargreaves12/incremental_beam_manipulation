@@ -181,7 +181,7 @@ def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2se
     if pairwise_flag:
         scored_finished_beams = score_beams_pairwise(beam, rescorer, da_emb)
     else:
-        scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i, enc_outs)
+        scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i)
     order = sorted(enumerate(scored_finished_beams), reverse=True, key=lambda x: x[1][0])
     result = [beam[i] for i,_ in order]
     return result
