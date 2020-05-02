@@ -7,7 +7,7 @@ from base_models import TGEN_Model, TGEN_Reranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from get_results_bleu_scores import print_results
-from reimplement_reinforce import run_beam_search_with_rescorer, run_beam_search_pairwise
+from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
     get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR, CONFIGS_MODEL_DIR, CONFIGS_DIR, postprocess
@@ -49,15 +49,19 @@ for beam_size in cfg["beam_sizes"]:
     else:
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
     max_pred_len = 60
-    greedy_complete_rate = cfg.get("greedy_complete_rate", max_pred_len + 1)
-    greedy_complete = list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))
+    if "greedy_complete_at" in cfg:
+        greedy_complete = cfg["greedy_complete_at"]
+    else:
+        greedy_complete_rate = cfg.get("greedy_complete_rate", max_pred_len + 1)
+        greedy_complete = list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))
 
     preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
                                           only_rerank_final=cfg['only_rerank_final'],
                                           save_final_beam_path=beam_save_path,
                                           greedy_complete=greedy_complete,
                                           pairwise_flag=cfg['pairwise_flag'],
-                                          max_pred_len=60)
+                                          max_pred_len=60,
+                                          save_progress_path=cfg.get('save_progress_file', None))
 
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
