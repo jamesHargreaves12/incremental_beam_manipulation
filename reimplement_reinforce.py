@@ -172,13 +172,16 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, enc_outs, pairwis
     return [x[1] for x in sorted_paths]
 
 
-def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len):
+def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len, pairwise_flag):
     finished_beam = beam.copy()
     for step in range(max_pred_len):
         finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
         if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
             break
-    scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i, enc_outs)
+    if pairwise_flag:
+        scored_finished_beams = score_beams_pairwise(beam, rescorer, da_emb)
+    else:
+        scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i, enc_outs)
     order = sorted(enumerate(scored_finished_beams), reverse=True, key=lambda x: x[1][0])
     result = [beam[i] for i,_ in order]
     return result
@@ -193,7 +196,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         new_paths, tok_probs = seq2seq.beam_search_exapand(paths, enc_outs, beam_size)
         # prune
         if step in greedy_complete:
-            paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len)
+            paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len, pairwise_flag)
         else:
             paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, enc_outs, pairwise_flag)
         paths = paths[:beam_size]
