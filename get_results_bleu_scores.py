@@ -12,8 +12,7 @@ from utils import RESULTS_DIR
 def test_res_official(pred_file_name):
     pred_file = os.path.join(RESULTS_DIR, pred_file_name)
     true_file = "tgen/e2e-challenge/input/devel-conc.txt"
-    data_src, data_ref, data_sys = load_data(true_file, pred_file)
-    # mteval_scores = run_pymteval(data_ref, data_sys)
+    _, data_ref, data_sys = load_data(true_file, pred_file)
 
     bleu = BLEUScore()
     for sents_ref, sent_sys in zip(data_ref, data_sys):
@@ -42,5 +41,5 @@ def print_results():
 
 
 if __name__ == "__main__":
-    RESULTS_DIR = 'output_files/from_gpu_2/out-text-dir-v3'
+    # RESULTS_DIR = 'output_files/from_gpu_2/out-text-dir-v3'
     print_results()

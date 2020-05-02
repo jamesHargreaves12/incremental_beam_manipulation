@@ -10,7 +10,7 @@ from get_results_bleu_scores import print_results
 from reimplement_reinforce import run_beam_search_with_rescorer, run_beam_search_pairwise
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
-    get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR, CONFIGS_MODEL_DIR, CONFIGS_DIR
+    get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR, CONFIGS_MODEL_DIR, CONFIGS_DIR, postprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', default=None)
@@ -37,12 +37,6 @@ true_vals = get_true_sents()
 models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
 models.load_models()
 
-
-should_use_cache = "populate_greedy_cache" in cfg and cfg["populate_greedy_cache"]
-should_update_cache = should_use_cache and "update_greedy_cache" in cfg and cfg["update_greedy_cache"]
-if should_use_cache:
-    models.populate_cache()
-
 absts = get_abstss_test()
 for beam_size in cfg["beam_sizes"]:
     print("Beam size = {} ".format(beam_size))
@@ -52,8 +46,6 @@ for beam_size in cfg["beam_sizes"]:
     # This is a horrible hack
     if cfg["pairwise_flag"]:
         scorer_func = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
-        # preds = run_beam_search_pairwise(models, das_test, beam_size, pairwise_model, only_rerank_final=True,
-        #                                  save_final_beam_path=beam_save_path)
     else:
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
     max_pred_len = 60
@@ -83,7 +75,7 @@ for beam_size in cfg["beam_sizes"]:
     print("Saving to {}".format(save_path))
     with open(save_path, "w+") as out_file:
         for pa in post_abstr:
-            out_file.write(" ".join(pa) + '\n')
+            out_file.write(postprocess(" ".join(pa)) + '\n')
 
 print_results()
 

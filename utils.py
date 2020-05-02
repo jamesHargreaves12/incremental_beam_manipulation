@@ -196,3 +196,12 @@ def get_features(path, text_embedder, w2v, tok_prob):
     return np.concatenate((h, c,
                            safe_get_w2v(w2v, pred_words[-1]), safe_get_w2v(w2v, pred_words[-2]),
                            [tok_prob, path[0], len(pred_words)]))
+
+
+def postprocess(text):
+    text = re.sub(r'([a-zA-Z]) - ([a-zA-Z])', r'\1-\2', text)
+    text = re.sub(r'£ ([0-9])', r'£\1', text)
+    text = re.sub(r'([a-zA-Z]) *\' *(s|m|d|ll|re|ve|t)', r"\1'\2", text)
+    text = re.sub(r'([a-zA-Z]) *n\'t', r"\1n't", text)
+    text = re.sub(r' \' ([a-zA-Z ]+) \' ', r" '\1' ", text)
+    return text
