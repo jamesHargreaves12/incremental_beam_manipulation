@@ -8,7 +8,7 @@ from utils import START_TOK, END_TOK, PAD_TOK, get_features
 
 
 def get_regressor_score_func(regressor, text_embedder, w2v):
-    def func(path, logprob, da_emb, da_i, enc_outs):
+    def func(path, logprob, da_emb, da_i, beam_size):
         features = get_features(path, text_embedder, w2v, logprob)
         regressor_score = regressor.predict(features.reshape(1, -1))[0][0]
         return regressor_score
@@ -26,7 +26,7 @@ def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
 
 
 def get_identity_score_func():
-    def func(path, logprob, da_emb, da_i, enc_outs):
+    def func(path, logprob, da_emb, da_i, beam_size):
         return path[0]
 
     return func
@@ -45,7 +45,7 @@ def get_identity_score_func():
 
 
 def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
-    def func(path, logprob, da_emb, da_i, enc_outs):
+    def func(path, logprob, da_emb, da_i, beam_size):
         true = true_vals[da_i]
         toks = text_embedder.reverse_embedding(path[1])
         pred = [x for x in toks if x not in [START_TOK, END_TOK, PAD_TOK]]
@@ -59,19 +59,19 @@ def get_oracle_score_func(bleu, true_vals, text_embedder, reverse):
 
 
 def get_random_score_func():
-    def func(path, logprob, da_emb, da_i, enc_outs):
+    def func(path, logprob, da_emb, da_i, beam_size):
         return random.random()
 
     return func
 
 
 def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False, output_type=None):
-    def func(path, logprob, da_emb, da_i, enc_outs):
+    def func(path, logprob, da_emb, da_i, beam_size):
         text_emb = path[1]
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
                (trainable_reranker.text_embedder.length - len(text_emb))
         if trainable_reranker.logprob_preprocess_type == 'categorical_order':
-            logprob_rank = logprob*trainable_reranker.beam_size // test_beam_size
+            logprob_rank = logprob*trainable_reranker.beam_size // beam_size
             logprob_val = to_categorical([logprob_rank], num_classes=trainable_reranker.beam_size)
         else:
             logprob_val = [path[0]]
@@ -128,7 +128,7 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
         learned.load_model()
         print(cfg)
         select_max = cfg.get("order_by_max_class", False)
-        return get_learned_score_func(learned, beam_size, select_max)
+        return get_learned_score_func(learned, select_max)
     elif scorer == 'random':
         return get_random_score_func()
     else:

@@ -152,22 +152,22 @@ def score_beams_pairwise(beam, pair_wise_model, da_emb):
     return scores
 
 
-def score_beams(rescorer, beam, da_emb, i, enc_outs):
+def score_beams(rescorer, beam, da_emb, i):
     path_scores = []
     logprobs = [x[0] for x in beam]
     for path in beam:
         lp_pos = sum([1 for lp in logprobs if lp > path[0] + 0.000001])
-        hyp_score = rescorer(path, lp_pos, da_emb, i, enc_outs)
+        hyp_score = rescorer(path, lp_pos, da_emb, i, len(beam))
         path_scores.append((hyp_score, path))
     return path_scores
 
 
-def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, enc_outs, pairwise_flag):
+def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag):
     # In a horrible way of doing things the pairwise model is passed as the rescorer
     if pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
     else:
-        path_scores = score_beams(rescorer, beam, da_emb, i, enc_outs)
+        path_scores = score_beams(rescorer, beam, da_emb, i)
     sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
     return [x[1] for x in sorted_paths]
 
@@ -198,7 +198,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         if step in greedy_complete:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len, pairwise_flag)
         else:
-            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, enc_outs, pairwise_flag=False)
+            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, pairwise_flag=False)
         paths = paths[:beam_size]
 
         if save_progress_file:
@@ -258,7 +258,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         final_beams.append(paths)
 
         if only_rerank_final:
-            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, enc_outs, pairwise_flag)
+            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, pairwise_flag)
             if i == 0:
                 print("First beam Score Distribution:")
                 print([x[0] for x in paths])
