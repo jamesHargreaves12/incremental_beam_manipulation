@@ -39,8 +39,6 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     log_probs = []
     for beam, real_texts, da in zip(final_beam, train_texts, train_das):
         beam_scores = []
-        min_lp = min([p[0] for p in beam])
-        max_lp = max([p[0] for p in beam])
         for path in beam:
             bleu.reset()
             hyp = [x for x in text_embedder.reverse_embedding(path[1]) if x not in [START_TOK, END_TOK, PAD_TOK]]
@@ -57,12 +55,6 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
             elif cfg["output_type"] in ['regression_ranker','regression_reranker_relative']:
                 scores.append(i / (beam_size-1))
 
-            # if cfg["logprob_preprocess_type"] == 'categorical_order':
-            #     lp_pos = sum([1 for _, _, p in beam_scores if p[0] > path[0] + 0.000001])
-            #     log_probs.append(to_categorical([lp_pos], num_classes=beam_size))
-            # elif cfg["logprob_preprocess_type"] == 'original_normalised':
-            #     log_probs.append((path[0] - min_lp) / (max_lp - min_lp))
-            # else:
             log_probs.append([path[0]])
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))

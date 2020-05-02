@@ -396,7 +396,7 @@ class TrainableReranker(object):
         bleu_scores = np.array(bleu_scores)
 
         norm_log_probs = []
-        for beam_start in range(0, text_seqs.shape[0] - self.beam_size, self.beam_size):
+        for beam_start in range(0, text_seqs.shape[0] - self.beam_size+1, self.beam_size):
             beam_lp = log_probs[beam_start: beam_start + self.beam_size]
             norm_log_probs.extend(self.setup_lps(beam_lp))
 
