@@ -33,10 +33,11 @@ def parse_progress_file(filepath):
 
 
 for beam_size in [3, 5, 10, 30]:
-    progress_file_path = 'output_files/progress_files/oracle_678_{}.txt'.format(beam_size)
+    progress_file_path = 'output_files/progress_files/oracle_34567_{}.txt'.format(beam_size)
     beams = parse_progress_file(progress_file_path)
     true_texts = [[' '.join([START_TOK] + x + [END_TOK]) for x in xs] for xs in get_true_sents()]
-    print(len(beams), len(true_texts))
+    if len(beams) != len(true_texts):
+        continue
     fall_out = []
     for cur_beams, true in zip(beams, true_texts):
         for i, beam in enumerate(cur_beams):
@@ -45,4 +46,5 @@ for beam_size in [3, 5, 10, 30]:
                 break
     plt.hist(fall_out, bins=max(fall_out) + 1)
     plt.title(progress_file_path.split('/')[-1])
+    plt.ylim(0,120)
     plt.show()

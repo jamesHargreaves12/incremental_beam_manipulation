@@ -91,7 +91,6 @@ parser.add_argument('-c', default=None)
 args = parser.parse_args()
 
 cfg_path = args.c
-print(cfg_path)
 if cfg_path is None:
     filenames = os.listdir(CONFIGS_MODEL_DIR)
     filepaths = [os.path.join(CONFIGS_MODEL_DIR, filename) for filename in filenames]
