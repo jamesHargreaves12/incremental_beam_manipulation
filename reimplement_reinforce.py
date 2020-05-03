@@ -122,7 +122,7 @@ def relative_to_quartiles(scores):
             return 0.5
 
     av = sum(scores) / len(scores)
-    return [to_quartile(x - av) for x in scores]
+    return [1-to_quartile(x - av) for x in scores]
 
 
 def score_beams_pairwise(beam, pair_wise_model, da_emb):
