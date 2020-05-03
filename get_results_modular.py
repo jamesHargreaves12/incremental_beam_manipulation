@@ -6,7 +6,7 @@ import yaml
 from base_models import TGEN_Model, TGEN_Reranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
-from get_results_bleu_scores import print_results
+from get_results_bleu_scores import print_results, test_res_official
 from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
@@ -62,7 +62,7 @@ for beam_size in cfg["beam_sizes"]:
                                           pairwise_flag=cfg['pairwise_flag'],
                                           max_pred_len=60,
                                           save_progress_path=cfg.get('save_progress_file', None),
-                                          also_rerank_final=cfg.get('also_rerank_final', False))
+                                          also_rerank_final=cfg.get('v', False))
 
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
@@ -81,6 +81,7 @@ for beam_size in cfg["beam_sizes"]:
     with open(save_path, "w+") as out_file:
         for pa in post_abstr:
             out_file.write(postprocess(" ".join(pa)) + '\n')
+    print("Official bleu score:",test_res_official(save_filename))
 
 print_results()
 
