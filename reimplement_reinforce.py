@@ -214,7 +214,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
 
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rerank_final=False,
                                   save_final_beam_path='', greedy_complete=[], pairwise_flag=False,
-                                  max_pred_len=60, save_progress_path=None):
+                                  max_pred_len=60, save_progress_path=None, also_rerank_final=False):
     if save_progress_path is not None:
         save_progress_file = open(save_progress_path.format(beam_size), 'w+')
     else:
@@ -257,7 +257,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
         final_beams.append(paths)
 
-        if only_rerank_final:
+        if only_rerank_final or also_rerank_final:
             paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, pairwise_flag)
             if i == 0:
                 print("First beam Score Distribution:")
