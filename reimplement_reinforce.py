@@ -122,7 +122,7 @@ def relative_to_quartiles(scores):
             return 0.5
 
     av = sum(scores) / len(scores)
-    return [to_quartile(x - av + 0.5) for x in scores]
+    return [1-to_quartile(x - av + 0.5) for x in scores]
 
 
 def score_beams_pairwise(beam, pair_wise_model, da_emb):
@@ -176,11 +176,11 @@ def score_beams(rescorer, beam, da_emb, i):
     return path_scores
 
 
-#change how orig_beam is done
+# change how orig_beam is done
 def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag, quartiles_flag, out_beam=None):
     if quartiles_flag:
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
-        quartiles = relative_to_quartiles([s for (s,t), _ in scored_finished_beams])
+        quartiles = relative_to_quartiles([s for (s, t), _ in scored_finished_beams])
         path_scores = [((x, y[1]), z) for x, (y, z) in zip(quartiles, scored_finished_beams)]
     elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
@@ -236,7 +236,8 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
 
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rerank_final=False,
                                   save_final_beam_path='', greedy_complete=[], pairwise_flag=False,
-                                  max_pred_len=60, save_progress_path=None, also_rerank_final=False, quartiles_flag=False):
+                                  max_pred_len=60, save_progress_path=None, also_rerank_final=False,
+                                  quartiles_flag=False):
     if save_progress_path is not None:
         save_progress_file = open(save_progress_path.format(beam_size), 'w+')
     else:
