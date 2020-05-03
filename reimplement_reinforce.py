@@ -183,6 +183,8 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag):
     else:
         path_scores = score_beams(rescorer, beam, da_emb, i)
     sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
+    if i == 0:
+        print("Path scores:", [x for x,_ in sorted_paths])
     return [x[1] for x in sorted_paths]
 
 
