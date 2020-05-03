@@ -220,7 +220,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
 
         else:
             paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i,
-                                                    pairwise_flag=False)
+                                                    pairwise_flag=False, quartiles_flag=False)
         paths = paths[:beam_size]
 
         if save_progress_file:
@@ -281,7 +281,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         final_beams.append(paths)
 
         if only_rerank_final or also_rerank_final:
-            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, pairwise_flag)
+            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, pairwise_flag, quartiles_flag)
             if i == 0:
                 print("First beam Score Distribution:")
                 print([x[0] for x in paths])
