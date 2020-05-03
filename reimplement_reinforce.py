@@ -176,16 +176,24 @@ def score_beams(rescorer, beam, da_emb, i):
     return path_scores
 
 
-def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag):
-    # In a horrible way of doing things the pairwise model is passed as the rescorer
-    if pairwise_flag:
+#change how orig_beam is done
+def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag, quartiles_flag, out_beam=None):
+    if quartiles_flag:
+        scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
+        quartiles = relative_to_quartiles([s for (s,t), _ in scored_finished_beams])
+        path_scores = [((x, y[1]), z) for x, (y, z) in zip(quartiles, scored_finished_beams)]
+    elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
     else:
         path_scores = score_beams(rescorer, beam, da_emb, i)
-    sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
+
+    order = sorted(enumerate(path_scores), reverse=True, key=lambda x: x[1][0])
     if i == 0:
-        print("Path scores:", [x for x,_ in sorted_paths])
-    return [x[1] for x in sorted_paths]
+        print("Path scores:", [x for _, (x, _) in order])
+    if out_beam is not None:
+        beam = out_beam
+    result = [beam[i] for i, _ in order]
+    return result
 
 
 def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len, pairwise_flag,
@@ -195,18 +203,7 @@ def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2se
         finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
         if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
             break
-    if quartiles_flag:
-        scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i)
-        quartiles = relative_to_quartiles([s for (s,t), _ in scored_finished_beams])
-        scored_finished_beams = [((x, y[1]), z) for x, (y, z) in zip(quartiles, scored_finished_beams)]
-    elif pairwise_flag:
-        scored_finished_beams = score_beams_pairwise(beam, rescorer, da_emb)
-    else:
-        scored_finished_beams = score_beams(rescorer, finished_beam, da_emb, i)
-
-    order = sorted(enumerate(scored_finished_beams), reverse=True, key=lambda x: x[1][0])
-    result = [beam[i] for i, _ in order]
-    return result
+    return order_beam_acording_to_rescorer(rescorer, finished_beam, da_emb, i, pairwise_flag, quartiles_flag, beam)
 
 
 def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq,
