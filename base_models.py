@@ -293,7 +293,7 @@ class TrainableReranker(object):
         self.beam_size = cfg["beam_size"]
         self.embedding_size = cfg['embedding_size']
         self.lstm_size = cfg['hidden_size']
-        if cfg['output_type'] == 'regression_reranker_relative':
+        if cfg['output_type'] in ['regression_reranker_relative', 'regression_quartiles']:
             self.batch_size = self.beam_size
             if cfg['training_batch_size']:
                 print('training_batch_size variable ignored due to output type')
@@ -349,7 +349,7 @@ class TrainableReranker(object):
             out_layer_size = self.beam_size
             loss_function = 'categorical_crossentropy'
             out_layer_activation = 'softmax'
-        elif cfg['output_type'] == 'regression_reranker_relative':
+        elif cfg['output_type'] in ['regression_reranker_relative', 'regression_quartiles']:
             print("Using loss with average reset to 0")
             loss_function = relative_mae_loss
         else:
@@ -389,7 +389,7 @@ class TrainableReranker(object):
     def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
-        if self.output_type != 'regression_reranker_relative':
+        if self.output_type not in ['regression_reranker_relative', 'regression_quartiles']:
             text_seqs, das_seqs, bleu_scores, log_probs = shuffle_data((text_seqs, das_seqs, bleu_scores, log_probs))
         text_seqs = np.array(text_seqs)
         das_seqs = np.array(das_seqs)

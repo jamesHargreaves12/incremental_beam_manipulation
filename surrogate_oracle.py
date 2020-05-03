@@ -52,15 +52,25 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
                 scores.append(score)
             elif cfg["output_type"] == 'order_discrete':
                 scores.append(to_categorical([i], num_classes=beam_size))
-            elif cfg["output_type"] in ['regression_ranker','regression_reranker_relative']:
+            elif cfg["output_type"] in ['regression_ranker', 'regression_reranker_relative']:
                 scores.append(i / (beam_size-1))
+            elif cfg["output_type"] in ['regression_quartiles']:
+                regression_val = i / (beam_size-1)
+                if regression_val < 0.25:
+                    regression_val = 0
+                elif regression_val > 0.75:
+                    regression_val = 1
+                else:
+                    regression_val = 0.5
+                scores.append(regression_val)
 
             log_probs.append([path[0]])
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
-    if cfg["output_type"] in ['regression_ranker', 'bleu', 'regression_reranker_relative', 'pair']:
+    if cfg["output_type"] in ['regression_ranker', 'bleu', 'regression_reranker_relative', 'pair',
+                              'regression_quartiles']:
         # print("SCORES: ", Counter(scores))
         scores = np.array(scores).reshape((-1, 1))
     elif cfg["output_type"] == 'order_discrete':
