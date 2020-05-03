@@ -62,7 +62,8 @@ for beam_size in cfg["beam_sizes"]:
                                           pairwise_flag=cfg['pairwise_flag'],
                                           max_pred_len=60,
                                           save_progress_path=cfg.get('save_progress_file', None),
-                                          also_rerank_final=cfg.get('v', False))
+                                          also_rerank_final=cfg.get('also_rerank_final', False),
+                                          quartiles_flag=cfg.get('quartiles_flag', False))
 
     preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
     if "res_save_format" in cfg:
