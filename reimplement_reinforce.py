@@ -188,7 +188,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag, qu
         path_scores = score_beams(rescorer, beam, da_emb, i)
 
     order = sorted(enumerate(path_scores), reverse=True, key=lambda x: x[1][0])
-    if i == 0:
+    if i == 0 and quartiles_flag:
         print("Path scores:", [x for _, (x, _) in order])
     if out_beam is not None:
         beam = out_beam
