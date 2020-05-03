@@ -65,7 +65,7 @@ def get_random_score_func():
     return func
 
 
-def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False, output_type=None):
+def get_learned_score_func(trainable_reranker, select_max=False):
     def func(path, logprob, da_emb, da_i, beam_size):
         text_emb = path[1]
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
@@ -81,8 +81,19 @@ def get_learned_score_func(trainable_reranker, test_beam_size, select_max=False,
             np.array([da_emb]),
             np.array(logprob_val))
 
-        if trainable_reranker.output_type in ["regression_ranker", "regression_reranker_relative", "regression_quartiles"]:
+        if trainable_reranker.output_type in ["regression_ranker", "regression_reranker_relative"]:
             return 1-pred[0][0]
+        elif trainable_reranker.output_type in ["regression_quartiles"]:
+            #for this we only care about the class and then order within the class according to the seq2seq score
+            pred_val = pred[0][0]
+            if pred_val < 0.25:
+                pred_val = 0
+            elif pred_val > 0.75:
+                pred_val = 1
+            else:
+                pred_val = 0.5
+
+            return (pred_val, path[0])
 
         if select_max:
             max_pred = np.argmax(pred[0])

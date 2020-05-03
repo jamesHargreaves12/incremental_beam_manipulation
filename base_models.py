@@ -307,7 +307,7 @@ class TrainableReranker(object):
         self.model = None
         if cfg['logprob_preprocess_type'] == 'original_normalised':
             self.min_log_prob, self.max_log_prob = get_training_set_min_max_lp(self.beam_size)
-        self.have_printed_data = False
+        self.have_printed_data_count = 0
         self.output_type = cfg['output_type']
         self.logprob_preprocess_type = cfg["logprob_preprocess_type"]
         self.set_up_models(cfg)
@@ -471,14 +471,14 @@ class TrainableReranker(object):
                 (-1, 1))
 
         result = self.model.predict([text_seqs, da_seqs, logprob_seqs])
-        if not self.have_printed_data:
+        if self.have_printed_data_count < 3:
             print("Predicting the following")
             print("Text:", text_seqs[0])
             print("DA:", da_seqs[0])
             print("LP:", logprob_seqs[0])
             print("Score:", result)
             print("*******************************")
-            self.have_printed_data = True
+            self.have_printed_data_count += 1
         return result
 
 
