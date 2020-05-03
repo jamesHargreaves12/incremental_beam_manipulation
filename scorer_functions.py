@@ -93,7 +93,7 @@ def get_learned_score_func(trainable_reranker, select_max=False):
             else:
                 pred_val = 0.5
 
-            return (pred_val, path[0])
+            return (1-pred_val, path[0])
 
         if select_max:
             max_pred = np.argmax(pred[0])
