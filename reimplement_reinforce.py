@@ -96,12 +96,12 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
     if sections_flag:
         num_ranks = cfg["train_reranker"]["num_ranks"]
         cut_offs = get_section_cutoffs(num_ranks, cfg["merge_middle_sections"])
-        if cfg["train_reranker"]["with_regs_train"]:
+        if cfg["train_reranker"]["with_refs_train"]:
             cut_offs = [0.2] + [x*0.8+0.2 for x in cut_offs]
 
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
         av = sum([x for (x,_), _ in scored_finished_beams]) / len(scored_finished_beams)
-        sections = [get_section_value(cut_offs, x-av+0.5) for (x, _), _ in scored_finished_beams]
+        sections = [1-get_section_value(cut_offs, x-av+0.5) for (x, _), _ in scored_finished_beams]
         path_scores = [((x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
