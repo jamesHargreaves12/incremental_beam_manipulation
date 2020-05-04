@@ -91,7 +91,7 @@ def score_beams(rescorer, beam, da_emb, i):
 
 
 def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
-    quartiles_flag = cfg["trainable_reranker"]["output_type"] in ['regression_quartiles']
+    quartiles_flag = cfg["train_reranker"]["output_type"] in ['regression_quartiles']
     pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
     if quartiles_flag:
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
