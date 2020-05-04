@@ -27,7 +27,7 @@ if cfg_path is None:
 print("Using config from: {}".format(cfg_path))
 cfg = yaml.safe_load(open(cfg_path, "r"))
 if "trainable_reranker_config" in cfg:
-    cfg["train_reranker"] = yaml.safe_load(open(cfg["trainable_reranker_config"],"r"))
+    cfg["train_reranker"] = yaml.safe_load(open(cfg["trainable_reranker_config"], "r"))
 texts, das = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
@@ -58,36 +58,36 @@ for beam_size in cfg["beam_sizes"]:
         greedy_complete_rate = cfg.get("greedy_complete_rate", max_pred_len + 1)
         greedy_complete = list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))
 
-    if cfg.get("first_100", False):
-        das_test = das_test[:100]
-    preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
-                                          only_rerank_final=cfg['only_rerank_final'],
-                                          save_final_beam_path=beam_save_path,
-                                          greedy_complete=greedy_complete,
-                                          max_pred_len=60,
-                                          save_progress_path=cfg.get('save_progress_file', None),
-                                          also_rerank_final=cfg.get('also_rerank_final', False),
-                                          cfg=cfg)
+    for greedy_complete in [[3], [5], [7], [9]]:
 
-    preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
-    if "res_save_format" in cfg:
-        save_filename = cfg["res_save_format"].format(beam_size)
-    elif cfg['scorer'] in ['surrogate', 'greedy_decode_surrogate']:
-        # Example surrogate-regression_reranker_relative-categorical_order_10_10.txt
-        surrogate_cfg = yaml.load(open(cfg["trainable_reranker_config"],'r+'))
-        save_filename = "{}-{}-{}-{}-{}.txt".format(cfg['scorer'], surrogate_cfg["output_type"],
-                                                    surrogate_cfg["logprob_preprocess_type"],
-                                                    surrogate_cfg['beam_size'], beam_size)
-    else:
-        raise ValueError('Not saving files any where')
-    save_path = os.path.join(RESULTS_DIR, save_filename)
-    post_abstr = apply_absts(absts, preds)
-    print("Saving to {}".format(save_path))
-    with open(save_path, "w+") as out_file:
-        for pa in post_abstr:
-            out_file.write(postprocess(" ".join(pa)) + '\n')
-    print("Official bleu score:",test_res_official(save_filename))
+        if cfg.get("first_100", False):
+            das_test = das_test[:100]
+        preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
+                                              only_rerank_final=cfg['only_rerank_final'],
+                                              save_final_beam_path=beam_save_path,
+                                              greedy_complete=greedy_complete,
+                                              max_pred_len=60,
+                                              save_progress_path=cfg.get('save_progress_file', None),
+                                              also_rerank_final=cfg.get('also_rerank_final', False),
+                                              cfg=cfg)
+
+        preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
+        if "res_save_format" in cfg:
+            save_filename = cfg["res_save_format"].format(beam_size)
+        elif cfg['scorer'] in ['surrogate', 'greedy_decode_surrogate']:
+            # Example surrogate-regression_reranker_relative-categorical_order_10_10.txt
+            surrogate_cfg = yaml.load(open(cfg["trainable_reranker_config"], 'r+'))
+            save_filename = "{}-{}-{}-{}-{}.txt".format(cfg['scorer'], surrogate_cfg["output_type"],
+                                                        surrogate_cfg["logprob_preprocess_type"],
+                                                        surrogate_cfg['beam_size'], beam_size)
+        else:
+            raise ValueError('Not saving files any where')
+        save_path = os.path.join(RESULTS_DIR, "-".join(greedy_complete) + save_filename)
+        post_abstr = apply_absts(absts, preds)
+        print("Saving to {}".format(save_path))
+        with open(save_path, "w+") as out_file:
+            for pa in post_abstr:
+                out_file.write(postprocess(" ".join(pa)) + '\n')
+        print("Official bleu score:", test_res_official(save_filename))
 
 print_results()
-
-
