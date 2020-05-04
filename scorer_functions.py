@@ -83,7 +83,7 @@ def get_learned_score_func(trainable_reranker, select_max=False):
 
         if trainable_reranker.output_type in ["regression_ranker", "regression_reranker_relative"]:
             return 1-pred[0][0]
-        elif trainable_reranker.output_type in ["regression_quartiles"]:
+        elif trainable_reranker.output_type in ["regression_sections"]:
             return pred[0][0], path[0]
 
         if select_max:

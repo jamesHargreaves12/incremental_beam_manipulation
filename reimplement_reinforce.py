@@ -23,17 +23,11 @@ from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from scorer_functions import get_identity_score_func
 from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w2v, apply_absts, PAD_TOK, END_TOK, \
-    START_TOK
+    START_TOK, get_section_cutoffs, get_section_value
 
 
-def relative_to_quartiles(scores):
-    def to_quartile(x):
-        if x < 0.25:
-            return 0
-        elif x > 0.75:
-            return 1
-        else:
-            return 0.5
+def relative_to_sections(scores, cfg):
+    num_sections = cfg["train_reranker"]["num_ranks"]
 
     av = sum(scores) / len(scores)
     return [1-to_quartile(x - av + 0.5) for x in scores]
@@ -93,23 +87,28 @@ def score_beams(rescorer, beam, da_emb, i):
 def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
     # this only works if rescorer is the one used in cfg
     if "train_reranker" in cfg:
-        quartiles_flag = cfg["train_reranker"]["output_type"] in ['regression_quartiles']
+        sections_flag = cfg["train_reranker"]["output_type"] in ['regression_sections']
         pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
     else:
-        quartiles_flag = False
+        sections_flag = False
         pairwise_flag = False
 
-    if quartiles_flag:
+    if sections_flag:
+        num_ranks = cfg["train_reranker"]["num_ranks"]
+        if cfg["train_reranker"]["with_regs_train"]:
+            num_ranks += 1
+        cut_offs = get_section_cutoffs(num_ranks)
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
-        quartiles = relative_to_quartiles([s for (s, t), _ in scored_finished_beams])
-        path_scores = [((x, y[1]), z) for x, (y, z) in zip(quartiles, scored_finished_beams)]
+        sections = [get_section_value(cut_offs, x) for (x, _), _ in scored_finished_beams]
+        # sections = relative_to_sections([s for (s, t), _ in scored_finished_beams])
+        path_scores = [((x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
     else:
         path_scores = score_beams(rescorer, beam, da_emb, i)
 
     order = sorted(enumerate(path_scores), reverse=True, key=lambda x: x[1][0])
-    if i == 0 and quartiles_flag:
+    if i == 0 and sections_flag:
         print("Path scores:", [x for _, (x, _) in order])
     if out_beam is not None:
         beam = out_beam

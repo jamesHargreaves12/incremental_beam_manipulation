@@ -10,9 +10,11 @@ import yaml
 import matplotlib.pyplot as plt
 from keras.utils import to_categorical
 from sklearn.metrics import confusion_matrix
+from tqdm import tqdm
+
 from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables, \
     get_final_beam, get_test_das, get_true_sents, TRAIN_BEAM_SAVE_FORMAT, TEST_BEAM_SAVE_FORMAT, RESULTS_DIR, \
-    CONFIGS_MODEL_DIR
+    CONFIGS_MODEL_DIR, get_section_cutoffs, get_section_value
 from base_models import TGEN_Model, TrainableReranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
@@ -20,7 +22,8 @@ from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 
 
-def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
+def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
+    print("Loading Training Data")
     beam_size = cfg["beam_size"]
     models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
     models.load_models()
@@ -37,31 +40,36 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     da_seqs = []
     scores = []
     log_probs = []
-    for beam, real_texts, da in zip(final_beam, train_texts, train_das):
+    with_ref_train_flag = cfg["with_refs_train"]
+    num_ranks = cfg["num_ranks"]
+    cut_offs = get_section_cutoffs(num_ranks)
+
+    for beam, real_texts, da in tqdm(zip(final_beam, train_texts, train_das)):
         beam_scores = []
+        if with_ref_train_flag:
+            text_seqs.extend(real_texts)
+            da_seqs.extend([da for _ in real_texts])
+            scores.extend([0 for _ in real_texts])
         for path in beam:
             bleu.reset()
             hyp = [x for x in text_embedder.reverse_embedding(path[1]) if x not in [START_TOK, END_TOK, PAD_TOK]]
-            bleu.append(hyp, real_texts)
+            bleu.append(hyp, [x for x in real_texts if x not in [START_TOK, END_TOK]])
             beam_scores.append((bleu.score(), hyp, path))
 
         for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
-            text_seqs.append([START_TOK]+hyp+[END_TOK])
+            text_seqs.append([START_TOK] + hyp + [END_TOK])
             da_seqs.append(da)
             if cfg["output_type"] in ['bleu', 'pair']:
                 scores.append(score)
             elif cfg["output_type"] == 'order_discrete':
                 scores.append(to_categorical([i], num_classes=beam_size))
             elif cfg["output_type"] in ['regression_ranker', 'regression_reranker_relative']:
-                scores.append(i / (beam_size-1))
-            elif cfg["output_type"] in ['regression_quartiles']:
-                regression_val = i / (beam_size-1)
-                if regression_val < 0.25:
-                    regression_val = 0
-                elif regression_val > 0.75:
-                    regression_val = 1
-                else:
-                    regression_val = 0.5
+                scores.append(i / (beam_size - 1))
+            elif cfg["output_type"] in ['regression_sections']:
+                regression_val = i / (beam_size - 1)
+                regression_val = get_section_value(cut_offs, regression_val)
+                if with_ref_train_flag:
+                    regression_val = regression_val * 0.8 + 0.2
                 scores.append(regression_val)
 
             log_probs.append([path[0]])
@@ -70,7 +78,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder):
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
     if cfg["output_type"] in ['regression_ranker', 'bleu', 'regression_reranker_relative', 'pair',
-                              'regression_quartiles']:
+                              'regression_sections']:
         # print("SCORES: ", Counter(scores))
         scores = np.array(scores).reshape((-1, 1))
     elif cfg["output_type"] == 'order_discrete':
@@ -114,11 +122,11 @@ else:
 
 reranker.load_model()
 
-
 if cfg["train"]:
     print("Training")
-    text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder)
-    reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"], cfg.get("min_training_passes", 5))
+    text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts)
+    reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"],
+                   cfg.get("min_training_passes", 5))
 
 if cfg["show_reranker_post_training_stats"]:
     test_das = get_test_das()
@@ -130,7 +138,8 @@ if cfg["show_reranker_post_training_stats"]:
         models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
         models.load_models()
         scorer = get_score_function('identity', cfg, models, None, 10)
-        run_beam_search_with_rescorer(scorer, models, test_das, 10, only_rerank_final=True, save_final_beam_path=final_beam_path)
+        run_beam_search_with_rescorer(scorer, models, test_das, 10, only_rerank_final=True,
+                                      save_final_beam_path=final_beam_path)
 
     bleu = BLEUScore()
     test_da_embs = da_embedder.get_embeddings(test_das)

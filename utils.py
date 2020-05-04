@@ -205,3 +205,23 @@ def postprocess(text):
     text = re.sub(r'([a-zA-Z]) *n\'t', r"\1n't", text)
     text = re.sub(r' \' ([a-zA-Z ]+) \' ', r" '\1' ", text)
     return text
+
+
+def get_section_cutoffs(num_ranks, merge_middles=False):
+    group_interval = 1/num_ranks
+    if not merge_middles:
+        return [group_interval * (i + (1 / 2)) for i in range(num_ranks)]
+    else:
+        return [group_interval/2, 1-group_interval/2]
+
+
+def get_section_value(cut_offs, reg_value):
+    for i, x in enumerate(cut_offs):
+        if x >= reg_value:
+            if i == 0:
+                return 0
+            elif i == len(cut_offs) - 1:
+                return 1
+            else:
+                return (cut_offs[i - 1] + x) / 2
+    return 1
