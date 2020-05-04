@@ -123,7 +123,8 @@ def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2se
         finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
         if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
             break
-    return order_beam_acording_to_rescorer(rescorer, finished_beam, da_emb, i, cfg, beam)
+    result = order_beam_acording_to_rescorer(rescorer, finished_beam, da_emb, i, cfg, beam)
+    return result
 
 
 def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq, cfg,

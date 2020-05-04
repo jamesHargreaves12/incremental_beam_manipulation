@@ -40,6 +40,9 @@ true_vals = get_true_sents()
 models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
 models.load_models()
 
+if cfg.get("first_100", False):
+    das_test = das_test[:100]
+
 absts = get_abstss_test()
 for beam_size in cfg["beam_sizes"]:
     print("Beam size = {} ".format(beam_size))
@@ -59,9 +62,6 @@ for beam_size in cfg["beam_sizes"]:
         greedy_complete = list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))
 
     for greedy_complete in [[3], [5], [7], [9]]:
-
-        if cfg.get("first_100", False):
-            das_test = das_test[:100]
         preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
                                               only_rerank_final=cfg['only_rerank_final'],
                                               save_final_beam_path=beam_save_path,
@@ -82,12 +82,13 @@ for beam_size in cfg["beam_sizes"]:
                                                         surrogate_cfg['beam_size'], beam_size)
         else:
             raise ValueError('Not saving files any where')
-        save_path = os.path.join(RESULTS_DIR, "-".join([str(x) for x in greedy_complete]) + save_filename)
+        save_filename_update = "-".join([str(x) for x in greedy_complete]) + save_filename
+        save_path = os.path.join(RESULTS_DIR, save_filename_update)
         post_abstr = apply_absts(absts, preds)
         print("Saving to {}".format(save_path))
         with open(save_path, "w+") as out_file:
             for pa in post_abstr:
                 out_file.write(postprocess(" ".join(pa)) + '\n')
-        print("Official bleu score:", test_res_official(save_filename))
+        print("Official bleu score:", test_res_official(save_filename_update))
 
 print_results()
