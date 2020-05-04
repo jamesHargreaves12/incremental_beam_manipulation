@@ -91,8 +91,13 @@ def score_beams(rescorer, beam, da_emb, i):
 
 
 def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
-    quartiles_flag = cfg["train_reranker"]["output_type"] in ['regression_quartiles']
-    pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
+    if "train_reranker" in cfg:
+        quartiles_flag = cfg["train_reranker"]["output_type"] in ['regression_quartiles']
+        pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
+    else:
+        quartiles_flag = False
+        pairwise_flag = False
+        
     if quartiles_flag:
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
         quartiles = relative_to_quartiles([s for (s, t), _ in scored_finished_beams])
@@ -133,7 +138,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
                                                      cfg)
 
         else:
-            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, cfg)
+            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, {})
         paths = paths[:beam_size]
 
         if save_progress_file:
