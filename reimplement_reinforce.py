@@ -97,7 +97,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
         num_ranks = cfg["train_reranker"]["num_ranks"]
         if cfg["train_reranker"]["with_regs_train"]:
             num_ranks += 1
-        cut_offs = get_section_cutoffs(num_ranks)
+        cut_offs = get_section_cutoffs(num_ranks, cfg["merge_middle_sections"])
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
         sections = [get_section_value(cut_offs, x) for (x, _), _ in scored_finished_beams]
         # sections = relative_to_sections([s for (s, t), _ in scored_finished_beams])

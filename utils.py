@@ -220,8 +220,6 @@ def get_section_value(cut_offs, reg_value):
         if x >= reg_value:
             if i == 0:
                 return 0
-            elif i == len(cut_offs) - 1:
-                return 1
             else:
                 return (cut_offs[i - 1] + x) / 2
     return 1
