@@ -26,7 +26,7 @@ if cfg_path is None:
 print("Using config from: {}".format(cfg_path))
 cfg = yaml.safe_load(open(cfg_path, "r"))
 if "trainable_reranker_config" in cfg:
-    cfg["train_rerank"] = yaml.safe_load(open(cfg["trainable_reranker_config"],"r"))
+    cfg["train_reranker"] = yaml.safe_load(open(cfg["trainable_reranker_config"],"r"))
 texts, das = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
@@ -46,7 +46,7 @@ for beam_size in cfg["beam_sizes"]:
     if beam_save_path:
         beam_save_path = beam_save_path.format(beam_size)
     # This is a horrible hack
-    if cfg["train_rerank"]["output_type"] in ["pair"]:
+    if cfg["train_reranker"]["output_type"] in ["pair"]:
         scorer_func = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
     else:
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
