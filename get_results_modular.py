@@ -10,7 +10,8 @@ from get_results_bleu_scores import print_results, test_res_official
 from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
-    get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR, CONFIGS_MODEL_DIR, CONFIGS_DIR, postprocess
+    get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR, CONFIGS_MODEL_DIR, CONFIGS_DIR, postprocess, \
+    get_multi_reference_training_variables
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', default=None)
@@ -33,7 +34,7 @@ da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 
 das_test = get_test_das()
 if "get_train_beam" in cfg and cfg["get_train_beam"]:
-    das_test, _ = get_training_das_texts()
+    _, das_test = get_multi_reference_training_variables()
 
 true_vals = get_true_sents()
 models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
