@@ -59,13 +59,13 @@ for beam_size in cfg["beam_sizes"]:
         greedy_complete = cfg["greedy_complete_at"]
     else:
         greedy_complete_rate = cfg.get("greedy_complete_rate", max_pred_len + 1)
-        greedy_complete = list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))
+        greedy_complete = [list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))]
 
-    for greedy_complete in [[3], [5], [7], [9]]:
+    for gred_comp in greedy_complete:
         preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
                                               only_rerank_final=cfg['only_rerank_final'],
                                               save_final_beam_path=beam_save_path,
-                                              greedy_complete=greedy_complete,
+                                              greedy_complete=gred_comp,
                                               max_pred_len=60,
                                               save_progress_path=cfg.get('save_progress_file', None),
                                               also_rerank_final=cfg.get('also_rerank_final', False),
@@ -82,7 +82,7 @@ for beam_size in cfg["beam_sizes"]:
                                                         surrogate_cfg['beam_size'], beam_size)
         else:
             raise ValueError('Not saving files any where')
-        save_filename_update = "-".join([str(x) for x in greedy_complete]) + save_filename
+        save_filename_update = "-".join([str(x) for x in gred_comp]) + save_filename
         save_path = os.path.join(RESULTS_DIR, save_filename_update)
         post_abstr = apply_absts(absts, preds)
         print("Saving to {}".format(save_path))
