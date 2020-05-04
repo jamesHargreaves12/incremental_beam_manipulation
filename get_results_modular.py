@@ -46,7 +46,7 @@ for beam_size in cfg["beam_sizes"]:
     if beam_save_path:
         beam_save_path = beam_save_path.format(beam_size)
     # This is a horrible hack
-    if cfg["train_reranker"]["output_type"] in ["pair"]:
+    if "train_reranker" in cfg and cfg["train_reranker"]["output_type"] in ["pair"]:
         scorer_func = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
     else:
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size)
