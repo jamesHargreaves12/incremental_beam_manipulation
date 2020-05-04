@@ -26,11 +26,11 @@ from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w
     START_TOK, get_section_cutoffs, get_section_value
 
 
-def relative_to_sections(scores, cfg):
-    num_sections = cfg["train_reranker"]["num_ranks"]
-
-    av = sum(scores) / len(scores)
-    return [1-to_quartile(x - av + 0.5) for x in scores]
+# def relative_to_sections(scores, cfg):
+#     num_sections = cfg["train_reranker"]["num_ranks"]
+#
+#     av = sum(scores) / len(scores)
+#     return [1-to_quartile(x - av + 0.5) for x in scores]
 
 
 def score_beams_pairwise(beam, pair_wise_model, da_emb):
@@ -139,7 +139,6 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
                                                      cfg)
         else:
             paths = sorted(new_paths, reverse=True)
-            # paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, {})
         paths = paths[:beam_size]
 
         if save_progress_file:

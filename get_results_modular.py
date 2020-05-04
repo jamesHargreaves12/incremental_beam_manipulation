@@ -58,6 +58,8 @@ for beam_size in cfg["beam_sizes"]:
         greedy_complete_rate = cfg.get("greedy_complete_rate", max_pred_len + 1)
         greedy_complete = list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))
 
+    if cfg.get("first_100", False):
+        das_test = das_test[:100]
     preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
                                           only_rerank_final=cfg['only_rerank_final'],
                                           save_final_beam_path=beam_save_path,
