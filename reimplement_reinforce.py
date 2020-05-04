@@ -133,10 +133,11 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         # expand
         new_paths, tok_probs = seq2seq.beam_search_exapand(paths, enc_outs, beam_size)
         # prune
-        if step in greedy_complete:
+        if rescorer is None:
+            paths = sorted(paths, reverse=True)
+        elif step in greedy_complete:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len,
                                                      cfg)
-
         else:
             paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, {})
         paths = paths[:beam_size]
@@ -190,7 +191,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 beam_size=beam_size,
                 max_pred_len=max_pred_len,
                 seq2seq=beam_search_model,
-                rescorer=scorer if not only_rerank_final else get_identity_score_func(),
+                rescorer=scorer if not only_rerank_final else None,
                 greedy_complete=greedy_complete,
                 save_progress_file=save_progress_file,
                 cfg=cfg
