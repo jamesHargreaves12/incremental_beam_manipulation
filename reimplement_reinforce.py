@@ -101,7 +101,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
 
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
         av = sum([x for (x,_), _ in scored_finished_beams]) / len(scored_finished_beams)
-        sections = [get_section_value(cut_offs, x-av) for (x, _), _ in scored_finished_beams]
+        sections = [get_section_value(cut_offs, x-av+0.5) for (x, _), _ in scored_finished_beams]
         path_scores = [((x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
