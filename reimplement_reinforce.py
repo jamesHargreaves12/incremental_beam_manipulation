@@ -91,6 +91,7 @@ def score_beams(rescorer, beam, da_emb, i):
 
 
 def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
+    # this only works if rescorer is the one used in cfg
     if "train_reranker" in cfg:
         quartiles_flag = cfg["train_reranker"]["output_type"] in ['regression_quartiles']
         pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
@@ -133,13 +134,12 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         # expand
         new_paths, tok_probs = seq2seq.beam_search_exapand(paths, enc_outs, beam_size)
         # prune
-        if rescorer is None:
-            paths = sorted(paths, reverse=True)
-        elif step in greedy_complete:
+        if step in greedy_complete and rescorer is not None:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len,
                                                      cfg)
         else:
-            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, {})
+            paths = sorted(new_paths, reverse=True)
+            # paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, {})
         paths = paths[:beam_size]
 
         if save_progress_file:
