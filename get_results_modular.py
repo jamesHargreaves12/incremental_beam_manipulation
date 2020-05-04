@@ -82,7 +82,7 @@ for beam_size in cfg["beam_sizes"]:
                                                         surrogate_cfg['beam_size'], beam_size)
         else:
             raise ValueError('Not saving files any where')
-        save_path = os.path.join(RESULTS_DIR, "-".join(greedy_complete) + save_filename)
+        save_path = os.path.join(RESULTS_DIR, "-".join([str(x) for x in greedy_complete]) + save_filename)
         post_abstr = apply_absts(absts, preds)
         print("Saving to {}".format(save_path))
         with open(save_path, "w+") as out_file:
