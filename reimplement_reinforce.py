@@ -97,7 +97,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
     else:
         quartiles_flag = False
         pairwise_flag = False
-        
+
     if quartiles_flag:
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
         quartiles = relative_to_quartiles([s for (s, t), _ in scored_finished_beams])
@@ -168,6 +168,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     load_final_beams = []
     final_beams = []
     if should_load_beams:
+        print("Loading beams from", save_final_beam_path)
         load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
 
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
