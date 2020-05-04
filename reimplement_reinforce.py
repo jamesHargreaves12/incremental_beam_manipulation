@@ -26,92 +26,6 @@ from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w
     START_TOK
 
 
-# def load_rein_data(filepath):
-#     with open(filepath, "r") as fp:
-#         features = []
-#         labs = []
-#         for line in fp.readlines():
-#             line = [float(x) for x in line.split(",")]
-#             labs.append(line[-1])
-#             features.append(line[:-1])
-#         return features, labs
-
-
-# def get_greedy_compelete_toks_logprob(beam_search_model, path, max_length, enc_outs):
-#     text_embedder = beam_search_model.text_embedder
-#
-#     result = " ".join(text_embedder.reverse_embedding(path[1]))
-#     if path[1][-1] not in text_embedder.end_embs:
-#         rest, logprob = beam_search_model.complete_greedy(path, enc_outs, max_length)
-#         if rest:
-#             result = result + " " + rest
-#
-#     else:
-#         logprob = path[0]
-#     toks = [x for x in result.split(" ") if x not in [START_TOK, END_TOK, PAD_TOK]]
-#     return toks, logprob
-
-
-# def reinforce_learning(beam_size, data_save_path, beam_search_model: TGEN_Model, das, truth, regressor, text_embedder,
-#                        da_embedder, cfg,
-#                        chance_of_choosing=0.01):
-#     # This needs to be updated
-#     w2v = Word2Vec.load(cfg["w2v_path"])
-#     D = []
-#     bleu = BLEUScore()
-#     bleu_overall = BLEUScore()
-#     beam_search_proportion = 1.0
-#     bsp_multiplier = cfg['reference_policy_decay_rate']
-#
-#     data_save_file = open(data_save_path, "a+")
-#     for i in range(cfg["epoch"]):
-#         for j, (da_emb, true) in tqdm(enumerate(zip(da_embedder.get_embeddings(das), truth))):
-#             inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
-#             enc_outs = inf_enc_out[0]
-#             enc_last_state = inf_enc_out[1:]
-#             paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
-#             end_tokens = text_embedder.end_embs
-#             final_scorer = final_scorer_bleu(bleu)
-#             for step in range(len(true)):
-#                 new_paths, tok_probs = beam_search_model.beam_search_exapand(paths, enc_outs, beam_size)
-#
-#                 path_scores = []
-#                 regressor_order = random.random() > beam_search_proportion
-#                 for path, tp in zip(new_paths, tok_probs):
-#                     features = get_features(path, text_embedder, w2v, tp)
-#                     if regressor_order:
-#                         classif_score = regressor.predict(features.reshape(1, -1))[0][0]
-#                         path_scores.append((classif_score, path))
-#                     else:
-#                         path_scores.append((path[0] + log(tp), path))
-#
-#                     # greedy decode
-#                     if random.random() < chance_of_choosing:
-#                         # this probs wont work as will have changed dramatically ********
-#                         ref_score = get_completion_score(beam_search_model, path, final_scorer, [true], enc_outs)
-#                         D.append((features, ref_score))
-#                         data_save_file.write("{},{}\n".format(",".join([str(x) for x in features]), ref_score))
-#                 # prune
-#                 paths = [x[1] for x in sorted(path_scores, key=lambda y: y[0], reverse=True)[:beam_size]]
-#
-#                 if all([p[1][-1] in end_tokens for p in paths]):
-#                     break
-#             pred = text_embedder.reverse_embedding(paths[0][1])
-#             bleu_overall.append(pred, [true])
-#
-#         score = bleu_overall.score()
-#         bleu_overall.reset()
-#         print("BLEU SCORE FOR last batch = {}".format(score))
-#         features = [d[0] for d in D]
-#         labs = [d[1] for d in D]
-#         regressor.train(features, labs)
-#         regressor.save_model(cfg["model_save_loc"])
-#         beam_search_proportion *= bsp_multiplier
-#         regressor_scorer = get_regressor_score_func(regressor, text_embedder, w2v)
-#         test_res = run_beam_search_with_rescorer(regressor_scorer, beam_search_model, das[:1], )
-#         print(" ".join(test_res[0]))
-#
-
 def relative_to_quartiles(scores):
     def to_quartile(x):
         if x < 0.25:
@@ -176,8 +90,9 @@ def score_beams(rescorer, beam, da_emb, i):
     return path_scores
 
 
-# change how orig_beam is done
-def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag, quartiles_flag, out_beam=None):
+def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
+    quartiles_flag = cfg["trainable_reranker"]["output_type"] in ['regression_quartiles']
+    pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
     if quartiles_flag:
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
         quartiles = relative_to_quartiles([s for (s, t), _ in scored_finished_beams])
@@ -196,19 +111,18 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, pairwise_flag, qu
     return result
 
 
-def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len, pairwise_flag,
-                                     quartiles_flag):
+def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len, cfg):
     finished_beam = beam.copy()
     for step in range(max_pred_len):
         finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
         if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
             break
-    return order_beam_acording_to_rescorer(rescorer, finished_beam, da_emb, i, pairwise_flag, quartiles_flag, beam)
+    return order_beam_acording_to_rescorer(rescorer, finished_beam, da_emb, i, cfg, beam)
 
 
-def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq,
-                                   rescorer=None, greedy_complete=[], pairwise_flag=False,
-                                   save_progress_file=None, quartiles_flag=False):
+def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq, cfg,
+                                   rescorer=None, greedy_complete=[],
+                                   save_progress_file=None):
     end_tokens = seq2seq.text_embedder.end_embs
     for step in range(max_pred_len):
         # expand
@@ -216,11 +130,10 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         # prune
         if step in greedy_complete:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len,
-                                                     pairwise_flag, quartiles_flag)
+                                                     cfg)
 
         else:
-            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i,
-                                                    pairwise_flag=False, quartiles_flag=False)
+            paths = order_beam_acording_to_rescorer(get_identity_score_func(), new_paths, da_emb, i, cfg)
         paths = paths[:beam_size]
 
         if save_progress_file:
@@ -234,10 +147,9 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
     return paths
 
 
-def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, only_rerank_final=False,
-                                  save_final_beam_path='', greedy_complete=[], pairwise_flag=False,
-                                  max_pred_len=60, save_progress_path=None, also_rerank_final=False,
-                                  quartiles_flag=False):
+def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, cfg, only_rerank_final=False,
+                                  save_final_beam_path='', greedy_complete=[],
+                                  max_pred_len=60, save_progress_path=None, also_rerank_final=False):
     if save_progress_path is not None:
         save_progress_file = open(save_progress_path.format(beam_size), 'w+')
     else:
@@ -274,15 +186,14 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 seq2seq=beam_search_model,
                 rescorer=scorer if not only_rerank_final else get_identity_score_func(),
                 greedy_complete=greedy_complete,
-                pairwise_flag=pairwise_flag,
                 save_progress_file=save_progress_file,
-                quartiles_flag=quartiles_flag
+                cfg=cfg
             )
 
         final_beams.append(paths)
 
         if only_rerank_final or also_rerank_final:
-            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, pairwise_flag, quartiles_flag)
+            paths = order_beam_acording_to_rescorer(scorer, paths, da_emb, i, cfg)
             if i == 0:
                 print("First beam Score Distribution:")
                 print([x[0] for x in paths])
@@ -304,35 +215,3 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
     sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
     return [x[1] for x in sorted_paths]
 
-# def run_beam_search_pairwise(beam_search_model: TGEN_Model, das, beam_size, pairwise_model, only_rerank_final=False,
-#                              save_final_beam_path=''):
-#     results = []
-#     load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
-#     from_saved_beams = only_rerank_final
-#     max_pred_length = 60
-#
-#     for i, da_emb in tqdm(list(enumerate(beam_search_model.da_embedder.get_embeddings(das)))):
-#         if from_saved_beams:
-#             paths = load_final_beams[i]
-#         else:
-#             inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
-#             enc_outs = inf_enc_out[0]
-#             enc_last_state = inf_enc_out[1:]
-#             init_path = [(log(1.0), beam_search_model.text_embedder.start_emb, enc_last_state)]
-#
-#             paths = _run_beam_search_with_rescorer(
-#                 i=i,
-#                 da_emb=da_emb,
-#                 paths=init_path,
-#                 enc_outs=enc_outs,
-#                 beam_size=beam_size,
-#                 max_pred_len=max_pred_length,
-#                 beam_search_model=beam_search_model,
-#                 rescorer=scorer if not only_rerank_final else None
-#             )
-#
-#         best_path = get_best_from_beam_pairwise(paths, pairwise_model, da_emb, beam_search_model.text_embedder)
-#         pred_toks = beam_search_model.text_embedder.reverse_embedding(best_path[1])
-#         results.append(pred_toks)
-#
-#     return results
