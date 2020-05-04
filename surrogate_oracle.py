@@ -25,11 +25,11 @@ from scorer_functions import get_score_function
 def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     print("Loading Training Data")
     beam_size = cfg["beam_size"]
-    models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
-    models.load_models()
     train_texts, train_das = get_multi_reference_training_variables()
     beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
     if not os.path.exists(beam_save_path):
+        models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
+        models.load_models()
         print("Creating test final beams")
         scorer = get_score_function('identity', cfg, models, None, beam_size)
         run_beam_search_with_rescorer(scorer, models, das, beam_size, only_rerank_final=True,
@@ -40,7 +40,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     da_seqs = []
     scores = []
     log_probs = []
-    with_ref_train_flag = cfg["with_refs_train"]
+    with_ref_train_flag = "train_reranker" in cfg and cfg["train_reranker"]["with_refs_train"]
     num_ranks = cfg["num_ranks"]
     cut_offs = get_section_cutoffs(num_ranks)
 
@@ -84,14 +84,6 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     elif cfg["output_type"] == 'order_discrete':
         scores = np.array(scores).reshape((-1, beam_size))
 
-    # if cfg["logprob_preprocess_type"] == 'original_normalised':
-    #     log_probs = np.array(log_probs).reshape((-1, 1))
-    #     print("Before Normalised : ", np.min(log_probs), np.ptp(log_probs))
-    #     log_probs = (log_probs - np.min(log_probs)) / np.ptp(log_probs)
-    # elif cfg["logprob_preprocess_type"] == "beam_normalised":
-    #     log_probs = np.array(log_probs).reshape(-1, 1)
-    # else:
-    #     log_probs = np.array(log_probs).reshape(-1, beam_size)
     log_probs = np.array(log_probs)
     return text_seqs, da_seqs, scores, log_probs
 

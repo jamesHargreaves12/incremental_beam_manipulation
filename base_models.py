@@ -401,6 +401,8 @@ class TrainableReranker(object):
             norm_log_probs.extend(self.setup_lps(beam_lp))
 
         log_probs = np.array(norm_log_probs).reshape(-1, self.beam_size)
+        print("Number of each input = ", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
+
         valid_text_seqs = text_seqs[-valid_size:]
         valid_das = das_seqs[-valid_size:]
         valid_bleu_scores = bleu_scores[-valid_size:]
