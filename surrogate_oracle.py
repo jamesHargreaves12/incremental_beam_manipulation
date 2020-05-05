@@ -125,6 +125,10 @@ reranker.load_model()
 if cfg["train"]:
     print("Training")
     text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts)
+    print("Score Distributions:")
+    print(Counter([x[0] for x in scores]))
+    print("LP distributions")
+    print(plt.hist(log_probs))
     reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"],
                    cfg.get("min_training_passes", 5))
 
