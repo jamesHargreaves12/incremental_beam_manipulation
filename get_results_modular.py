@@ -77,7 +77,7 @@ for beam_size in cfg["beam_sizes"]:
         preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
         if "res_save_format" in cfg:
             save_filename = cfg["res_save_format"].format(beam_size)
-        elif cfg['scorer'] in ['surrogate', 'greedy_decode_surrogate']:
+        elif cfg['scorer'] in ['surrogate', 'greedy_decode_surrogate', 'surrogate_rev']:
             # Example surrogate-regression_reranker_relative-categorical_order_10_10.txt
             surrogate_cfg = yaml.load(open(cfg["trainable_reranker_config"], 'r+'))
             save_filename = "{}-{}-{}-{}-{}.txt".format(cfg['scorer'], surrogate_cfg["output_type"],
