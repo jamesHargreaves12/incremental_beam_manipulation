@@ -3,6 +3,7 @@ import re
 import sys
 from collections import defaultdict
 from tensorflow.python.util import deprecation
+
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import h5py
@@ -207,19 +208,19 @@ def postprocess(text):
     return text
 
 
-def get_section_cutoffs(num_ranks, merge_middles=False):
-    group_interval = 1/num_ranks
-    if not merge_middles:
-        return [group_interval * (i + (1 / 2)) for i in range(num_ranks)]
+def get_regression_vals(num_ranks, with_train_refs):
+    if with_train_refs:
+        return [i / (num_ranks) for i in range(1, num_ranks+1)]
     else:
-        return [group_interval/2, 1-group_interval/2]
+        return [i / (num_ranks - 1) for i in range(num_ranks)]
 
 
-def get_section_value(cut_offs, reg_value):
+def get_section_cutoffs(num_ranks):
+    return [i/num_ranks for i in range(1, num_ranks)]
+
+
+def get_section_value(val, cut_offs, regression_vals):
     for i, x in enumerate(cut_offs):
-        if x >= reg_value:
-            if i == 0:
-                return 0
-            else:
-                return (cut_offs[i - 1] + x) / 2
+        if val <= x:
+            return regression_vals[i]
     return 1

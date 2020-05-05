@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi_reference_training_variables, \
     get_final_beam, get_test_das, get_true_sents, TRAIN_BEAM_SAVE_FORMAT, TEST_BEAM_SAVE_FORMAT, RESULTS_DIR, \
-    CONFIGS_MODEL_DIR, get_section_cutoffs, get_section_value
+    CONFIGS_MODEL_DIR, get_section_cutoffs, get_section_value, get_regression_vals
 from base_models import TGEN_Model, TrainableReranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
@@ -40,9 +40,12 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     da_seqs = []
     scores = []
     log_probs = []
-    with_ref_train_flag = "train_reranker" in cfg and cfg["train_reranker"]["with_refs_train"]
+    with_ref_train_flag = cfg["with_refs_train"]
     num_ranks = cfg["num_ranks"]
     cut_offs = get_section_cutoffs(num_ranks)
+    regression_vals = get_regression_vals(num_ranks, with_ref_train_flag)
+    print("Cut off values:", cut_offs)
+    print("Regression_vals:", regression_vals)
 
     for beam, real_texts, da in tqdm(zip(final_beam, train_texts, train_das)):
         beam_scores = []
@@ -66,11 +69,11 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
             elif cfg["output_type"] in ['regression_ranker', 'regression_reranker_relative']:
                 scores.append(i / (beam_size - 1))
             elif cfg["output_type"] in ['regression_sections']:
-                regression_val = i / (beam_size - 1)
-                regression_val = get_section_value(cut_offs, regression_val)
-                if with_ref_train_flag:
-                    regression_val = regression_val * 0.8 + 0.2
+                val = i / (beam_size - 1)
+                regression_val = get_section_value(val, cut_offs, regression_vals)
                 scores.append(regression_val)
+            else:
+                raise ValueError("Unknown output type")
 
             log_probs.append([path[0]])
 

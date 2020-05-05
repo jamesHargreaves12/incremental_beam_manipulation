@@ -26,13 +26,6 @@ from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w
     START_TOK, get_section_cutoffs, get_section_value
 
 
-# def relative_to_sections(scores, cfg):
-#     num_sections = cfg["train_reranker"]["num_ranks"]
-#
-#     av = sum(scores) / len(scores)
-#     return [1-to_quartile(x - av + 0.5) for x in scores]
-
-
 def score_beams_pairwise(beam, pair_wise_model, da_emb):
     text_embedder = pair_wise_model.text_embedder
     da_emb = np.array(da_emb)
