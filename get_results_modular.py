@@ -64,7 +64,7 @@ for beam_size in cfg["beam_sizes"]:
 
     for gred_comp in greedy_complete:
         if gred_comp == ['random']:
-            gred_comp = sorted(random.choices(list(range(3,15)), k=random.randint(1,4)))
+            gred_comp = sorted(random.choices(list(range(3, 15)), k=random.randint(1, 4)))
         preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
                                               only_rerank_final=cfg['only_rerank_final'],
                                               save_final_beam_path=beam_save_path,

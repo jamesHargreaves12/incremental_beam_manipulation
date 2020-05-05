@@ -45,14 +45,16 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     cut_offs = get_section_cutoffs(num_ranks)
     regression_vals = get_regression_vals(num_ranks, with_ref_train_flag)
     print("Cut off values:", cut_offs)
-    print("Regression_vals:", regression_vals)
+    print("Regression vals:", regression_vals)
 
     for beam, real_texts, da in tqdm(zip(final_beam, train_texts, train_das)):
         beam_scores = []
         if with_ref_train_flag:
+            # I am not sure how to do log probs?
             text_seqs.extend(real_texts)
             da_seqs.extend([da for _ in real_texts])
             scores.extend([0 for _ in real_texts])
+
         for path in beam:
             bleu.reset()
             hyp = [x for x in text_embedder.reverse_embedding(path[1]) if x not in [START_TOK, END_TOK, PAD_TOK]]

@@ -23,7 +23,7 @@ from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from scorer_functions import get_identity_score_func
 from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w2v, apply_absts, PAD_TOK, END_TOK, \
-    START_TOK, get_section_cutoffs, get_section_value
+    START_TOK, get_section_cutoffs, get_section_value, get_regression_vals
 
 
 def score_beams_pairwise(beam, pair_wise_model, da_emb):
@@ -88,13 +88,16 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
 
     if sections_flag:
         num_ranks = cfg["train_reranker"]["num_ranks"]
-        cut_offs = get_section_cutoffs(num_ranks, cfg["merge_middle_sections"])
+        cut_offs = get_section_cutoffs(num_ranks)
+        regression_vals = get_regression_vals(num_ranks, cfg["train_reranker"]["with_refs_train"])
         if cfg["train_reranker"]["with_refs_train"]:
-            cut_offs = [0.2] + [x*0.8+0.2 for x in cut_offs]
+            NotImplementedError()
 
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
         av = sum([x for (x,_), _ in scored_finished_beams]) / len(scored_finished_beams)
-        sections = [1-get_section_value(cut_offs, x-av+0.5) for (x, _), _ in scored_finished_beams]
+        sections = [1-get_section_value(x-av+0.5, cut_offs, regression_vals) for (x, _), _ in scored_finished_beams]
+        if cfg["merge_middle_sections"]:
+            sections = [1 if x > 0.999 else (0 if x < 0.001 else 0.5) for x in sections]
         path_scores = [((x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
