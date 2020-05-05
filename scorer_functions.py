@@ -84,6 +84,8 @@ def get_learned_score_func(trainable_reranker, select_max=False, reverse_order=F
         if trainable_reranker.output_type in ["regression_ranker", "regression_reranker_relative"]:
             return 1-pred[0][0]
         elif trainable_reranker.output_type in ["regression_sections"]:
+            if reverse_order:
+                return -pred[0][0], path[0]
             return pred[0][0], path[0]
 
         if select_max:
