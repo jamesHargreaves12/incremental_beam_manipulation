@@ -65,7 +65,7 @@ def get_random_score_func():
     return func
 
 
-def get_learned_score_func(trainable_reranker, select_max=False):
+def get_learned_score_func(trainable_reranker, select_max=False, reverse_order=False):
     def func(path, logprob, da_emb, da_i, beam_size):
         text_emb = path[1]
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
@@ -89,6 +89,8 @@ def get_learned_score_func(trainable_reranker, select_max=False):
         if select_max:
             max_pred = np.argmax(pred[0])
             return 10-max_pred, pred[0][0]
+        elif reverse_order:
+            return -pred[0][0]
         else:
             return pred[0][0]
 
@@ -108,12 +110,13 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
     elif scorer in ['oracle', 'rev_oracle']:
         bleu_scorer = BLEUScore()
         return get_oracle_score_func(bleu_scorer, true_vals, text_embedder, reverse=(scorer == 'rev_oracle'))
-    elif scorer == 'surrogate':
+    elif scorer in ['surrogate', "surrogate_rev"]:
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
         print(cfg)
         select_max = cfg.get("order_by_max_class", False)
-        return get_learned_score_func(learned, select_max)
+        reverse_order = scorer == 'surrogate_rev'
+        return get_learned_score_func(learned, select_max, reverse_order)
     elif scorer == 'random':
         return get_random_score_func()
     else:

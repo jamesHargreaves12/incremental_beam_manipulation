@@ -210,7 +210,7 @@ def postprocess(text):
 
 def get_regression_vals(num_ranks, with_train_refs):
     if with_train_refs:
-        return [i / (num_ranks) for i in range(1, num_ranks+1)]
+        return [i / num_ranks for i in range(1, num_ranks+1)]
     else:
         return [i / (num_ranks - 1) for i in range(num_ranks)]
 

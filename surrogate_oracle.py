@@ -74,7 +74,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
                 val = i / (beam_size - 1)
                 regression_val = get_section_value(val, cut_offs, regression_vals)
                 if cfg["merge_middle_sections"]:
-                    sections = 1 if regression_val > 0.999 else (0 if regression_val < 0.001 else 0.5)
+                    regression_val = 1 if regression_val > 0.999 else (0 if regression_val < 0.001 else 0.5)
 
                 scores.append(regression_val)
             else:
