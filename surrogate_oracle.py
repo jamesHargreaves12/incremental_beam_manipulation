@@ -47,6 +47,10 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     print("Cut off values:", cut_offs)
     print("Regression vals:", regression_vals)
 
+    only_top = cfg.get("only_top", False)
+    if only_top:
+        print("Only using top value")
+
     for beam, real_texts, da in tqdm(zip(final_beam, train_texts, train_das)):
         beam_scores = []
         if with_ref_train_flag:
@@ -61,9 +65,6 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
             bleu.append(hyp, [x for x in real_texts if x not in [START_TOK, END_TOK]])
             beam_scores.append((bleu.score(), hyp, path))
 
-        only_top = cfg.get("only_top", False)
-        if only_top:
-            print("Only using top value")
         for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append([START_TOK] + hyp + [END_TOK])
             da_seqs.append(da)
@@ -130,7 +131,9 @@ if cfg['output_type'] != 'pair':
 else:
     reranker = PairwiseReranker(da_embedder, text_embedder, cfg_path)
 
-reranker.load_model()
+if reranker.load_model():
+    print("WARNING THE TRAINING START POINT IS AN ALREADY TRAINED MODEL")
+
 
 if cfg["train"]:
     print("Training")

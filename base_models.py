@@ -457,8 +457,10 @@ class TrainableReranker(object):
         if os.path.exists(model_path):
             # self.model = load_model(model_path)
             load_model_from_gpu(self.model, model_path)
+            return True
         else:
             print("Model does not exist yet")
+            return False
 
     def save_model(self):
         print("Saving trainable reranker at {}".format(self.save_location))
