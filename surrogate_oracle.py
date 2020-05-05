@@ -48,6 +48,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     print("Regression vals:", regression_vals)
 
     only_top = cfg.get("only_top", False)
+    only_top = cfg.get("only_bottom", False)
     merge_middles = cfg["merge_middle_sections"]
     if only_top:
         print("Only using top value")
@@ -84,6 +85,9 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
                     regression_val = 1 if regression_val > 0.999 else (0 if regression_val < 0.001 else 0.5)
                 elif only_top:
                     regression_val = 1 if regression_val > 0.999 else 0
+                elif only_bottom:
+                    regression_val = 0 if regression_val < 0.001 else 1
+
 
                 scores.append(regression_val)
             else:

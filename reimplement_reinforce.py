@@ -101,10 +101,13 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
         av = sum([x for (x, _), _ in scored_finished_beams]) / len(scored_finished_beams)
         sections = [1 - get_section_value(x - av + 0.5, cut_offs, regression_vals) for (x, _), _ in
                     scored_finished_beams]
+        # 1 - section_value means that this section is reversed
         if cfg["merge_middle_sections"]:
             sections = [1 if x > 0.999 else (0 if x < 0.001 else 0.5) for x in sections]
         if cfg["train_reranker"]["only_top"]:
             sections = [1 if x > 0.999 else 0 for x in sections]
+        elif cfg["train_reranker"]["only_bottom"]:
+            sections = [0 if x < 0.001 else 1 for x in sections]
         recorded_sections.extend(sections)
         path_scores = [((x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
