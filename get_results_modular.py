@@ -1,5 +1,6 @@
 import argparse
 import os
+import random
 import sys
 import yaml
 
@@ -40,8 +41,8 @@ true_vals = get_true_sents()
 models = TGEN_Model(da_embedder, text_embedder, cfg['tgen_seq2seq_config'])
 models.load_models()
 
-if cfg.get("first_100", False):
-    das_test = das_test[:100]
+if cfg.get("first_x", False):
+    das_test = das_test[:cfg['first_x']]
 
 absts = get_abstss_test()
 for beam_size in cfg["beam_sizes"]:
@@ -62,6 +63,8 @@ for beam_size in cfg["beam_sizes"]:
         greedy_complete = [list(range(greedy_complete_rate, max_pred_len, greedy_complete_rate))]
 
     for gred_comp in greedy_complete:
+        if gred_comp == ['random']:
+            gred_comp = sorted(random.choices(list(range(3,15)), k=random.randint(1,4)))
         preds = run_beam_search_with_rescorer(scorer_func, models, das_test, beam_size,
                                               only_rerank_final=cfg['only_rerank_final'],
                                               save_final_beam_path=beam_save_path,
