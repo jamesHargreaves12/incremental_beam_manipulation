@@ -1,5 +1,5 @@
 import pickle
-from collections import defaultdict
+from collections import defaultdict, Counter
 from itertools import product
 from math import log
 
@@ -77,6 +77,9 @@ def score_beams(rescorer, beam, da_emb, i):
     return path_scores
 
 
+recorded_sections = []
+
+
 def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
     # this only works if rescorer is the one used in cfg
     if "train_reranker" in cfg:
@@ -94,12 +97,14 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
             NotImplementedError()
 
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
-        av = sum([x for (x,_), _ in scored_finished_beams]) / len(scored_finished_beams)
-        sections = [1-get_section_value(x-av+0.5, cut_offs, regression_vals) for (x, _), _ in scored_finished_beams]
+        av = sum([x for (x, _), _ in scored_finished_beams]) / len(scored_finished_beams)
+        sections = [1 - get_section_value(x - av + 0.5, cut_offs, regression_vals) for (x, _), _ in
+                    scored_finished_beams]
         if cfg["merge_middle_sections"]:
             sections = [1 if x > 0.999 else (0 if x < 0.001 else 0.5) for x in sections]
         if cfg["train_reranker"]["only_top"]:
             sections = [1 if x > 0.999 else 0 for x in sections]
+        recorded_sections.extend(sections)
         path_scores = [((x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb)
@@ -118,7 +123,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
 def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len, cfg):
     finished_beam = beam.copy()
     toks_pred_so_far = max([len(x[1]) for x in beam])
-    for step in range(max_pred_len-toks_pred_so_far):
+    for step in range(max_pred_len - toks_pred_so_far):
         finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
         if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
             break
@@ -155,6 +160,9 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, cfg, only_rerank_final=False,
                                   save_final_beam_path='', greedy_complete=[],
                                   max_pred_len=60, save_progress_path=None, also_rerank_final=False):
+    global recorded_sections
+    recorded_sections = []
+
     if save_progress_path is not None:
         save_progress_file = open(save_progress_path.format(beam_size), 'w+')
     else:
@@ -213,6 +221,9 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         print("Saving final beam states at ", save_final_beam_path)
         pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
 
+    if recorded_sections:
+        print("SECTIONS:", Counter(recorded_sections))
+
     return results
 
 
@@ -220,4 +231,3 @@ def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
     path_scores = score_beams_pairwise(beam, pair_wise_model, da_emb)
     sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
     return [x[1] for x in sorted_paths]
-
