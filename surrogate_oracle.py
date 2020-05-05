@@ -48,8 +48,11 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     print("Regression vals:", regression_vals)
 
     only_top = cfg.get("only_top", False)
+    merge_middles = cfg["merge_middle_sections"]
     if only_top:
         print("Only using top value")
+    if merge_middles and only_top:
+            print("Ignoring only top since have merge_middle_sections set")
 
     for beam, real_texts, da in tqdm(zip(final_beam, train_texts, train_das)):
         beam_scores = []
@@ -77,11 +80,9 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
             elif cfg["output_type"] in ['regression_sections']:
                 val = i / (beam_size - 1)
                 regression_val = get_section_value(val, cut_offs, regression_vals)
-                if cfg["merge_middle_sections"]:
-                    if cfg.get("only_top", False):
-                        print("Ignoring only top since have merge_middle_sections set")
+                if merge_middles:
                     regression_val = 1 if regression_val > 0.999 else (0 if regression_val < 0.001 else 0.5)
-                elif cfg.get("only_top", False):
+                elif only_top:
                     regression_val = 1 if regression_val > 0.999 else 0
 
                 scores.append(regression_val)
