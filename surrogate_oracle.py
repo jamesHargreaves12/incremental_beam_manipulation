@@ -61,6 +61,9 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
             bleu.append(hyp, [x for x in real_texts if x not in [START_TOK, END_TOK]])
             beam_scores.append((bleu.score(), hyp, path))
 
+        only_top = cfg.get("only_top", False)
+        if only_top:
+            print("Only using top value")
         for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append([START_TOK] + hyp + [END_TOK])
             da_seqs.append(da)
