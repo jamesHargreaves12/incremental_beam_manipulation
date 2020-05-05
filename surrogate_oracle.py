@@ -73,6 +73,9 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
             elif cfg["output_type"] in ['regression_sections']:
                 val = i / (beam_size - 1)
                 regression_val = get_section_value(val, cut_offs, regression_vals)
+                if cfg["merge_middle_sections"]:
+                    sections = [1 if x > 0.999 else (0 if x < 0.001 else 0.5) for x in sections]
+
                 scores.append(regression_val)
             else:
                 raise ValueError("Unknown output type")
