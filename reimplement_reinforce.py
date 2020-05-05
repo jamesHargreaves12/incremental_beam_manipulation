@@ -119,7 +119,8 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
 
 def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2seq, max_pred_len, cfg):
     finished_beam = beam.copy()
-    for step in range(max_pred_len):
+    toks_pred_so_far = max([len(x[1]) for x in beam])
+    for step in range(max_pred_len-toks_pred_so_far):
         finished_beam, _ = seq2seq.beam_search_exapand(finished_beam, enc_outs, 1)
         if all([p[1][-1] in seq2seq.text_embedder.end_embs for p in finished_beam]):
             break
