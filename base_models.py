@@ -359,7 +359,7 @@ class TrainableReranker(object):
         self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
         self.model.compile(optimizer=optimizer, loss=loss_function)
 
-        self.model.summary()
+        # self.model.summary()
 
     def setup_lps(self, beam_lps):
         if self.logprob_preprocess_type == 'beam_normalised':

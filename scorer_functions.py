@@ -115,7 +115,6 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
     elif scorer in ['surrogate', "surrogate_rev"]:
         learned = TrainableReranker(da_embedder, text_embedder, cfg['trainable_reranker_config'])
         learned.load_model()
-        print(cfg)
         select_max = cfg.get("order_by_max_class", False)
         reverse_order = scorer == 'surrogate_rev'
         return get_learned_score_func(learned, select_max, reverse_order)

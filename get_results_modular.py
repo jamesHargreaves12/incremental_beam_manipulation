@@ -29,6 +29,10 @@ print("Using config from: {}".format(cfg_path))
 cfg = yaml.safe_load(open(cfg_path, "r"))
 if "trainable_reranker_config" in cfg:
     cfg["train_reranker"] = yaml.safe_load(open(cfg["trainable_reranker_config"], "r"))
+print("Config:")
+[print("\t{}: {}".format(k,v)) for k,v in cfg.items()]
+print("*******")
+
 texts, das = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)

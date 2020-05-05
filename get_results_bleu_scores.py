@@ -8,7 +8,6 @@ from e2e_metrics.measure_scores import load_data
 from utils import RESULTS_DIR
 
 
-
 def test_res_official(pred_file_name):
     pred_file = os.path.join(RESULTS_DIR, pred_file_name)
     true_file = "tgen/e2e-challenge/input/devel-conc.txt"
@@ -33,7 +32,7 @@ def print_results():
         beam_size = int(splits[-1].split('.')[0])
         filter_name = '-'.join(splits[:-1])
         if (len(sys.argv) > 1 and sys.argv[1] == 'all') or os.path.getmtime(
-                os.path.join(RESULTS_DIR, filename)) > time.time() - day_seconds/2:
+                os.path.join(RESULTS_DIR, filename)) > time.time() - day_seconds / 2:
             filename_bs.append((filter_name, filename, beam_size))
 
     for _, filename, bs in sorted(filename_bs, key=lambda x: (x[0], int(x[2]))):

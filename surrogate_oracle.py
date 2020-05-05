@@ -74,7 +74,11 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
                 val = i / (beam_size - 1)
                 regression_val = get_section_value(val, cut_offs, regression_vals)
                 if cfg["merge_middle_sections"]:
+                    if cfg.get("only_top", False):
+                        print("Ignoring only top since have merge_middle_sections set")
                     regression_val = 1 if regression_val > 0.999 else (0 if regression_val < 0.001 else 0.5)
+                elif cfg.get("only_top", False):
+                    regression_val = 1 if regression_val > 0.999 else 0
 
                 scores.append(regression_val)
             else:
@@ -109,6 +113,9 @@ if cfg_path is None:
 
 print("Using config from: {}".format(cfg_path))
 cfg = yaml.safe_load(open(cfg_path, "r"))
+print("Config:")
+[print("\t{}: {}".format(k,v)) for k,v in cfg.items()]
+print("*******")
 texts, das = get_multi_reference_training_variables()
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 # This is a very lazy move
@@ -128,7 +135,9 @@ if cfg["train"]:
     print("Score Distributions:")
     print(Counter([x[0] for x in scores]))
     print("LP distributions")
-    print(plt.hist(log_probs))
+    print("min", min(log_probs))
+    print("max", max(log_probs))
+    print("mean", sum(log_probs)/len(log_probs))
     reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"],
                    cfg.get("min_training_passes", 5))
 
