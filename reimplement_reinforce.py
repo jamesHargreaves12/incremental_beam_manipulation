@@ -82,6 +82,7 @@ recorded_sections = []
 
 def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
     # this only works if rescorer is the one used in cfg
+    global recorded_sections
     if "train_reranker" in cfg:
         sections_flag = cfg["train_reranker"]["output_type"] in ['regression_sections']
         pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
