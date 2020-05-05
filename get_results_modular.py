@@ -87,6 +87,8 @@ for beam_size in cfg["beam_sizes"]:
             save_filename = "{}-{}-{}-{}-{}.txt".format(cfg['scorer'], surrogate_cfg["output_type"],
                                                         surrogate_cfg["logprob_preprocess_type"],
                                                         surrogate_cfg['beam_size'], beam_size)
+            save_filename = cfg.get("save_prefix", "") + save_filename
+
         else:
             raise ValueError('Not saving files any where')
         save_filename_update = "-".join([str(x) for x in gred_comp]) + save_filename
