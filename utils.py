@@ -219,8 +219,18 @@ def get_section_cutoffs(num_ranks):
     return [i/num_ranks for i in range(1, num_ranks)]
 
 
-def get_section_value(val, cut_offs, regression_vals):
-    for i, x in enumerate(cut_offs):
-        if val <= x:
-            return regression_vals[i]
-    return 1
+def get_section_value(val, cut_offs, regression_vals, merge_middle=False, only_top=False, only_bottom=False):
+    def group_sections(x):
+        if merge_middle:
+            return 1 if x > 0.999 else (0 if x < 0.001 else 0.5)
+        elif only_bottom:
+            return 1 if x > 0.999 else 0
+        elif only_top:
+            return 0 if x < 0.001 else 1
+        else:
+            return x
+
+    for i, co in enumerate(cut_offs):
+        if val <= co:
+            return group_sections(regression_vals[i])
+    return group_sections(1)

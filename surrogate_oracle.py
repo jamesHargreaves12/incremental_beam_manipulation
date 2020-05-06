@@ -48,7 +48,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     print("Regression vals:", regression_vals)
 
     only_top = cfg.get("only_top", False)
-    only_top = cfg.get("only_bottom", False)
+    only_bottom = cfg.get("only_bottom", False)
     merge_middles = cfg["merge_middle_sections"]
     if only_top:
         print("Only using top value")
@@ -80,15 +80,8 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
                 scores.append(i / (beam_size - 1))
             elif cfg["output_type"] in ['regression_sections']:
                 val = i / (beam_size - 1)
-                regression_val = get_section_value(val, cut_offs, regression_vals)
-                if merge_middles:
-                    regression_val = 1 if regression_val > 0.999 else (0 if regression_val < 0.001 else 0.5)
-                elif only_top:
-                    regression_val = 1 if regression_val > 0.999 else 0
-                elif only_bottom:
-                    regression_val = 0 if regression_val < 0.001 else 1
-
-
+                regression_val = get_section_value(val, cut_offs, regression_vals,
+                                                   merge_middles, only_top, only_bottom)
                 scores.append(regression_val)
             else:
                 raise ValueError("Unknown output type")
