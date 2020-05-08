@@ -19,7 +19,7 @@ if cfg_path is None:
     mod_times = [(os.path.getmtime(x), i) for i, x in enumerate(filepaths)]
     cfg_path = filepaths[max(mod_times)[1]]
 
-cfg = yaml.load(cfg_path)
+cfg = yaml.safe_load(open(cfg_path,'r'))
 texts, das, = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
