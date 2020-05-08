@@ -86,6 +86,7 @@ class DAEmbeddingSeq2SeqExtractor(object):
         self.length = max([len(x) for x in das]) * 3
         self.inclusion_length = len(self.inclusion_map)
         self.empty_inclusion = [0 for _ in range(self.inclusion_length)]
+        self.empty_embedding = self.get_embeddings([[]])[0]
 
     def get_embeddings(self, das):
         embs = []

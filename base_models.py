@@ -676,7 +676,7 @@ class TGEN_Model(object):
             start = time()
             batch_indexes = list(range(0, da_seq.shape[0] - self.batch_size, self.batch_size))
             random.shuffle(batch_indexes)
-            for bi in batch_indexes:
+            for bi in tqdm(batch_indexes):
                 da_batch = da_seq[bi:bi + self.batch_size, :]
                 text_batch = text_seq[bi:bi + self.batch_size, :]
                 text_onehot_batch = text_onehot_seq[bi:bi + self.batch_size, :]
