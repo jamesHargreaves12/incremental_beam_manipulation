@@ -19,4 +19,6 @@ seq2seq = TGEN_Model(da_embedder, text_embedder, cfg_path)
 seq2seq.train(da_seq=np.array(da_embs),
               text_seq=np.array(train_text),
               n_epochs=cfg["epoch"],
-              valid_size=cfg["valid_size"])
+              valid_size=cfg["valid_size"],
+              early_stop_point=cfg["min_epoch"],
+              minimum_stop_point=0)
