@@ -21,6 +21,8 @@ from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concate
 from tqdm import tqdm
 
 from attention_keras.layers.attention import AttentionLayer
+from e2e_metrics.metrics.pymteval import BLEUScore
+from e2e_metrics.pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from utils import START_TOK, get_hamming_distance, PAD_TOK, load_model_from_gpu, TRAIN_BEAM_SAVE_FORMAT
 
 
@@ -632,6 +634,16 @@ class Regressor(object):
         self.model = load_model(os.path.join(dir_name, "classif.h5"))
 
 
+def flatten_multi_ref(da_seqs, text_seqs):
+    res_da = []
+    res_text = []
+    for da,ts in zip(da_seqs, text_seqs):
+        for t in ts:
+            res_da.append(da)
+            res_text.append(t)
+    return res_da, res_text
+
+
 class TGEN_Model(object):
     def __init__(self, da_embedder, text_embedder, cfg_path):
         cfg = yaml.safe_load(open(cfg_path, "r+"))
@@ -647,29 +659,45 @@ class TGEN_Model(object):
         self.decoder_model = None
         self.set_up_models()
 
-    def get_valid_loss(self, valid_da_seq, valid_text_seq, valid_onehot_seq):
+    def get_valid_loss(self, valid_da_seq, valid_text_seq, multi_ref):
         valid_loss = 0
-        for bi in range(0, valid_da_seq.shape[0] - self.batch_size, self.batch_size):
-            valid_da_batch = valid_da_seq[bi:bi + self.batch_size, :]
-            valid_text_batch = valid_text_seq[bi:bi + self.batch_size, :]
-            valid_onehot_batch = valid_onehot_seq[bi:bi + self.batch_size, :, :]
-            valid_loss += self.full_model.evaluate([valid_da_batch, valid_text_batch[:, :-1]],
-                                                   valid_onehot_batch[:, 1:, :],
-                                                   batch_size=self.batch_size, verbose=0)
-        return valid_loss
+        if multi_ref:
+            bleu = BLEUScore()
+            for da, ts in tqdm(zip(valid_da_seq, valid_text_seq)):
+                bleu.append(self.make_prediction(da, max_length=60).split(' '), ts)
+            return bleu.score()
+        else:
+            valid_onehot_seq = to_categorical(valid_text_seq, num_classes=self.vsize_out)
+            for bi in range(0, valid_da_seq.shape[0] - self.batch_size, self.batch_size):
+                valid_da_batch = valid_da_seq[bi:bi + self.batch_size, :]
+                valid_text_batch = valid_text_seq[bi:bi + self.batch_size, :]
+                valid_onehot_batch = valid_onehot_seq[bi:bi + self.batch_size, :, :]
+                valid_loss += self.full_model.evaluate([valid_da_batch, valid_text_batch[:, :-1]],
+                                                       valid_onehot_batch[:, 1:, :],
+                                                       batch_size=self.batch_size, verbose=0)
+            return valid_loss
 
-    def train(self, da_seq, text_seq, n_epochs, valid_size, early_stop_point=5, minimum_stop_point=20):
+    def train(self, da_seq, text_seq, n_epochs, valid_size, early_stop_point=5, minimum_stop_point=20, multi_ref=False):
         valid_text_seq = text_seq[-valid_size:]
         valid_da_seq = da_seq[-valid_size:]
         text_seq = text_seq[:-valid_size]
         da_seq = da_seq[:-valid_size]
-        valid_onehot_seq = to_categorical(valid_text_seq, num_classes=self.vsize_out)
+        if multi_ref:
+            da_seq, text_seq = flatten_multi_ref(da_seq, text_seq)
+
+        text_seq = np.array(self.text_embedder.get_embeddings(text_seq, pad_from_end=True) + [self.text_embedder.empty_embedding])
+        da_seq = self.da_embedder.get_embeddings(da_seq) + [self.da_embedder.empty_embedding]
+        valid_da_seq = self.da_embedder.get_embeddings(valid_da_seq) + [self.da_embedder.empty_embedding]
+        da_seq, text_seq = shuffle_data([da_seq, text_seq])
+        da_seq = np.array(da_seq)
+        text_seq = np.array(text_seq)
         text_onehot_seq = to_categorical(text_seq, num_classes=self.vsize_out)
 
         valid_losses = []
         min_valid_loss = math.inf
-        rev_embed = self.text_embedder.embed_to_tok
-        print('\tValid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
+        print("Inital Valid", self.get_valid_loss(valid_da_seq, valid_text_seq, multi_ref=True))
+        # rev_embed = self.text_embedder.embed_to_tok
+        # print('\tValid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
 
         for ep in range(n_epochs):
             losses = 0
@@ -684,19 +712,15 @@ class TGEN_Model(object):
                 losses += self.full_model.evaluate([da_batch, text_batch[:, :-1]], text_onehot_batch[:, 1:, :],
                                                    batch_size=self.batch_size, verbose=0)
 
-            valid_loss = self.get_valid_loss(valid_da_seq, valid_text_seq, valid_onehot_seq)
+            valid_loss = self.get_valid_loss(valid_da_seq, valid_text_seq, multi_ref=multi_ref)
             valid_losses.append(valid_loss)
 
-            valid_pred = self.make_prediction(valid_da_seq[0], max_length=40).replace(
-                "<> ", "")
-            # train_pred = self.make_prediction(da_seq[0], text_embedder).replace("<>", "")
             time_taken = time() - start
             train_loss = losses / da_seq.shape[0] * self.batch_size
             valid_loss = valid_loss / valid_da_seq.shape[0] * self.batch_size
 
-            print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f} {}".format(time_taken, ep + 1,
-                                                                            train_loss, valid_loss,
-                                                                            valid_pred))
+            print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f}".format(time_taken, ep + 1,
+                                                                            train_loss, valid_loss))
             if valid_loss < min_valid_loss:
                 self.save_model()
                 min_valid_loss = valid_loss
@@ -710,10 +734,13 @@ class TGEN_Model(object):
         print("Final Valid Loss =", final_valid_loss)
 
     def load_models(self):
-        print("Loading models at {}".format(self.save_location))
-        load_model_from_gpu(self.full_model, os.path.join(self.save_location, "full.h5"))
-        load_model_from_gpu(self.encoder_model, os.path.join(self.save_location, "enc.h5"))
-        load_model_from_gpu(self.decoder_model, os.path.join(self.save_location, "dec.h5"))
+        if os.path.exists(self.save_location):
+            print("Loading models at {}".format(self.save_location))
+            load_model_from_gpu(self.full_model, os.path.join(self.save_location, "full.h5"))
+            load_model_from_gpu(self.encoder_model, os.path.join(self.save_location, "enc.h5"))
+            load_model_from_gpu(self.decoder_model, os.path.join(self.save_location, "dec.h5"))
+        else:
+            print("No existing models found")
 
     def save_model(self):
         print("Saving models at {}".format(self.save_location))
@@ -803,7 +830,7 @@ class TGEN_Model(object):
         encoder_inputs = Input(batch_shape=(self.batch_size, len_in), name='encoder_inputs')
         decoder_inputs = Input(batch_shape=(self.batch_size, len_out - 1), name='decoder_inputs')
 
-        embed_enc = Embedding(input_dim=vsize_in, output_dim=self.embedding_size)
+        embed_enc = Embedding(input_dim=vsize_in, output_dim=self. embedding_size)
         encoder_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
         en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
         encoder_out = en_lstm_out[0]
