@@ -27,7 +27,7 @@ train_text = np.array(text_embedder.get_embeddings(texts, pad_from_end=True) + [
 
 da_embs = da_embedder.get_embeddings(das) + [da_embedder.empty_embedding]
 seq2seq = TGEN_Model(da_embedder, text_embedder, cfg_path)
-TGEN_Model.load_models()
+seq2seq.load_models()
 TGEN_Model.full_model.summary()
 seq2seq.train(da_seq=np.array(da_embs),
               text_seq=np.array(train_text),
