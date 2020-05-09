@@ -657,6 +657,7 @@ class TGEN_Model(object):
         self.full_model = None
         self.encoder_model = None
         self.decoder_model = None
+        self.with_empty_train = cfg["with_empty_train"]
         self.set_up_models()
 
     def get_valid_loss(self, valid_da_seq, valid_text_seq, multi_ref):
@@ -684,9 +685,13 @@ class TGEN_Model(object):
         da_seq = da_seq[:-valid_size]
         if multi_ref:
             da_seq, text_seq = flatten_multi_ref(da_seq, text_seq)
+        if self.with_empty_train:
+            text_seq = np.array(self.text_embedder.get_embeddings(text_seq, pad_from_end=True))
+            da_seq = self.da_embedder.get_embeddings(da_seq)
+        else:
+            text_seq = np.array(self.text_embedder.get_embeddings(text_seq, pad_from_end=True) + [self.text_embedder.empty_embedding])
+            da_seq = self.da_embedder.get_embeddings(da_seq) + [self.da_embedder.empty_embedding]
 
-        text_seq = np.array(self.text_embedder.get_embeddings(text_seq, pad_from_end=True) + [self.text_embedder.empty_embedding])
-        da_seq = self.da_embedder.get_embeddings(da_seq) + [self.da_embedder.empty_embedding]
         valid_da_seq = self.da_embedder.get_embeddings(valid_da_seq) + [self.da_embedder.empty_embedding]
         da_seq, text_seq = shuffle_data([da_seq, text_seq])
         da_seq = np.array(da_seq)
