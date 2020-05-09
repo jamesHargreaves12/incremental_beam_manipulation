@@ -717,7 +717,8 @@ class TGEN_Model(object):
 
             time_taken = time() - start
             train_loss = losses / da_seq.shape[0] * self.batch_size
-            valid_loss = valid_loss / valid_da_seq.shape[0] * self.batch_size
+            if not multi_ref:
+                valid_loss = valid_loss / valid_da_seq.shape[0] * self.batch_size
 
             print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f}".format(time_taken, ep + 1,
                                                                             train_loss, valid_loss))
