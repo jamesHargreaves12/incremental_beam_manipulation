@@ -665,7 +665,7 @@ class TGEN_Model(object):
             bleu = BLEUScore()
             for da, ts in tqdm(zip(valid_da_seq, valid_text_seq)):
                 bleu.append(self.make_prediction(da, max_length=60).split(' '), ts)
-            return bleu.score()
+            return 1-bleu.score()
         else:
             valid_onehot_seq = to_categorical(valid_text_seq, num_classes=self.vsize_out)
             for bi in range(0, valid_da_seq.shape[0] - self.batch_size, self.batch_size):
