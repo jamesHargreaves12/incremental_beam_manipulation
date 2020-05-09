@@ -19,7 +19,7 @@ if cfg_path is None:
     mod_times = [(os.path.getmtime(x), i) for i, x in enumerate(filepaths)]
     cfg_path = filepaths[max(mod_times)[1]]
 
-cfg = yaml.safe_load(open(cfg_path,'r'))
+cfg = yaml.safe_load(open(cfg_path, 'r'))
 texts, das, = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
@@ -27,9 +27,11 @@ train_text = np.array(text_embedder.get_embeddings(texts, pad_from_end=True) + [
 
 da_embs = da_embedder.get_embeddings(das) + [da_embedder.empty_embedding]
 seq2seq = TGEN_Model(da_embedder, text_embedder, cfg_path)
+TGEN_Model.load_models()
+TGEN_Model.full_model.summary()
 seq2seq.train(da_seq=np.array(da_embs),
               text_seq=np.array(train_text),
               n_epochs=cfg["epoch"],
               valid_size=cfg["valid_size"],
               early_stop_point=cfg["min_epoch"],
-              minimum_stop_point=0)
+              minimum_stop_point=20)
