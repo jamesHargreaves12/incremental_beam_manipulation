@@ -692,7 +692,7 @@ class TGEN_Model(object):
             text_seq = np.array(self.text_embedder.get_embeddings(text_seq, pad_from_end=True) + [self.text_embedder.empty_embedding])
             da_seq = self.da_embedder.get_embeddings(da_seq) + [self.da_embedder.empty_embedding]
 
-        valid_da_seq = self.da_embedder.get_embeddings(valid_da_seq) + [self.da_embedder.empty_embedding]
+        valid_da_seq = self.da_embedder.get_embeddings(valid_da_seq)
         da_seq, text_seq = shuffle_data([da_seq, text_seq])
         da_seq = np.array(da_seq)
         text_seq = np.array(text_seq)

@@ -32,6 +32,9 @@ texts_mr, da_mr = get_multi_reference_training_variables()
 seq2seq = TGEN_Model(da_embedder, text_embedder, cfg_path)
 seq2seq.load_models()
 seq2seq.full_model.summary()
+if "use_prop" in cfg:
+    da_mr = da_mr[:int(len(da_mr)*cfg['use_prop'])]
+    text_mr = text_mr[:int(len(da_mr) * cfg['use_prop'])]
 seq2seq.train(da_seq=da_mr,
               text_seq=texts_mr,
               n_epochs=cfg["epoch"],
