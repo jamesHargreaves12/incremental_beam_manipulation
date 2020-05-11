@@ -10,7 +10,7 @@ import keras
 import msgpack
 import numpy as np
 import yaml
-from keras.losses import mean_squared_error
+from keras.losses import mean_squared_error, logcosh
 
 from tensorflow.test import is_gpu_available
 import keras.backend as K
@@ -40,8 +40,23 @@ def relative_mae_loss(actual, pred):
     return mean_squared_error(actual - K.mean(actual), pred - K.mean(pred))
 
 
-def pair_wise_loss(actual, pred):
-    return
+def absolute_percentage_error_loss(actual, pred):
+    raise NotImplementedError()
+    # act_rel = (actual - K.mean(actual))
+    # pred_rel =
+    # return K.mean(K.abs(((pred, - K.mean(pred)) - / actual))
+
+
+def relative_absolute_error_loss(actual, pred):
+    act_rel = actual - K.mean(actual)
+    pred_rel = pred - K.mean(pred)
+    return K.mean(K.abs(pred_rel - act_rel), axis=-1)
+
+
+def relative_logcosh_loss(actual, pred):
+    act_rel = actual - K.mean(actual)
+    pred_rel = pred - K.mean(pred)
+    return logcosh(pred_rel - act_rel)
 
 
 def get_training_set_min_max_lp(beam_size):
@@ -356,6 +371,19 @@ class TrainableReranker(object):
             loss_function = relative_mae_loss
         else:
             pass  # use defaults
+
+        if 'loss_function' in cfg:
+            lf = cfg['loss_function']
+            if lf == 'relative_mae':
+                loss_function = relative_mae_loss
+            elif lf == 'absolute_percentage_error':
+                loss_function = absolute_percentage_error_loss
+            elif lf == 'absolute_error':
+                loss_function = relative_absolute_error_loss
+            elif lf == 'log_cosh':
+                loss_function = relative_logcosh_loss
+            else:
+                raise ValueError('Unknown loss function: {}'.format(lf))
 
         output = Dense(out_layer_size, activation=out_layer_activation)(hidden_logistic)
         self.model = Model(inputs=[text_inputs, da_inputs, log_probs_inputs], outputs=output)
