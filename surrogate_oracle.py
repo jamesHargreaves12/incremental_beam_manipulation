@@ -26,13 +26,13 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     print("Loading Training Data")
     beam_size = cfg["beam_size"]
     train_texts, train_das = get_multi_reference_training_variables()
-    beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
+    beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size, cfg["tgen_seq2seq_config"].split('.')[0])
     if not os.path.exists(beam_save_path):
         models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
         models.load_models()
         print("Creating test final beams")
         scorer = get_score_function('identity', cfg, models, None, beam_size)
-        run_beam_search_with_rescorer(scorer, models, das, beam_size, only_rerank_final=True,
+        run_beam_search_with_rescorer(scorer, models, das, beam_size, cfg, only_rerank_final=True,
                                       save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
     final_beam = pickle.load(open(beam_save_path, "rb"))

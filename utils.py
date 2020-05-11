@@ -23,7 +23,7 @@ PAD_TOK = '<>'
 RESULTS_DIR = 'output_files/out-text-dir-v3'
 CONFIGS_DIR = 'new_configs'
 CONFIGS_MODEL_DIR = 'new_configs/model_configs'
-TRAIN_BEAM_SAVE_FORMAT = 'output_files/saved_beams/train_vanilla_{}.pickle'
+TRAIN_BEAM_SAVE_FORMAT = 'output_files/saved_beams/train_vanilla_{}_{}.pickle'
 TEST_BEAM_SAVE_FORMAT = 'output_files/saved_beams/vanilla_{}.pickle'
 
 
