@@ -56,7 +56,7 @@ def relative_absolute_error_loss(actual, pred):
 def relative_logcosh_loss(actual, pred):
     act_rel = actual - K.mean(actual)
     pred_rel = pred - K.mean(pred)
-    return logcosh(pred_rel - act_rel)
+    return logcosh(pred_rel, act_rel)
 
 
 def get_training_set_min_max_lp(beam_size):
