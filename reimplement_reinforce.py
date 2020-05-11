@@ -98,7 +98,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
             NotImplementedError()
 
         scored_finished_beams = score_beams(rescorer, beam, da_emb, i)
-        mms = cfg["merge_middle_sections"]
+        mms = cfg["train_reranker"]["merge_middle_sections"]
         ot = cfg["train_reranker"]["only_top"]
         ob = cfg["train_reranker"]["only_bottom"]
         av = sum([x for (x, _), _ in scored_finished_beams]) / len(scored_finished_beams)
