@@ -78,7 +78,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
                 scores.append(to_categorical([i], num_classes=beam_size))
             elif cfg["output_type"] in ['regression_ranker', 'regression_reranker_relative']:
                 scores.append(i / (beam_size - 1))
-            elif cfg["output_type"] in ['regression_sections']:
+            elif cfg["output_type"] in ['regression_sections', 'binary_classif']:
                 val = i / (beam_size - 1)
                 regression_val = get_section_value(val, cut_offs, regression_vals,
                                                    merge_middles, only_top, only_bottom)
@@ -92,7 +92,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
 
     if cfg["output_type"] in ['regression_ranker', 'bleu', 'regression_reranker_relative', 'pair',
-                              'regression_sections']:
+                              'regression_sections', 'binary_classif']:
         # print("SCORES: ", Counter(scores))
         scores = np.array(scores).reshape((-1, 1))
     elif cfg["output_type"] == 'order_discrete':

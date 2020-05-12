@@ -87,6 +87,9 @@ def get_learned_score_func(trainable_reranker, select_max=False, reverse_order=F
             if reverse_order:
                 return -pred[0][0], path[0]
             return pred[0][0], path[0]
+        elif trainable_reranker.output_type in ["binary_classif"]:
+            pred = 1 if pred[0][0] > 0.5 else 0
+            return 1-pred, path[0]
 
         if select_max:
             max_pred = np.argmax(pred[0])
