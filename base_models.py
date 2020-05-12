@@ -366,6 +366,9 @@ class TrainableReranker(object):
             out_layer_size = self.beam_size
             loss_function = 'categorical_crossentropy'
             out_layer_activation = 'softmax'
+        if cfg['output_type'] == 'binary_classif':
+            loss_function = 'binary_crossentropy'
+            out_layer_activation = 'sigmoid'
         elif cfg['output_type'] in ['regression_reranker_relative', 'regression_sections']:
             print("Using loss with average reset to 0")
             loss_function = relative_mae_loss
