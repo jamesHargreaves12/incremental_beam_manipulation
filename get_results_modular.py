@@ -12,7 +12,7 @@ from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 from utils import get_training_variables, apply_absts, get_abstss_train, get_test_das, START_TOK, END_TOK, PAD_TOK, \
     get_true_sents, get_abstss_test, get_training_das_texts, RESULTS_DIR, CONFIGS_MODEL_DIR, CONFIGS_DIR, postprocess, \
-    get_multi_reference_training_variables
+    get_multi_reference_training_variables, tgen_postprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', default=None)

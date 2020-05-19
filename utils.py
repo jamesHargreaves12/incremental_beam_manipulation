@@ -16,6 +16,7 @@ from enum import Enum
 from tgen.logf import set_debug_stream
 from tgen.futil import read_das
 from tgen.futil import smart_load_absts
+from regex import Regex, UNICODE, IGNORECASE
 
 START_TOK = '<S>'
 END_TOK = '<E>'
@@ -208,15 +209,37 @@ def postprocess(text):
     return text
 
 
+def tgen_postprocess(text):
+    currency_or_init_punct = Regex(r' ([\p{Sc}\(\[\{\¿\¡]+) ', flags=UNICODE)
+    noprespace_punct = Regex(r' ([\,\.\?\!\:\;\\\%\}\]\)]+) ', flags=UNICODE)
+    contract = Regex(r" (\p{Alpha}+) ' (ll|ve|re|[dsmt])(?= )", flags=UNICODE | IGNORECASE)
+    dash_fixes = Regex(r" (\p{Alpha}+|£ [0-9]+) - (priced|star|friendly|(?:£ )?[0-9]+) ",
+                       flags=UNICODE | IGNORECASE)
+    dash_fixes2 = Regex(r" (non) - ([\p{Alpha}-]+) ", flags=UNICODE | IGNORECASE)
+
+    text = ' ' + text + ' '
+    text = dash_fixes.sub(r' \1-\2 ', text)
+    text = dash_fixes2.sub(r' \1-\2 ', text)
+    text = currency_or_init_punct.sub(r' \1', text)
+    text = noprespace_punct.sub(r'\1 ', text)
+    text = contract.sub(r" \1'\2", text)
+    text = text.strip()
+    # capitalize
+    if not text:
+        return ''
+    text = text[0].upper() + text[1:]
+    return text
+
+
 def get_regression_vals(num_ranks, with_train_refs):
     if with_train_refs:
-        return [i / num_ranks for i in range(1, num_ranks+1)]
+        return [i / num_ranks for i in range(1, num_ranks + 1)]
     else:
         return [i / (num_ranks - 1) for i in range(num_ranks)]
 
 
 def get_section_cutoffs(num_ranks):
-    return [i/num_ranks for i in range(1, num_ranks)]
+    return [i / num_ranks for i in range(1, num_ranks)]
 
 
 def get_section_value(val, cut_offs, regression_vals, merge_middle=False, only_top=False, only_bottom=False):

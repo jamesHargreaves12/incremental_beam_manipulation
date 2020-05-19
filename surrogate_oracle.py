@@ -22,11 +22,12 @@ from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 
 
-def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts):
+def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts, beam_save_path=None):
     print("Loading Training Data")
     beam_size = cfg["beam_size"]
     train_texts, train_das = get_multi_reference_training_variables()
-    beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size, cfg["tgen_seq2seq_config"].split('.')[0].split('/')[-1])
+    if beam_save_path is None:
+        beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size, cfg["tgen_seq2seq_config"].split('.')[0].split('/')[-1])
     if not os.path.exists(beam_save_path):
         models = TGEN_Model(da_embedder, text_embedder, cfg["tgen_seq2seq_config"])
         models.load_models()
@@ -135,7 +136,8 @@ if reranker.load_model():
 
 if cfg["train"]:
     print("Training")
-    text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts)
+    text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts,
+                                                                    beam_save_path=cfg.get("beam_save_path", None))
     print("Score Distributions:")
     print(Counter([x[0] for x in scores]))
     print("LP distributions")

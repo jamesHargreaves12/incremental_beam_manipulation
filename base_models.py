@@ -127,8 +127,8 @@ class PairwiseReranker(object):
         in_logistic_layer = Concatenate(axis=-1)(
             h_n_da + h_n_text_1 + h_n_text_2 + [log_probs_inputs_1, log_probs_inputs_2])
 
-        hidden_logistic_1 = Dense(256, activation='relu')(in_logistic_layer)
-        hidden_logistic_2 = Dense(128, activation='relu')(hidden_logistic_1)
+        # hidden_logistic_1 = Dense(256, activation='relu')(in_logistic_layer)
+        hidden_logistic_2 = Dense(128, activation='relu')(in_logistic_layer)
         optimizer = Adam(lr=0.001)
 
         output = Dense(1, activation='sigmoid')(hidden_logistic_2)
@@ -732,8 +732,6 @@ class TGEN_Model(object):
         valid_losses = []
         min_valid_loss = math.inf
         print("Inital Valid", self.get_valid_loss(valid_da_seq, valid_text_seq, multi_ref=True))
-        # rev_embed = self.text_embedder.embed_to_tok
-        # print('\tValid Example:    {}'.format(" ".join([rev_embed[x] for x in valid_text_seq[0]]).replace('<>', '')))
 
         for ep in range(n_epochs):
             losses = 0
