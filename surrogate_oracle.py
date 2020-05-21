@@ -22,7 +22,7 @@ from reimplement_reinforce import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 
 
-def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts, beam_save_path=None):
+def get_scores_ordered_beam(cfg, da_embedder, text_embedder, beam_save_path=None):
     print("Loading Training Data")
     beam_size = cfg["beam_size"]
     train_texts, train_das = get_multi_reference_training_variables()
@@ -33,7 +33,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts, beam_sa
         models.load_models()
         print("Creating test final beams")
         scorer = get_score_function('identity', cfg, models, None, beam_size)
-        run_beam_search_with_rescorer(scorer, models, das, beam_size, cfg, only_rerank_final=True,
+        run_beam_search_with_rescorer(scorer, models, train_das, beam_size, cfg, only_rerank_final=True,
                                       save_final_beam_path=beam_save_path)
     bleu = BLEUScore()
     final_beam = pickle.load(open(beam_save_path, "rb"))
@@ -55,8 +55,9 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts, beam_sa
         print("Only using top value")
     if merge_middles and only_top:
             print("Ignoring only top since have merge_middle_sections set")
-
-    for beam, real_texts, da in tqdm(zip(final_beam, train_texts, train_das)):
+    training_vals = list(zip(final_beam, train_texts, train_das))
+    training_vals = training_vals[:cfg.get("use_size", len(training_vals))]
+    for beam, real_texts, da in tqdm(training_vals):
         beam_scores = []
         if with_ref_train_flag:
             # I am not sure how to do log probs?
@@ -136,7 +137,7 @@ if reranker.load_model():
 
 if cfg["train"]:
     print("Training")
-    text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder, das, texts,
+    text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder,
                                                                     beam_save_path=cfg.get("beam_save_path", None))
     print("Score Distributions:")
     print(Counter([x[0] for x in scores]))
@@ -144,8 +145,13 @@ if cfg["train"]:
     print("min", min(log_probs))
     print("max", max(log_probs))
     print("mean", sum(log_probs)/len(log_probs))
-    reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"],
+    if cfg['output_type'] != 'pair':
+        reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"],
                    cfg.get("min_training_passes", 5))
+    else:
+        reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"], cfg["num_ranks"],
+                   cfg.get("min_training_passes", 5))
+
 
 if cfg["show_reranker_post_training_stats"]:
     test_das = get_test_das()

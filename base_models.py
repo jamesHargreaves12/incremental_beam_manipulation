@@ -182,7 +182,7 @@ class PairwiseReranker(object):
         else:
             raise NotImplementedError()
 
-    def _get_train_set(self, text_seqs, das_seqs, bleu_scores, log_probs):
+    def _get_train_set(self, text_seqs, das_seqs, bleu_scores, log_probs, num_ranks):
         start_beam_indices = list(range(0, text_seqs.shape[0] - self.beam_size, self.beam_size))
         text_1_set = []
         text_2_set = []
@@ -195,13 +195,13 @@ class PairwiseReranker(object):
             beam_das = das_seqs[bi:bi + self.beam_size]
             beam_lps = self.setup_lps(log_probs[bi:bi + self.beam_size])
             beam_scores = bleu_scores[bi:bi + self.beam_size]
-            beam_texts, beam_das, beam_lps, beam_scores = \
-                shuffle_data((beam_texts, beam_das, beam_lps, beam_scores))
+            # beam_texts, beam_das, beam_lps, beam_scores = \
+            #     shuffle_data((beam_texts, beam_das, beam_lps, beam_scores))
             beam_das_val = beam_das[0]
             assert (all([tuple(x) == tuple(beam_das_val) for x in beam_das]))
             for i in range(self.beam_size):
                 for j in range(i + 1, self.beam_size):
-                    if abs(beam_scores[i] - beam_scores[j]) < self.too_close_limit:
+                    if abs(beam_scores[i] - beam_scores[j]) < self.too_close_limit or i // num_ranks == j // num_ranks:
                         continue
                     das_set.append(beam_das_val)
                     text_1_set.append(beam_texts[i])
@@ -211,12 +211,12 @@ class PairwiseReranker(object):
                     output_set.append(1 if beam_scores[i] > beam_scores[j] else 0)
         return das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set
 
-    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, min_passes=5):
+    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, num_ranks, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
         print("Number of each input = ", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
         das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set = \
-            self._get_train_set(text_seqs, das_seqs, bleu_scores, log_probs)
+            self._get_train_set(text_seqs, das_seqs, bleu_scores, log_probs, num_ranks)
         valid_das_set = das_set[-valid_size:]
         valid_text_1_set = text_1_set[-valid_size:]
         valid_text_2_set = text_2_set[-valid_size:]
