@@ -266,7 +266,6 @@ class PairwiseReranker(object):
               self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set, valid_lp_2_set,
                                   valid_output_set))
         for ep in range(epoch):
-            start = time()
             losses = []
             random.shuffle(batch_indexes)
             for bi in tqdm(batch_indexes):
@@ -293,11 +292,10 @@ class PairwiseReranker(object):
                                                   batch_output_set, batch_size=self.batch_size,
                                                   verbose=0)[-1])
             train_loss = sum(losses) / len(losses)
-            time_spent = time() - start
             valid_acc = self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set,
                                             valid_lp_2_set, valid_output_set)
             valid_loss = 1-valid_acc
-            print('{} Epoch {} Train: {:.4f} Valid_miss: {:.4f}'.format(time_spent, ep, train_loss, valid_acc))
+            print('\nEpoch {} Train: {:.4f} Valid_miss: {:.4f}'.format(ep, train_loss, valid_acc))
             if valid_loss < min_valid_loss:
                 min_valid_loss = valid_loss
                 epoch_since_minimum = 0
