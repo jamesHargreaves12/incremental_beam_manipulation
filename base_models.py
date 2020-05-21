@@ -205,7 +205,7 @@ class PairwiseReranker(object):
                 for j in range(i + 1, self.beam_size):
                     text_1, lp_1, score_1 = vals[i]
                     text_2, lp_2, score_2 = vals[j]
-                    assert(score_1 > score_2)
+                    assert(score_1 >= score_2)
                     if abs(score_1 - score_2) < self.too_close_limit or i // number_of_each_rank == j // number_of_each_rank:
                         continue
                     das_set.append(beam_das_val)
