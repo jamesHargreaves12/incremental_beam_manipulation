@@ -190,6 +190,7 @@ class PairwiseReranker(object):
         lp_1_set = []
         lp_2_set = []
         output_set = []
+        number_of_each_rank = self.beam_size // num_ranks
         for bi in start_beam_indices:
             beam_texts = text_seqs[bi:bi + self.beam_size]
             beam_das = das_seqs[bi:bi + self.beam_size]
@@ -204,11 +205,19 @@ class PairwiseReranker(object):
                     if abs(beam_scores[i] - beam_scores[j]) < self.too_close_limit or i // num_ranks == j // num_ranks:
                         continue
                     das_set.append(beam_das_val)
-                    text_1_set.append(beam_texts[i])
-                    lp_1_set.append(beam_lps[i])
-                    text_2_set.append(beam_texts[j])
-                    lp_2_set.append(beam_lps[j])
-                    output_set.append(1 if beam_scores[i] > beam_scores[j] else 0)
+                    if random.random() > 0.5:
+                        text_1_set.append(beam_texts[i])
+                        lp_1_set.append(beam_lps[i])
+                        text_2_set.append(beam_texts[j])
+                        lp_2_set.append(beam_lps[j])
+                        output_set.append(1)
+                    else:
+                        text_1_set.append(beam_texts[j])
+                        lp_1_set.append(beam_lps[j])
+                        text_2_set.append(beam_texts[i])
+                        lp_2_set.append(beam_lps[i])
+                        output_set.append(0)
+
         return das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set
 
     def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, num_ranks, min_passes=5):
