@@ -45,8 +45,9 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, beam_save_path=None
     num_ranks = cfg["num_ranks"]
     cut_offs = get_section_cutoffs(num_ranks)
     regression_vals = get_regression_vals(num_ranks, with_ref_train_flag)
-    print("Cut off values:", cut_offs)
-    print("Regression vals:", regression_vals)
+    if cfg["output_type"] != 'pair':
+        print("Cut off values:", cut_offs)
+        print("Regression vals:", regression_vals)
 
     only_top = cfg.get("only_top", False)
     only_bottom = cfg.get("only_bottom", False)

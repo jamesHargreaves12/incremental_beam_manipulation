@@ -202,7 +202,7 @@ class PairwiseReranker(object):
             assert (all([tuple(x) == tuple(beam_das_val) for x in beam_das]))
             for i in range(self.beam_size):
                 for j in range(i + 1, self.beam_size):
-                    if abs(beam_scores[i] - beam_scores[j]) < self.too_close_limit or i // num_ranks == j // num_ranks:
+                    if abs(beam_scores[i] - beam_scores[j]) < self.too_close_limit or i // number_of_each_rank == j // number_of_each_rank:
                         continue
                     das_set.append(beam_das_val)
                     if random.random() > 0.5:
