@@ -151,7 +151,7 @@ class PairwiseReranker(object):
             err.append(self.model.evaluate([batch_das_set, batch_text_1_set, batch_text_2_set, batch_lp_1_set,
                                             batch_lp_2_set], batch_output_set, batch_size=self.batch_size,
                                            verbose=0)[-1])
-        return 1 - sum(err) / len(err)
+        return sum(err) / len(err)
 
     def load_model(self):
         print("Loading pairwise reranker from {}".format(self.save_location))
@@ -285,11 +285,12 @@ class PairwiseReranker(object):
                                                   verbose=0)[-1])
             train_loss = sum(losses) / len(losses)
             time_spent = time() - start
-            valid_err = self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set,
+            valid_acc = self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set,
                                             valid_lp_2_set, valid_output_set)
-            print('{} Epoch {} Train: {:.4f} Valid_miss: {:.4f}'.format(time_spent, ep, train_loss, valid_err))
-            if valid_err < min_valid_loss:
-                min_valid_loss = valid_err
+            valid_loss = 1-valid_acc
+            print('{} Epoch {} Train: {:.4f} Valid_miss: {:.4f}'.format(time_spent, ep, train_loss, valid_acc))
+            if valid_loss < min_valid_loss:
+                min_valid_loss = valid_loss
                 epoch_since_minimum = 0
                 self.save_model()
             else:

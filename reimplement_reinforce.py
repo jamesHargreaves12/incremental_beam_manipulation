@@ -26,7 +26,8 @@ from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w
     START_TOK, get_section_cutoffs, get_section_value, get_regression_vals
 
 
-def score_beams_pairwise(beam, pair_wise_model, da_emb):
+def score_beams_pairwise(beam, pair_wise_model, da_emb, cfg):
+    num_ranks = cfg["train_reranker"]["num_ranks"] if cfg.get("coarse_ranker", False) else 0
     text_embedder = pair_wise_model.text_embedder
     da_emb = np.array(da_emb)
     inf_beam_size = len(beam)
@@ -64,6 +65,13 @@ def score_beams_pairwise(beam, pair_wise_model, da_emb):
                 tourn_wins[j] += 1
             res_pos += 1
     scores = [(tourn_wins[i], beam[i]) for i in range(inf_beam_size)]
+    if num_ranks > 0:
+        order = sorted(enumerate(scores), key=lambda x: x[1][0], reverse=True)
+        coarse_scores = []
+        num_per_rank = inf_beam_size // num_ranks if inf_beam_size > num_ranks else 1
+        for i,(original_pos, val) in enumerate(order):
+            coarse_val = i // num_per_rank if i // num_per_rank < num_ranks else num_ranks-1
+            coarse_scores.append(((coarse_val, scores[original_pos][1][0]), scores[original_pos][1]))
     return scores
 
 
@@ -108,7 +116,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
         recorded_sections.extend(sections)
         path_scores = [((1-x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
-        path_scores = score_beams_pairwise(beam, rescorer, da_emb)
+        path_scores = score_beams_pairwise(beam, rescorer, da_emb, cfg)
     else:
         path_scores = score_beams(rescorer, beam, da_emb, i)
 
@@ -228,7 +236,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     return results
 
 
-def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
-    path_scores = score_beams_pairwise(beam, pair_wise_model, da_emb)
-    sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
-    return [x[1] for x in sorted_paths]
+# def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
+#     path_scores = score_beams_pairwise(beam, pair_wise_model, da_emb)
+#     sorted_paths = sorted(path_scores, reverse=True, key=lambda x: x[0])
+#     return [x[1] for x in sorted_paths]
