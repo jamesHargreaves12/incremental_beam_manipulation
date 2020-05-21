@@ -182,7 +182,7 @@ class PairwiseReranker(object):
         else:
             raise NotImplementedError()
 
-    def _get_train_set(self, text_seqs, das_seqs, bleu_scores, log_probs, num_ranks):
+    def _get_train_set(self, text_seqs, das_seqs, bleu_scores, log_probs, num_ranks, top_only=False, bottom_only=False):
         start_beam_indices = list(range(0, text_seqs.shape[0] - self.beam_size, self.beam_size))
         text_1_set = []
         text_2_set = []
@@ -208,6 +208,10 @@ class PairwiseReranker(object):
                     assert(score_1 >= score_2)
                     if abs(score_1 - score_2) < self.too_close_limit or i // number_of_each_rank == j // number_of_each_rank:
                         continue
+                    if bottom_only and j // number_of_each_rank != num_ranks - 1:
+                        continue
+                    if top_only and i // number_of_each_rank != 0:
+                        continue
                     das_set.append(beam_das_val)
                     if random.random() > 0.5:
                         text_1_set.append(text_1)
@@ -224,12 +228,13 @@ class PairwiseReranker(object):
 
         return das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set
 
-    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, num_ranks, min_passes=5):
+    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, num_ranks, only_bottom=False,  only_top=False, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
         print("Number of each input = ", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
         das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set = \
-            self._get_train_set(text_seqs, das_seqs, bleu_scores, log_probs, num_ranks)
+            self._get_train_set(text_seqs, das_seqs, bleu_scores, log_probs, num_ranks,
+                                top_only=only_top, bottom_only=only_bottom)
         valid_das_set = das_set[-valid_size:]
         valid_text_1_set = text_1_set[-valid_size:]
         valid_text_2_set = text_2_set[-valid_size:]

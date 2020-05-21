@@ -140,8 +140,9 @@ if cfg["train"]:
     print("Training")
     text_seqs, da_seqs, scores, log_probs = get_scores_ordered_beam(cfg, da_embedder, text_embedder,
                                                                     beam_save_path=cfg.get("beam_save_path", None))
-    print("Score Distributions:")
-    print(Counter([x[0] for x in scores]))
+    if type(scores[0][0]) ==  int:
+        print("Score Distributions:")
+        print(Counter([x[0] for x in scores]))
     print("LP distributions")
     print("min", min(log_probs))
     print("max", max(log_probs))
@@ -151,7 +152,9 @@ if cfg["train"]:
                    cfg.get("min_training_passes", 5))
     else:
         reranker.train(text_seqs, da_seqs, scores, log_probs, cfg["epoch"], cfg["valid_size"], cfg["num_ranks"],
-                   cfg.get("min_training_passes", 5))
+                       cfg.get("only_bottom", False),
+                       cfg.get("only_top", False),
+                       cfg.get("min_training_passes", 5))
 
 
 if cfg["show_reranker_post_training_stats"]:
