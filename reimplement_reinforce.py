@@ -67,7 +67,7 @@ def score_beams_pairwise(beam, pair_wise_model, da_emb, cfg):
     num_ranks = cfg["train_reranker"]["num_ranks"] if cfg.get("coarse_ranker", False) else 0
     if num_ranks > 0:
         order = sorted(enumerate(scores), key=lambda x: x[1][0])
-        order = reversed(order)
+        # order = reversed(order)
         coarse_scores = []
         num_per_rank = inf_beam_size // num_ranks if inf_beam_size > num_ranks else 1
         for i, (original_pos, val) in enumerate(order):
