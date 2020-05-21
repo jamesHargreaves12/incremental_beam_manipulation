@@ -200,22 +200,26 @@ class PairwiseReranker(object):
             #     shuffle_data((beam_texts, beam_das, beam_lps, beam_scores))
             beam_das_val = beam_das[0]
             assert (all([tuple(x) == tuple(beam_das_val) for x in beam_das]))
+            vals = sorted(list(zip(beam_texts, beam_lps, beam_scores)), key=lambda x: x[2], reverse=True)
             for i in range(self.beam_size):
                 for j in range(i + 1, self.beam_size):
-                    if abs(beam_scores[i] - beam_scores[j]) < self.too_close_limit or i // number_of_each_rank == j // number_of_each_rank:
+                    text_1, lp_1, score_1 = vals[i]
+                    text_2, lp_2, score_2 = vals[j]
+                    assert(score_1 > score_2)
+                    if abs(score_1 - score_2) < self.too_close_limit or i // number_of_each_rank == j // number_of_each_rank:
                         continue
                     das_set.append(beam_das_val)
                     if random.random() > 0.5:
-                        text_1_set.append(beam_texts[i])
-                        lp_1_set.append(beam_lps[i])
-                        text_2_set.append(beam_texts[j])
-                        lp_2_set.append(beam_lps[j])
+                        text_1_set.append(text_1)
+                        lp_1_set.append(lp_1)
+                        text_2_set.append(text_2)
+                        lp_2_set.append(lp_2)
                         output_set.append(1)
                     else:
-                        text_1_set.append(beam_texts[j])
-                        lp_1_set.append(beam_lps[j])
-                        text_2_set.append(beam_texts[i])
-                        lp_2_set.append(beam_lps[i])
+                        text_1_set.append(text_2)
+                        lp_1_set.append(lp_2)
+                        text_2_set.append(text_1)
+                        lp_2_set.append(lp_1)
                         output_set.append(0)
 
         return das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set
