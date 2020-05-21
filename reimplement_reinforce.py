@@ -27,7 +27,6 @@ from utils import get_texts_training, RERANK, get_training_das_texts, safe_get_w
 
 
 def score_beams_pairwise(beam, pair_wise_model, da_emb, cfg):
-    num_ranks = cfg["train_reranker"]["num_ranks"] if cfg.get("coarse_ranker", False) else 0
     text_embedder = pair_wise_model.text_embedder
     da_emb = np.array(da_emb)
     inf_beam_size = len(beam)
@@ -65,11 +64,12 @@ def score_beams_pairwise(beam, pair_wise_model, da_emb, cfg):
                 tourn_wins[j] += 1
             res_pos += 1
     scores = [(tourn_wins[i], beam[i]) for i in range(inf_beam_size)]
+    num_ranks = cfg["train_reranker"]["num_ranks"] if cfg.get("coarse_ranker", False) else 0
     if num_ranks > 0:
-        order = sorted(enumerate(scores), key=lambda x: x[1][0], reverse=True)
+        order = sorted(enumerate(scores), key=lambda x: x[1][0], reverse=False)
         coarse_scores = []
         num_per_rank = inf_beam_size // num_ranks if inf_beam_size > num_ranks else 1
-        for i,(original_pos, val) in enumerate(order):
+        for i, (original_pos, val) in enumerate(order):
             coarse_val = i // num_per_rank if i // num_per_rank < num_ranks else num_ranks-1
             coarse_scores.append(((coarse_val, scores[original_pos][1][0]), scores[original_pos][1]))
     return scores
