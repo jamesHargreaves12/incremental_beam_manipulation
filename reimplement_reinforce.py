@@ -193,6 +193,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         print("Loading beams from", save_final_beam_path)
         load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
 
+    start = time()
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
         if save_progress_file:
             save_progress_file.write("Test {}\n".format(i))
@@ -231,6 +232,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
 
+    print("*** Time to generate text =",time()-start)
     if should_save_beams:
         print("Saving final beam states at ", save_final_beam_path)
         pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
