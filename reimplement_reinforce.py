@@ -185,8 +185,8 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     text_embedder = beam_search_model.text_embedder
 
     results = []
-    should_save_beams = save_final_beam_path and not os.path.exists(save_final_beam_path)
     should_load_beams = save_final_beam_path and os.path.exists(save_final_beam_path) and only_rerank_final
+    should_save_beams = save_final_beam_path and not should_load_beams
     load_final_beams = []
     final_beams = []
     if should_save_beams:
