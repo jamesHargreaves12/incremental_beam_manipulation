@@ -126,8 +126,8 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
         path_scores = score_beams(rescorer, beam, da_emb, i)
 
     order = sorted(enumerate(path_scores), reverse=True, key=lambda x: x[1][0])
-    if i == 0 and sections_flag:
-        print("Path scores:", [x for _, (x, _) in order])
+    # if i == 0 and sections_flag:
+    #     print("Path scores:", [x for _, (x, _) in order])
     if out_beam is not None:
         beam = out_beam
     result = [beam[i] for i, _ in order]
@@ -190,6 +190,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     load_final_beams = []
     final_beams = []
     if should_save_beams:
+        print("Loading partial beams from", save_final_beam_path)
         final_beams = pickle.load(open(save_final_beam_path, "rb"))
         print("Loaded {} from saved final beams".format(len(final_beams)))
 
@@ -198,6 +199,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
 
     start = time()
+    print("Start generating")
     for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))[len(final_beams):]):
         if save_progress_file:
             save_progress_file.write("Test {}\n".format(i))
