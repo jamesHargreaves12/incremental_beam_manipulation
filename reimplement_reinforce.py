@@ -189,12 +189,16 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     should_load_beams = save_final_beam_path and os.path.exists(save_final_beam_path) and only_rerank_final
     load_final_beams = []
     final_beams = []
+    if should_save_beams:
+        final_beams = pickle.load(open(save_final_beam_path, "rb"))
+        print("Loaded {} from saved final beams".format(len(final_beams)))
+
     if should_load_beams:
         print("Loading beams from", save_final_beam_path)
         load_final_beams = pickle.load((open(save_final_beam_path, "rb")))
 
     start = time()
-    for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))):
+    for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))[len(final_beams):]):
         if save_progress_file:
             save_progress_file.write("Test {}\n".format(i))
         inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))

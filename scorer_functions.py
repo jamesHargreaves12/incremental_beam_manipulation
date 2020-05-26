@@ -16,10 +16,10 @@ def get_regressor_score_func(regressor, text_embedder, w2v):
     return func
 
 
-def get_tgen_rerank_score_func(tgen_reranker, da_embedder):
+def get_tgen_rerank_score_func(tgen_reranker):
     def func(path, logprob, da_emb, da_i, enc_outs):
         text_emb = path[1]
-        reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb, da_embedder)
+        reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb)
         return path[0] - 100 * reranker_score
 
     return func
@@ -109,7 +109,7 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
     if scorer == "TGEN":
         tgen_reranker = TGEN_Reranker(da_embedder, text_embedder, cfg['tgen_reranker_config'])
         tgen_reranker.load_model()
-        return get_tgen_rerank_score_func(tgen_reranker, da_embedder)
+        return get_tgen_rerank_score_func(tgen_reranker)
     elif scorer == 'identity':
         return get_identity_score_func()
     elif scorer in ['oracle', 'rev_oracle']:
