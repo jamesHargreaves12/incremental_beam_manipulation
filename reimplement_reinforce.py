@@ -241,7 +241,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
 
         # This is inefficent but means that will cache
         if should_save_beams:
-            print("Saving final beam states at ", save_final_beam_path)
+            # print("Saving final beam states at ", save_final_beam_path)
             pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
     print("*** Time to generate text =",time()-start)
 
