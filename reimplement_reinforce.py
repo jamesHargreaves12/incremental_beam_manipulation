@@ -190,7 +190,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     should_save_beams = save_final_beam_path and not should_load_beams
     load_final_beams = []
     final_beams = []
-    if should_save_beams:
+    if should_save_beams and os.path.exists(save_final_beam_path):
         print("Loading partial beams from", save_final_beam_path)
         final_beams = pickle.load(open(save_final_beam_path, "rb"))
         print("Loaded {} from saved final beams".format(len(final_beams)))
