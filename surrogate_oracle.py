@@ -82,10 +82,10 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, beam_save_path=None
             elif cfg["output_type"] in ['regression_ranker', 'regression_reranker_relative']:
                 scores.append(i / (beam_size - 1))
             elif cfg["output_type"] in ['regression_sections', 'binary_classif']:
-                val = i / (beam_size - 1)
+                val = (i / (beam_size - 1))
                 regression_val = get_section_value(val, cut_offs, regression_vals,
                                                    merge_middles, only_top, only_bottom)
-                scores.append(regression_val)
+                scores.append(regression_val*2 - 1) # converts range from [0,1] to [-1,1] (which has mean of 0)
             else:
                 raise ValueError("Unknown output type")
 
