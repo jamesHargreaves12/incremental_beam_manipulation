@@ -72,7 +72,7 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, beam_save_path=None
             bleu.append(hyp, [x for x in real_texts if x not in [START_TOK, END_TOK]])
             beam_scores.append((bleu.score(), hyp, path))
 
-            log_probs.append(i)
+            # log_probs.append(i)
 
         for i, (score, hyp, path) in enumerate(sorted(beam_scores, reverse=True)):
             text_seqs.append([START_TOK] + hyp + [END_TOK])
@@ -87,11 +87,11 @@ def get_scores_ordered_beam(cfg, da_embedder, text_embedder, beam_save_path=None
                 val = (i / (beam_size - 1))
                 regression_val = get_section_value(val, cut_offs, regression_vals,
                                                    merge_middles, only_top, only_bottom)
-                scores.append(regression_val*2 - 1) # converts range from [0,1] to [-1,1] (which has mean of 0)
+                scores.append(regression_val) # converts range from [0,1] to [-1,1] (which has mean of 0)
             else:
                 raise ValueError("Unknown output type")
 
-            # log_probs.append([path[0]])
+            log_probs.append([path[0]])
 
     text_seqs = np.array(text_embedder.get_embeddings(text_seqs, pad_from_end=False))
     da_seqs = np.array(da_embedder.get_embeddings(da_seqs))
