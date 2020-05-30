@@ -26,7 +26,7 @@ CONFIGS_DIR = 'new_configs'
 CONFIGS_MODEL_DIR = 'new_configs/model_configs'
 TRAIN_BEAM_SAVE_FORMAT = 'output_files/saved_beams/train_vanilla_{}_{}.pickle'
 TEST_BEAM_SAVE_FORMAT = 'output_files/saved_beams/vanilla_{}.pickle'
-
+VALIDATION_NOT_TEST= True
 
 def construct_logs(beam_size):
     debug_stream = open("output_files/debug_files/output_gen_{}.txt".format(beam_size), "w+")
@@ -67,7 +67,10 @@ class RERANK(Enum):
 
 
 def get_true_sents():
-    true_file = "tgen/e2e-challenge/input/devel-text.txt"
+    if VALIDATION_NOT_TEST:
+        true_file = "tgen/e2e-challenge/input/devel-text.txt"
+    else:
+        true_file = "tgen/e2e-challenge/input/test-text.txt"
 
     true_sentences = []
     with open(true_file, "r") as true:
@@ -153,7 +156,12 @@ def get_multi_reference_training_variables():
 
 
 def get_test_das():
-    das = read_das("tgen/e2e-challenge/input/devel-das.txt")
+    if VALIDATION_NOT_TEST:
+        das_file = "tgen/e2e-challenge/input/devel-das.txt"
+    else:
+        das_file = "tgen/e2e-challenge/input/test-das.txt"
+
+    das = read_das(das_file)
     return das
 
 
@@ -162,7 +170,12 @@ def get_abstss_train():
 
 
 def get_abstss_test():
-    return smart_load_absts('tgen/e2e-challenge/input/devel-abst.txt')
+    if VALIDATION_NOT_TEST:
+        absts_file = 'tgen/e2e-challenge/input/devel-abst.txt'
+    else:
+        absts_file = 'tgen/e2e-challenge/input/test-abst.txt'
+
+    return smart_load_absts(absts_file)
 
 
 def get_final_beam(beam_size, train=False):
