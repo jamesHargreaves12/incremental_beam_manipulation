@@ -5,12 +5,15 @@ import time
 
 from e2e_metrics.metrics.pymteval import BLEUScore
 from e2e_metrics.measure_scores import load_data
-from utils import RESULTS_DIR
+from utils import RESULTS_DIR, VALIDATION_NOT_TEST
 
 
 def test_res_official(pred_file_name):
     pred_file = os.path.join(RESULTS_DIR, pred_file_name)
-    true_file = "tgen/e2e-challenge/input/devel-conc.txt"
+    if VALIDATION_NOT_TEST:
+        true_file = "tgen/e2e-challenge/input/devel-conc.txt"
+    else:
+        true_file = "tgen/e2e-challenge/input/test-conc.txt"
     _, data_ref, data_sys = load_data(true_file, pred_file)
 
     bleu = BLEUScore()
