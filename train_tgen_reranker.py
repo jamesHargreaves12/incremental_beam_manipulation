@@ -16,9 +16,9 @@ das_inclusions = np.array([da_embedder.get_inclusion(da) for da in das] + [da_em
 reranker = TGEN_Reranker(da_embedder, text_embedder, cfg_path)
 if os.path.exists(cfg["reranker_loc"]) and cfg["load_reranker"]:
     reranker.load_model()
-else:
-    valid_size = cfg['valid_size']
-    reranker.train(das_inclusions, train_text, cfg["epoch"], cfg["valid_size"])
+
+
+reranker.train(das_inclusions, train_text, cfg["epoch"], cfg["valid_size"])
 if cfg["plot_reranker_stats"]:
     preds = reranker.predict(train_text)
     ham_dists = [get_hamming_distance(x, y) for x, y in zip(preds, das_inclusions)]
