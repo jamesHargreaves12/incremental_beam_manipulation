@@ -575,7 +575,7 @@ class TGEN_Reranker(object):
         return valid_loss
 
     def train(self, da_inclusion, text_seqs, epoch, valid_size, min_epoch=5):
-        print("Number of each input = ", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
+        # print("Number of each input = ", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
 
         valid_inc = da_inclusion[-valid_size:]
         valid_text = text_seqs[-valid_size:]
@@ -584,6 +584,8 @@ class TGEN_Reranker(object):
         valid_losses = []
         min_valid_loss = math.inf
         epoch_since_last_min = 0
+        valid_loss = self.get_valid_loss(valid_inc, valid_text)
+        print("Initial valid loss", valid_loss)
         for ep in range(epoch):
             start = time()
             losses = 0
