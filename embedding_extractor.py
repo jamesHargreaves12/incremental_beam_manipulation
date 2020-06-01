@@ -25,7 +25,7 @@ class TokEmbeddingSeq2SeqExtractor(object):
     def get_embeddings(self, tokenised_texts, pad_from_end=True):
         embs = []
         for toks in tokenised_texts:
-            emb = [self.tok_to_embed.get(x, PAD_TOK) for x in toks]
+            emb = [self.tok_to_embed.get(x, self.tok_to_embed[PAD_TOK]) for x in toks]
             pad = [self.tok_to_embed[PAD_TOK] for _ in range(self.length - len(toks))]
             if pad_from_end:
                 embs.append(emb + pad)

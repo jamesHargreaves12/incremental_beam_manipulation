@@ -93,12 +93,20 @@ for beam_size in cfg["beam_sizes"]:
             raise ValueError('Not saving files any where')
         save_filename_update = "-".join([str(x) for x in gred_comp]) + save_filename
         save_path = os.path.join(RESULTS_DIR, save_filename_update)
-        post_abstr = apply_absts(absts, preds)
+        if cfg.get("re-lexicalise",True):
+            print("Applying abstract")
+            post_abstr = apply_absts(absts, preds)
+        else:
+            print("Abstract not applied")
+            post_abstr = preds
         print("Saving to {}".format(save_path))
         with open(save_path, "w+") as out_file:
             for pa in post_abstr:
                 # out_file.write(" ".join(pa) + '\n')
-                out_file.write(postprocess(" ".join(pa)) + '\n')
+                if cfg.get("re-lexicalise", True):
+                    out_file.write(postprocess(" ".join(pa)) + '\n')
+                else:
+                    out_file.write(" ".join(pa) + '\n')
         print("Official bleu score:", test_res_official(save_filename_update))
 
 print_results()
