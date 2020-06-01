@@ -628,7 +628,7 @@ class TGEN_Reranker(object):
 
     def load_model(self):
         print("Loading reranker from {}".format(self.save_location))
-        self.model = load_model(os.path.join(self.save_location, "model.h5"))
+        load_model_from_gpu(self.model, os.path.join(self.save_location, "model.h5"))
 
     def save_model(self):
         print("Saving reranker at {}".format(self.save_location))
