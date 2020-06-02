@@ -1,0 +1,9 @@
+itgen_seq2seq_config: "new_configs/model_configs/seq2seq_model.yaml"
+scorer: 'identity'
+res_save_format:
+  'ignore-{}.txt'
+beam_sizes:
+ - 50
+only_rerank_final: false
+beam_save_path: "output_files/saved_beams/train_vanilla_{}.pickle"
+get_train_beam: true
