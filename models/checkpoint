@@ -1,2 +1,0 @@
-model_checkpoint_path: "tgen_reimplement.tf"
-all_model_checkpoint_paths: "tgen_reimplement.tf"
