@@ -1,0 +1,10 @@
+train_batch_size: 16
+hidden_size: 128
+embedding_size: 50
+model_save_loc: "models/seq2seq"
+use_size: 100000
+valid_size: 100
+epoch: 150
+min_epoch: 30
+with_empty_train: false
+

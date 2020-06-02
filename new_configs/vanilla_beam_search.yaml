@@ -1,0 +1,10 @@
+tgen_seq2seq_config: "new_configs/seq2seq_model.yaml"
+scorer: 'identity'
+res_save_format:
+  'beam_search-{}.txt'
+beam_sizes:
+  - 3 
+  - 5
+  - 10
+  - 30
+only_rerank_final: false
