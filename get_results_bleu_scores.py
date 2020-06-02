@@ -25,11 +25,12 @@ def test_res_official(pred_file_name):
         bleu.reset()
         bleu.append(sent_sys, sents_ref)
         bleu_scores.append(bleu.score())
-    print(bleu_scores)
     # return the computed scores
-    bleu = bleu.score()
+    total_bleu_score = bleu.score()
+    if total_bleu_score > 0.6:
+        print(bleu_scores)
 
-    return bleu
+    return total_bleu_score
 
 
 def print_results():
