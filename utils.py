@@ -13,7 +13,6 @@ import numpy as np
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from enum import Enum
-from tgen.logf import set_debug_stream
 from tgen.futil import read_das
 from tgen.futil import smart_load_absts
 from regex import Regex, UNICODE, IGNORECASE
@@ -27,10 +26,6 @@ CONFIGS_MODEL_DIR = 'new_configs/model_configs'
 TRAIN_BEAM_SAVE_FORMAT = 'output_files/saved_beams/train_vanilla_{}_{}.pickle'
 TEST_BEAM_SAVE_FORMAT = 'output_files/saved_beams/vanilla_{}.pickle'
 VALIDATION_NOT_TEST= True
-
-def construct_logs(beam_size):
-    debug_stream = open("output_files/debug_files/output_gen_{}.txt".format(beam_size), "w+")
-    set_debug_stream(debug_stream)
 
 
 def normalise(s):
