@@ -20,13 +20,13 @@ def test_res_official(pred_file_name):
     for sents_ref, sent_sys in zip(data_ref, data_sys):
         bleu.append(sent_sys, sents_ref)
 
+    total_bleu_score = bleu.score()
     bleu_scores = []
     for sents_ref, sent_sys in zip(data_ref, data_sys):
         bleu.reset()
         bleu.append(sent_sys, sents_ref)
         bleu_scores.append(bleu.score())
     # return the computed scores
-    total_bleu_score = bleu.score()
     if total_bleu_score > 0.6:
         print(bleu_scores)
 
