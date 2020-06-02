@@ -32,4 +32,6 @@ The comands setup the data from the e2e-dataset for use in this thesis
  To test beam manipulator:
  python3 get_results.py -c new_configs/bm_test.yaml
  
+ To view the bleu scores of the experiments:
+ python3 get_results_bleu_scores.py
  For information on running further experiments contact jameshargreaves12@gmail.com
