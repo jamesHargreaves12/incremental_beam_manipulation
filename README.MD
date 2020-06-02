@@ -20,7 +20,7 @@ The comands setup the data from the e2e-dataset for use in this thesis
  cd ../../.. 
  
  To train the Seq2seq model:
- python3 TrainSeq2Seq.py -c new_configs/model_configs/seq2seq_model.yaml
+ python3 train_seq2seq.py -c new_configs/model_configs/seq2seq_model.yaml
  
  To test the vanilla beam search:
  python3 get_results.py -c new_configs/vanilla_beam_search.yaml
