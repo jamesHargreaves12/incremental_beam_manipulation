@@ -3,6 +3,7 @@ import os
 import random
 import sys
 import yaml
+from pathlib import Path
 
 from base_models import TGEN_Model, TGEN_Reranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
@@ -54,6 +55,11 @@ for beam_size in cfg["beam_sizes"]:
     beam_save_path = cfg.get('beam_save_path', '')
     if beam_save_path:
         beam_save_path = beam_save_path.format(beam_size)
+
+    parent = os.path.abspath(os.path.join(beam_save_path, os.pardir))
+    if not os.path.exists(parent):
+        os.makedirs(parent)
+
     # This is a horrible hack
     if "train_reranker" in cfg and cfg["train_reranker"]["output_type"] in ["pair"]:
         scorer_func = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
@@ -100,6 +106,9 @@ for beam_size in cfg["beam_sizes"]:
             print("Abstract not applied")
             post_abstr = preds
         print("Saving to {}".format(save_path))
+        parent = os.path.abspath(os.path.join(save_path, os.pardir))
+        if not os.path.exists(parent):
+            os.makedirs(parent)
         with open(save_path, "w+") as out_file:
             for pa in post_abstr:
                 # out_file.write(" ".join(pa) + '\n')
