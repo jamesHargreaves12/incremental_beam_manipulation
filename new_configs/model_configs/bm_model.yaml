@@ -3,7 +3,7 @@ epoch: 150
 training_batch_size: 16
 hidden_size: 128
 embedding_size: 50
-tgen_seq2seq_config: "new_configs/model_configs/seq2seq_all_data.yaml"
+tgen_seq2seq_config: "new_configs/model_configs/seq2seq_model.yaml"
 min_training_passes: 30
 show_reranker_post_training_stats: false
 train: true
