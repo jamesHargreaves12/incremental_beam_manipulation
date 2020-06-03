@@ -18,7 +18,7 @@ from utils import get_training_variables, START_TOK, PAD_TOK, END_TOK, get_multi
 from base_models import TGEN_Model, TrainableReranker, PairwiseReranker
 from e2e_metrics.metrics.pymteval import BLEUScore
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
-from reimplement_reinforce import run_beam_search_with_rescorer
+from beam_search import run_beam_search_with_rescorer
 from scorer_functions import get_score_function
 
 
