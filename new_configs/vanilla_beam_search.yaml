@@ -1,4 +1,4 @@
-tgen_seq2seq_config: "new_configs/seq2seq_model.yaml"
+tgen_seq2seq_config: "new_configs/model_configs/seq2seq_model.yaml"
 scorer: 'identity'
 res_save_format:
   'beam_search-{}.txt'

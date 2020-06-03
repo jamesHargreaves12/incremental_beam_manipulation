@@ -1,1 +1,23 @@
-TODO
+valid_size: 1500
+epoch: 150
+training_batch_size: 16
+hidden_size: 128
+embedding_size: 50
+tgen_seq2seq_config: "new_configs/model_configs/seq2seq_all_data.yaml"
+min_training_passes: 30
+show_reranker_post_training_stats: false
+train: true
+output_type: 'regression_sections'
+logprob_preprocess_type: 'categorical_order'
+beam_size: 30
+dropout: 0.0
+too_close_limit: 0.01
+num_ranks: 4
+with_refs_train: false
+merge_middle_sections: false
+only_top: false
+only_bottom: true
+loss_function: 'absolute_error'
+reranker_loc: 'models/bm'
+beam_save_path: "output_files/saved_beams/train_vanilla_30.pickle"
+
