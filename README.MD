@@ -15,23 +15,23 @@ These next commands are needed to use the e2e_metrics without change working dir
 
 The comands setup the data from the e2e-dataset for use in this thesis 
 - cd tgen/e2e-challenge/input
-./convert.py -a name,near -n ../../../e2e-dataset/trainset.csv train
-./convert.py -a name,near -n -m ../../../e2e-dataset/devset.csv devel
- cd ../../.. 
+- ./convert.py -a name,near -n ../../../e2e-dataset/trainset.csv train
+- ./convert.py -a name,near -n -m ../../../e2e-dataset/devset.csv devel
+- cd ../../.. 
  
  To train the Seq2seq model:
- python3 train_seq2seq.py -c new_configs/model_configs/seq2seq_model.yaml
+- python3 train_seq2seq.py -c new_configs/model_configs/seq2seq_model.yaml
  
  To test the vanilla beam search:
- python3 get_results.py -c new_configs/vanilla_beam_search.yaml
+- python3 get_results.py -c new_configs/vanilla_beam_search.yaml
  
  To train beam manipulator model:
- python3 get_results.py -c new_configs/setup_bm_traindata.yaml
- python3 train_beam_manipulator.py -c new_configs/model_configs/bm_model.yaml
+- python3 get_results.py -c new_configs/setup_bm_traindata.yaml
+- python3 train_beam_manipulator.py -c new_configs/model_configs/bm_model.yaml
  
  To test beam manipulator:
- python3 get_results.py -c new_configs/bm_test.yaml
+- python3 get_results.py -c new_configs/bm_test.yaml
  
  To view the bleu scores of the experiments:
- python3 get_results_bleu_scores.py
+- python3 get_results_bleu_scores.py
  For information on running further experiments contact jameshargreaves12@gmail.com
