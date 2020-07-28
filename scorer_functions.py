@@ -36,6 +36,8 @@ def get_length_normalised_score_func(alpha):
     def func(path, logprob, da_emb, da_i, beam_size):
         return path[0] * pow(len(path[1]), alpha)
 
+    return func
+
 # def get_greedy_decode_score_func(models, final_scorer, max_length_out, save_scores=None):
 #     def func(path, logprob, da_emb, da_i, enc_outs):
 #         path = models.naive_complete_greedy(path, enc_outs, max_length_out - len(path[1]))
