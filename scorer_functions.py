@@ -35,6 +35,7 @@ def get_identity_score_func():
 power_cache = {}
 
 
+#This cache appears not to be speeding things up
 def get_power(num, power):
     key = (num, power)
     if key in power_cache:
@@ -47,7 +48,7 @@ def get_power(num, power):
 
 def get_length_normalised_score_func(alpha):
     def func(path, logprob, da_emb, da_i, beam_size):
-        return path[0] * get_power(len(path[1]), alpha)
+        return path[0] / get_power(len(path[1]), alpha)
 
     return func
 
@@ -122,7 +123,7 @@ def get_learned_score_func(trainable_reranker, select_max=False, reverse_order=F
     return func
 
 
-def get_score_function(scorer, cfg, models, true_vals, beam_size):
+def get_score_function(scorer, cfg, models, true_vals, beam_size, alpha=0.65):
     da_embedder = models.da_embedder
     text_embedder = models.text_embedder
     print("Using Scorer: {}".format(scorer))
@@ -144,6 +145,6 @@ def get_score_function(scorer, cfg, models, true_vals, beam_size):
     elif scorer == 'random':
         return get_random_score_func()
     elif scorer == 'length_normalised':
-        return get_length_normalised_score_func(0.65)
+        return get_length_normalised_score_func(alpha)
     else:
         raise ValueError("Unknown Scorer {}".format(cfg['scorer']))
