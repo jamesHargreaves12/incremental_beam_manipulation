@@ -38,6 +38,8 @@ def print_results():
     print(sys.argv)
     filename_bs = []
     for filename in os.listdir(RESULTS_DIR):
+        if '*'in filename:
+            continue
         splits = filename.split('-')
         beam_size = int(splits[-1].split('.')[0])
         filter_name = '-'.join(splits[:-1])
