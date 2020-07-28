@@ -157,7 +157,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         if step in greedy_complete and rescorer is not None:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len,
                                                      cfg)
-        elif not greedy_complete and rescorer is not None and rescorer != 'identity':
+        elif not greedy_complete and rescorer is not None and cfg['scorer'] != 'identity':
             paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, cfg)
         else:
             paths = sorted(new_paths, reverse=True)
