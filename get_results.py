@@ -64,7 +64,7 @@ for beam_size in cfg["beam_sizes"]:
     if "train_reranker" in cfg and cfg["train_reranker"]["output_type"] in ["pair"]:
         scorer_func = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
     else:
-        alpha = 0.65 if 'alpha' not in cfg else cfg['alpha']
+        alpha = 0.65 if 'alpha' not in cfg else cfg['alpha'][beam_size]
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size, alpha)
     max_pred_len = 60
     if "greedy_complete_at" in cfg:
