@@ -32,11 +32,25 @@ def get_identity_score_func():
     return func
 
 
+power_cache = {}
+
+
+def get_power(num, power):
+    key = (num, power)
+    if key in power_cache:
+        return power_cache[key]
+    else:
+        val = pow(num, power)
+        power_cache[key] = val
+        return val
+
+
 def get_length_normalised_score_func(alpha):
     def func(path, logprob, da_emb, da_i, beam_size):
-        return path[0] * pow(len(path[1]), alpha)
+        return path[0] * get_power(len(path[1]), alpha)
 
     return func
+
 
 # def get_greedy_decode_score_func(models, final_scorer, max_length_out, save_scores=None):
 #     def func(path, logprob, da_emb, da_i, enc_outs):
@@ -77,7 +91,7 @@ def get_learned_score_func(trainable_reranker, select_max=False, reverse_order=F
         pads = [trainable_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
                (trainable_reranker.text_embedder.length - len(text_emb))
         if trainable_reranker.logprob_preprocess_type == 'categorical_order':
-            logprob_rank = logprob*trainable_reranker.beam_size // beam_size
+            logprob_rank = logprob * trainable_reranker.beam_size // beam_size
             logprob_val = to_categorical([logprob_rank], num_classes=trainable_reranker.beam_size)
         else:
             logprob_val = [path[0]]
@@ -88,18 +102,18 @@ def get_learned_score_func(trainable_reranker, select_max=False, reverse_order=F
             np.array(logprob_val))
 
         if trainable_reranker.output_type in ["regression_ranker", "regression_reranker_relative"]:
-            return 1-pred[0][0]
+            return 1 - pred[0][0]
         elif trainable_reranker.output_type in ["regression_sections"]:
             if reverse_order:
                 return -pred[0][0], path[0]
             return pred[0][0], path[0]
         elif trainable_reranker.output_type in ["binary_classif"]:
             pred = 1 if pred[0][0] > 0.5 else 0
-            return 1-pred, path[0]
+            return 1 - pred, path[0]
 
         if select_max:
             max_pred = np.argmax(pred[0])
-            return 10-max_pred, pred[0][0]
+            return 10 - max_pred, pred[0][0]
         elif reverse_order:
             return -pred[0][0]
         else:
