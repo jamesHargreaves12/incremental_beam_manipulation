@@ -8,7 +8,7 @@ from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2Seq
 from utils import get_training_variables, get_hamming_distance, get_true_sents, get_test_das
 cfg_path = "new_configs/model_configs/tgen-reranker.yaml"
 cfg = yaml.load(open(cfg_path, "r"))
-texts, das, = get_training_variables()
+texts, das = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
 da_embedder = DAEmbeddingSeq2SeqExtractor(das)
 train_text = np.array(text_embedder.get_embeddings(texts, pad_from_end=False) + [text_embedder.empty_embedding])

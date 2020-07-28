@@ -709,6 +709,7 @@ class TGEN_Model(object):
         self.decoder_model = None
         self.with_empty_train = cfg["with_empty_train"]
         self.set_up_models()
+        self.cfg = cfg
 
     def get_valid_loss(self, valid_da_seq, valid_text_seq, multi_ref):
         valid_loss = 0

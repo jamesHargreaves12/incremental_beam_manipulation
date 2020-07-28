@@ -80,7 +80,7 @@ for beam_size in cfg["beam_sizes"]:
                                               only_rerank_final=cfg['only_rerank_final'],
                                               save_final_beam_path=beam_save_path,
                                               greedy_complete=gred_comp,
-                                              max_pred_len=60,
+                                              max_pred_len=max_pred_len,
                                               save_progress_path=cfg.get('save_progress_file', None),
                                               also_rerank_final=cfg.get('also_rerank_final', False),
                                               cfg=cfg)
