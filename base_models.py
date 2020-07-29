@@ -17,7 +17,8 @@ import keras.backend as K
 from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.utils import to_categorical
 from tensorflow.python.keras.models import Model, load_model
-from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM, Dropout
+from tensorflow.python.keras.layers import LSTM, TimeDistributed, Dense, Concatenate, Input, Embedding, CuDNNLSTM, \
+    Dropout
 from tqdm import tqdm
 
 from attention_keras.layers.attention import AttentionLayer
@@ -205,8 +206,9 @@ class PairwiseReranker(object):
                 for j in range(i + 1, self.beam_size):
                     text_1, lp_1, score_1 = vals[i]
                     text_2, lp_2, score_2 = vals[j]
-                    assert(score_1 >= score_2)
-                    if abs(score_1 - score_2) < self.too_close_limit or i // number_of_each_rank == j // number_of_each_rank:
+                    assert (score_1 >= score_2)
+                    if abs(
+                            score_1 - score_2) < self.too_close_limit or i // number_of_each_rank == j // number_of_each_rank:
                         continue
                     if bottom_only and j // number_of_each_rank != num_ranks - 1:
                         continue
@@ -228,7 +230,8 @@ class PairwiseReranker(object):
 
         return das_set, text_1_set, text_2_set, lp_1_set, lp_2_set, output_set
 
-    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, num_ranks, only_bottom=False,  only_top=False, min_passes=5):
+    def train(self, text_seqs, das_seqs, bleu_scores, log_probs, epoch, valid_size, num_ranks, only_bottom=False,
+              only_top=False, min_passes=5):
         min_valid_loss = math.inf
         epoch_since_minimum = 0
         print("Number of each input = ", text_seqs.shape, das_seqs.shape, log_probs.shape, bleu_scores.shape)
@@ -294,7 +297,7 @@ class PairwiseReranker(object):
             train_loss = sum(losses) / len(losses)
             valid_acc = self.get_valid_loss(valid_das_set, valid_text_1_set, valid_text_2_set, valid_lp_1_set,
                                             valid_lp_2_set, valid_output_set)
-            valid_loss = 1-valid_acc
+            valid_loss = 1 - valid_acc
             print('\nEpoch {} Train: {:.4f} Valid_miss: {:.4f}'.format(ep, train_loss, valid_acc))
             if valid_loss < min_valid_loss:
                 min_valid_loss = valid_loss
@@ -446,7 +449,7 @@ class TrainableReranker(object):
         bleu_scores = np.array(bleu_scores)
 
         norm_log_probs = []
-        for beam_start in range(0, text_seqs.shape[0] - self.beam_size+1, self.beam_size):
+        for beam_start in range(0, text_seqs.shape[0] - self.beam_size + 1, self.beam_size):
             beam_lp = log_probs[beam_start: beam_start + self.beam_size]
             norm_log_probs.extend(self.setup_lps(beam_lp))
 
@@ -687,7 +690,7 @@ class Regressor(object):
 def flatten_multi_ref(da_seqs, text_seqs):
     res_da = []
     res_text = []
-    for da,ts in zip(da_seqs, text_seqs):
+    for da, ts in zip(da_seqs, text_seqs):
         for t in ts:
             res_da.append(da)
             res_text.append(t)
@@ -717,7 +720,7 @@ class TGEN_Model(object):
             bleu = BLEUScore()
             for da, ts in tqdm(zip(valid_da_seq, valid_text_seq)):
                 bleu.append(self.make_prediction(da, max_length=60).split(' '), ts)
-            return 1-bleu.score()
+            return 1 - bleu.score()
         else:
             valid_onehot_seq = to_categorical(valid_text_seq, num_classes=self.vsize_out)
             for bi in range(0, valid_da_seq.shape[0] - self.batch_size, self.batch_size):
@@ -740,7 +743,8 @@ class TGEN_Model(object):
             text_seq = np.array(self.text_embedder.get_embeddings(text_seq, pad_from_end=True))
             da_seq = self.da_embedder.get_embeddings(da_seq)
         else:
-            text_seq = np.array(self.text_embedder.get_embeddings(text_seq, pad_from_end=True) + [self.text_embedder.empty_embedding])
+            text_seq = np.array(
+                self.text_embedder.get_embeddings(text_seq, pad_from_end=True) + [self.text_embedder.empty_embedding])
             da_seq = self.da_embedder.get_embeddings(da_seq) + [self.da_embedder.empty_embedding]
 
         valid_da_seq = self.da_embedder.get_embeddings(valid_da_seq)
@@ -775,7 +779,7 @@ class TGEN_Model(object):
                 valid_loss = valid_loss / valid_da_seq.shape[0] * self.batch_size
 
             print("({:.2f}s) Epoch {} Loss: {:.4f} Valid: {:.4f}".format(time_taken, ep + 1,
-                                                                            train_loss, valid_loss))
+                                                                         train_loss, valid_loss))
             if valid_loss < min_valid_loss:
                 self.save_model()
                 min_valid_loss = valid_loss
@@ -805,7 +809,12 @@ class TGEN_Model(object):
         self.encoder_model.save(os.path.join(self.save_location, "enc.h5"), save_format='h5')
         self.decoder_model.save(os.path.join(self.save_location, "dec.h5"), save_format='h5')
 
-    def beam_search_exapand(self, paths, enc_outs, beam_size):
+    def beam_search_exapand(self, paths, enc_outs, beam_size, beam_search=True, top_p=None):
+        # Either nucleus sampling (top_p) or beam search
+        assert not beam_search or top_p is None
+        assert beam_search or top_p is not None
+        assert top_p is None or top_p < 1
+
         filled_paths = paths.copy()
         while len(filled_paths) < beam_size:
             filled_paths.append(paths[0])
@@ -814,8 +823,8 @@ class TGEN_Model(object):
         batch_dec_state_0 = []
         batch_dec_state_1 = []
         batch_tok = []
-        for _, tok, dec_state in filled_paths:
-            batch_tok.append([tok[-1]])
+        for _, toks, dec_state in filled_paths:
+            batch_tok.append([toks[-1]])
             batch_dec_state_0.append(dec_state[0][0])
             batch_dec_state_1.append(dec_state[1][0])
         inp = [batch_enc_outs, np.array(batch_dec_state_0), np.array(batch_dec_state_1), np.array(batch_tok)]
@@ -831,14 +840,50 @@ class TGEN_Model(object):
             if toks[-1] in self.text_embedder.end_embs:
                 new_paths.append((lp, toks, ds))
                 continue
-            top_k = np.argsort(dec_out, axis=-1)[0][-beam_size:]
+            if beam_search:
+                expansions = np.argsort(dec_out, axis=-1)[0][-beam_size:]
+            else:
+                sorted_probs = np.sort(dec_out, axis=-1)[0][::-1]
+                nucleus_size = 0
+                nucleus_prob = 0
+                while nucleus_prob < top_p:
+                    nucleus_prob += sorted_probs[nucleus_size]
+                    nucleus_size += 1
+
+                rand = random.random() * nucleus_prob
+                cum_sum = 0
+                sample_index = nucleus_size - 1
+                for i in range(nucleus_size):
+                    cum_sum += sorted_probs[i]
+                    if cum_sum > rand:
+                        sample_index = i
+                        break
+                sample = np.argsort(dec_out, axis=-1)[0][::-1][sample_index]
+                expansions = [sample]
+
             ds0 = ds0.reshape((1, -1))
             ds1 = ds1.reshape((1, -1))
-            tok_prob = dec_out[0][top_k]
-            for new_tok, tp in zip(top_k, tok_prob):
+            tok_prob = dec_out[0][expansions]
+            for new_tok, tp in zip(expansions, tok_prob):
                 tok_probs.append(tp)
                 new_paths.append((lp + log(tp), toks + [new_tok], [ds0, ds1]))
         return new_paths, tok_probs
+
+    def get_prob_sequence(self, enc_outs, sequence, encoder_end_states):
+        probs = []
+        dec_state_0 = encoder_end_states[0]
+        dec_state_1 = encoder_end_states[1]
+        cum_prob = log(1.0)
+        for i in range(1, len(sequence)):
+            inp = [np.array(enc_outs), np.array(dec_state_0), np.array(dec_state_1),
+                   np.array([sequence[i-1]])]
+            out = self.decoder_model.predict(inp)
+            prob_tok = out[0][0][0][sequence[i]]
+            cum_prob += log(prob_tok)
+            probs.append(log(prob_tok))
+            dec_state_0 = out[1]
+            dec_state_1 = out[2]
+        return probs
 
     def make_prediction(self, encoder_in, beam_size=1, prev_tok=None, max_length=20):
         if prev_tok is None:
@@ -871,7 +916,7 @@ class TGEN_Model(object):
 
     def beam_complete_greedy(self, paths, enc_outs, max_length):
         for i in range(max_length):
-            paths,_ = self.beam_search_exapand(paths, enc_outs, 1)
+            paths, _ = self.beam_search_exapand(paths, enc_outs, 1)
             if all([p[1][-1] in self.text_embedder.end_embs for p in paths]):
                 break
         return paths
@@ -885,7 +930,7 @@ class TGEN_Model(object):
         encoder_inputs = Input(batch_shape=(self.batch_size, len_in), name='encoder_inputs')
         decoder_inputs = Input(batch_shape=(self.batch_size, len_out - 1), name='decoder_inputs')
 
-        embed_enc = Embedding(input_dim=vsize_in, output_dim=self. embedding_size)
+        embed_enc = Embedding(input_dim=vsize_in, output_dim=self.embedding_size)
         encoder_lstm = lstm_type(self.lstm_size, return_sequences=True, return_state=True, name='encoder_lstm')
         en_lstm_out = encoder_lstm(embed_enc(encoder_inputs))
         encoder_out = en_lstm_out[0]

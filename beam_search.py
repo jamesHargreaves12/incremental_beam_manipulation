@@ -71,8 +71,8 @@ def score_beams_pairwise(beam, pair_wise_model, da_emb, cfg):
         coarse_scores = []
         num_per_rank = inf_beam_size // num_ranks if inf_beam_size > num_ranks else 1
         for i, (original_pos, val) in enumerate(order):
-            coarse_val = i // num_per_rank if i // num_per_rank < num_ranks else num_ranks-1
-            if cfg["train_reranker"]["only_bottom"] and coarse_val != num_ranks-1:
+            coarse_val = i // num_per_rank if i // num_per_rank < num_ranks else num_ranks - 1
+            if cfg["train_reranker"]["only_bottom"] and coarse_val != num_ranks - 1:
                 coarse_val = 0
             elif cfg["train_reranker"]["only_top"] and coarse_val != 0:
                 coarse_val = 1
@@ -119,7 +119,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
                     scored_finished_beams]
 
         recorded_sections.extend(sections)
-        path_scores = [((1-x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
+        path_scores = [((1 - x, y[1]), z) for x, (y, z) in zip(sections, scored_finished_beams)]
     elif pairwise_flag:
         path_scores = score_beams_pairwise(beam, rescorer, da_emb, cfg)
     else:
@@ -128,7 +128,7 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
     order = sorted(enumerate(path_scores), reverse=True, key=lambda x: x[1][0])
     if i == 0 and sections_flag:
         print("Path scores:", [x for _, (x, _) in order])
-        print([x for x,_ in scored_finished_beams])
+        print([x for x, _ in scored_finished_beams])
     if out_beam is not None:
         beam = out_beam
     result = [beam[i] for i, _ in order]
@@ -144,6 +144,35 @@ def order_beam_after_greedy_complete(rescorer, beam, da_emb, i, enc_outs, seq2se
             break
     result = order_beam_acording_to_rescorer(rescorer, finished_beam, da_emb, i, cfg, beam)
     return result
+
+
+def run_nucleus_sampling(beam_search_model: TGEN_Model, das, cfg, max_pred_len=60):
+    da_embedder = beam_search_model.da_embedder
+    text_embedder = beam_search_model.text_embedder
+
+    results = []
+    final_beams = []
+
+    start = time()
+    print("Start generating")
+    for i, da_emb in tqdm(list(enumerate(da_embedder.get_embeddings(das)))[len(final_beams):]):
+        inf_enc_out = beam_search_model.encoder_model.predict(np.array([da_emb]))
+        enc_outs = inf_enc_out[0]
+        enc_last_state = inf_enc_out[1:]
+        paths = [(log(1.0), text_embedder.start_emb, enc_last_state)]
+
+        end_tokens = beam_search_model.text_embedder.end_embs
+        for step in range(max_pred_len):
+            paths, _ = beam_search_model.beam_search_exapand(paths, enc_outs, 1, beam_search=False, top_p=cfg['top_p'])
+            if all([p[1][-1] in end_tokens for p in paths]):
+                break
+
+        best_path = paths[0]
+        pred_toks = text_embedder.reverse_embedding(best_path[1])
+        results.append(pred_toks)
+    print("*** Time to generate text =", time() - start)
+
+    return results
 
 
 def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq, cfg,
@@ -245,13 +274,12 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         if should_save_beams:
             # print("Saving final beam states at ", save_final_beam_path)
             pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
-    print("*** Time to generate text =",time()-start)
+    print("*** Time to generate text =", time() - start)
 
     if recorded_sections:
         print("SECTIONS:", Counter(recorded_sections))
 
     return results
-
 
 # def get_best_from_beam_pairwise(beam, pair_wise_model, da_emb):
 #     path_scores = score_beams_pairwise(beam, pair_wise_model, da_emb)
