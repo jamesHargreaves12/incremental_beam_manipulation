@@ -93,12 +93,15 @@ def score_beams(rescorer, beam, da_emb, i):
 recorded_sections = []
 
 
-def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None):
+# Ignore flags is a horrible hack to get non-greedy-rescorers not to use sections/pairwise flags of greedy
+# TODO pass in the value of the flags and then can controll these at a level where can distinguish between
+# greedy and non greedy
+def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=None, ignore_flags=False):
     # this only works if rescorer is the one used in cfg
     global recorded_sections
     if "train_reranker" in cfg:
-        sections_flag = cfg["train_reranker"]["output_type"] in ['regression_sections']
-        pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair']
+        sections_flag = cfg["train_reranker"]["output_type"] in ['regression_sections'] and not ignore_flags
+        pairwise_flag = cfg["train_reranker"]["output_type"] in ['pair'] and not ignore_flags
     else:
         sections_flag = False
         pairwise_flag = False
@@ -187,7 +190,7 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len,
                                                      cfg)
         elif step not in greedy_complete and non_greedy_rescorer is not None and cfg['non_greedy_scorer'] != 'identity':
-            paths = order_beam_acording_to_rescorer(non_greedy_rescorer, new_paths, da_emb, i, cfg)
+            paths = order_beam_acording_to_rescorer(non_greedy_rescorer, new_paths, da_emb, i, cfg, ignore_flags=True)
         elif not greedy_complete and rescorer is not None and cfg['scorer'] != 'identity':
             paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, cfg)
         else:
