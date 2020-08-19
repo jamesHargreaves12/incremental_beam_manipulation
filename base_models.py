@@ -62,6 +62,7 @@ def relative_logcosh_loss(actual, pred):
 
 def get_training_set_min_max_lp(beam_size):
     if os.path.exists(TRAIN_BEAM_SAVE_FORMAT.format(beam_size)):
+        raise Exception('This method needs updating since beam size is specified in cfg now')
         beam_save_path = TRAIN_BEAM_SAVE_FORMAT.format(beam_size)
         final_beams = pickle.load(open(beam_save_path, "rb"))
         lps = []
@@ -813,7 +814,7 @@ class TGEN_Model(object):
         # Either nucleus sampling (top_p) or beam search
         assert not beam_search or top_p is None
         assert beam_search or top_p is not None
-        assert top_p is None or top_p < 1
+        assert top_p is None or top_p <= 1
 
         filled_paths = paths.copy()
         while len(filled_paths) < beam_size:

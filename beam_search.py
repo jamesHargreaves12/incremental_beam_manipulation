@@ -126,9 +126,9 @@ def order_beam_acording_to_rescorer(rescorer, beam, da_emb, i, cfg, out_beam=Non
         path_scores = score_beams(rescorer, beam, da_emb, i)
 
     order = sorted(enumerate(path_scores), reverse=True, key=lambda x: x[1][0])
-    if i == 0 and sections_flag:
-        print("Path scores:", [x for _, (x, _) in order])
-        print([x for x, _ in scored_finished_beams])
+    # if i == 0 and sections_flag:
+        # print("Path scores:", [x for _, (x, _) in order])
+        # print([x for x, _ in scored_finished_beams])
     if out_beam is not None:
         beam = out_beam
     result = [beam[i] for i, _ in order]
@@ -177,7 +177,7 @@ def run_nucleus_sampling(beam_search_model: TGEN_Model, das, cfg, max_pred_len=6
 
 def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pred_len, seq2seq, cfg,
                                    rescorer=None, greedy_complete=[],
-                                   save_progress_file=None):
+                                   save_progress_file=None, non_greedy_rescorer=None):
     end_tokens = seq2seq.text_embedder.end_embs
     for step in range(max_pred_len):
         # expand
@@ -186,6 +186,8 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
         if step in greedy_complete and rescorer is not None:
             paths = order_beam_after_greedy_complete(rescorer, new_paths, da_emb, i, enc_outs, seq2seq, max_pred_len,
                                                      cfg)
+        elif step not in greedy_complete and non_greedy_rescorer is not None and cfg['non_greedy_scorer'] != 'identity':
+            paths = order_beam_acording_to_rescorer(non_greedy_rescorer, new_paths, da_emb, i, cfg)
         elif not greedy_complete and rescorer is not None and cfg['scorer'] != 'identity':
             paths = order_beam_acording_to_rescorer(rescorer, new_paths, da_emb, i, cfg)
         else:
@@ -204,8 +206,8 @@ def _run_beam_search_with_rescorer(i, da_emb, paths, enc_outs, beam_size, max_pr
 
 
 def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, beam_size, cfg, only_rerank_final=False,
-                                  save_final_beam_path='', greedy_complete=[],
-                                  max_pred_len=60, save_progress_path=None, also_rerank_final=False):
+                                  save_final_beam_path='', greedy_complete=[], max_pred_len=60, save_progress_path=None,
+                                  also_rerank_final=False, non_greedy_rescorer=None):
     global recorded_sections
     recorded_sections = []
 
@@ -254,7 +256,8 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 rescorer=scorer if not only_rerank_final else None,
                 greedy_complete=greedy_complete,
                 save_progress_file=save_progress_file,
-                cfg=cfg
+                cfg=cfg,
+                non_greedy_rescorer=non_greedy_rescorer
             )
 
         final_beams.append(paths)

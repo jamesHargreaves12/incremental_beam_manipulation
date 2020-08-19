@@ -33,6 +33,10 @@ def do_beam_search(beam_size, cfg, models, das_test, da_embedder, text_embedder,
         alpha = 0.65 if 'alpha' not in cfg else cfg['alpha'][beam_size]
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size, alpha)
     max_pred_len = 60
+
+    non_greedy_score_func = None
+    if "non_greedy_scorer" in cfg:
+        non_greedy_score_func = get_score_function(cfg['non_greedy_scorer'], cfg, models, true_vals, beam_size, alpha)
     if "greedy_complete_at" in cfg:
         greedy_complete = cfg["greedy_complete_at"]
     else:
@@ -49,7 +53,8 @@ def do_beam_search(beam_size, cfg, models, das_test, da_embedder, text_embedder,
                                               max_pred_len=max_pred_len,
                                               save_progress_path=cfg.get('save_progress_file', None),
                                               also_rerank_final=cfg.get('also_rerank_final', False),
-                                              cfg=cfg)
+                                              cfg=cfg,
+                                              non_greedy_rescorer=non_greedy_score_func)
         preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
         if "res_save_format" in cfg:
             save_filename = cfg["res_save_format"].format(beam_size)
