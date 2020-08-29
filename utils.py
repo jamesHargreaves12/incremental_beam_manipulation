@@ -10,6 +10,7 @@ import h5py
 import nltk
 from keras.engine.saving import load_weights_from_hdf5_group
 import numpy as np
+import json
 
 sys.path.append(os.path.join(os.getcwd(), 'tgen'))
 from enum import Enum
@@ -26,6 +27,30 @@ CONFIGS_MODEL_DIR = 'new_configs/model_configs'
 TRAIN_BEAM_SAVE_FORMAT = 'output_files/saved_beams/train_vanilla_{}_{}.pickle'
 TEST_BEAM_SAVE_FORMAT = 'output_files/saved_beams/vanilla_{}.pickle'
 VALIDATION_NOT_TEST= True
+DATASET_WEBNLG=True
+
+
+class fakeDAI:
+    def __init__(self, triple):
+        self.slot, self.da_type, self.value = triple
+
+    def __lt__(self, other):
+        return (self.slot, self.da_type, self.value) < (other.slot, other.da_type, other.value)
+
+
+def get_das_texts_from_webnlg(filepath):
+    json_data = json.load(open(filepath, 'r'));
+    das = []
+    tokss = []
+    for item in json_data:
+        ent2ner = {v: k for k, v in item['ner2ent'].items()}
+        lexicalized_triples = [[ent2ner.get(t, t) for t in trip] for trip in item['triples']]
+
+        da = [fakeDAI(trip) for trip in lexicalized_triples]
+        toks = [START_TOK] + item['target'].split(' ') + [END_TOK]
+        das.append(da)
+        tokss.append(toks)
+    return das, tokss
 
 
 def normalise(s):
@@ -62,6 +87,13 @@ class RERANK(Enum):
 
 
 def get_true_sents():
+    if DATASET_WEBNLG:
+        if VALIDATION_NOT_TEST:
+            return get_das_texts_from_webnlg("WebNLG_Reader/data/webnlg/valid.json")[1]
+        else:
+            return get_das_texts_from_webnlg("WebNLG_Reader/data/webnlg/test.json")[1]
+
+
     if VALIDATION_NOT_TEST:
         true_file = "tgen/e2e-challenge/input/devel-text.txt"
     else:
@@ -110,6 +142,8 @@ def apply_absts(absts, texts):
 
 
 def get_training_das_texts():
+    if DATASET_WEBNLG:
+        return get_das_texts_from_webnlg('WebNLG_Reader/data/webnlg/train.json')
     das = read_das("tgen/e2e-challenge/input/train-das.txt")
     texts = [[START_TOK] + x + [END_TOK] for x in get_texts_training()]
     return das, texts
@@ -131,6 +165,9 @@ def get_hamming_distance(xs, ys):
 
 
 def get_training_variables():
+    if DATASET_WEBNLG:
+        das,texts = get_das_texts_from_webnlg('WebNLG_Reader/data/webnlg/train.json')
+        return texts,das
     das = read_das("tgen/e2e-challenge/input/train-das.txt")
     texts = [[START_TOK] + x + [END_TOK] for x in get_texts_training()]
     return texts, das
@@ -141,7 +178,7 @@ def get_multi_reference_training_variables():
 
     da_text_map = defaultdict(list)
     for da, text in zip(das, texts):
-        da_text_map[da].append(text)
+        da_text_map[tuple(da)].append(text)
     das_mr = []
     texts_mr = []
     for da, text in da_text_map.items():
@@ -151,6 +188,12 @@ def get_multi_reference_training_variables():
 
 
 def get_test_das():
+    if DATASET_WEBNLG:
+        if VALIDATION_NOT_TEST:
+            return get_das_texts_from_webnlg("WebNLG_Reader/data/webnlg/valid.json")[0]
+        else:
+            return get_das_texts_from_webnlg("WebNLG_Reader/data/webnlg/test.json")[0]
+
     if VALIDATION_NOT_TEST:
         das_file = "tgen/e2e-challenge/input/devel-das.txt"
     else:

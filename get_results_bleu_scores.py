@@ -5,15 +5,22 @@ import time
 
 from e2e_metrics.metrics.pymteval import BLEUScore
 from e2e_metrics.measure_scores import load_data
-from utils import RESULTS_DIR, VALIDATION_NOT_TEST
+from utils import RESULTS_DIR, VALIDATION_NOT_TEST, DATASET_WEBNLG
 
 
 def test_res_official(pred_file_name):
     pred_file = os.path.join(RESULTS_DIR, pred_file_name)
-    if VALIDATION_NOT_TEST:
-        true_file = "tgen/e2e-challenge/input/devel-conc.txt"
+    if DATASET_WEBNLG:
+        if VALIDATION_NOT_TEST:
+            true_file = "WebNLG_Reader/data/webnlg/valid.txt"
+        else:
+            true_file = "WebNLG_Reader/data/webnlg/test.txt"
     else:
-        true_file = "tgen/e2e-challenge/input/test-conc.txt"
+        if VALIDATION_NOT_TEST:
+            true_file = "tgen/e2e-challenge/input/devel-conc.txt"
+        else:
+            true_file = "tgen/e2e-challenge/input/test-conc.txt"
+
     _, data_ref, data_sys = load_data(true_file, pred_file)
 
     bleu = BLEUScore()
@@ -38,7 +45,7 @@ def print_results():
     print(sys.argv)
     filename_bs = []
     for filename in os.listdir(RESULTS_DIR):
-        if '*'in filename:
+        if '*' in filename:
             continue
         splits = filename.split('-')
         beam_size = int(splits[-1].split('.')[0])
