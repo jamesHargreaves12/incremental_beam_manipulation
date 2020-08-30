@@ -928,6 +928,7 @@ class TGEN_Model(object):
         vsize_in = self.da_embedder.vocab_length
         len_out = self.text_embedder.length
         vsize_out = self.text_embedder.vocab_length
+        print('In Vocab Size = ', vsize_in)
         lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
         encoder_inputs = Input(batch_shape=(self.batch_size, len_in), name='encoder_inputs')
         decoder_inputs = Input(batch_shape=(self.batch_size, len_out - 1), name='decoder_inputs')
