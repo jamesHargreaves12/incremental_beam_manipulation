@@ -926,8 +926,6 @@ class TGEN_Model(object):
     def set_up_models(self):
         len_in = self.da_embedder.length
         vsize_in = self.da_embedder.vocab_length
-        print(vsize_in)
-        print(self.embedding_size)
         len_out = self.text_embedder.length
         vsize_out = self.text_embedder.vocab_length
         lstm_type = CuDNNLSTM if is_gpu_available() else LSTM
