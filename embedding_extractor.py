@@ -90,15 +90,17 @@ class DAEmbeddingSeq2SeqExtractor(object):
 
     def get_embeddings(self, das):
         embs = []
+        unk_ack_emb = self.act_emb[self.UNK_ACT]
+        unk_slot_emb = self.slot_emb[self.UNK_SLOT]
+        unk_val_emb = self.val_emb[self.UNK_VALUE]
         for da in das:
             emb = []
             for dai in sorted(da):
-                emb.append(self.act_emb.get(dai.da_type, self.UNK_ACT))
-                emb.append(self.slot_emb.get(dai.slot, self.UNK_SLOT))
-                emb.append(self.val_emb.get(dai.value, self.UNK_VALUE))
+                emb.append(self.act_emb.get(dai.da_type, unk_ack_emb))
+                emb.append(self.slot_emb.get(dai.slot, unk_slot_emb))
+                emb.append(self.val_emb.get(dai.value, unk_val_emb))
 
-            pad = [self.act_emb[self.UNK_ACT], self.slot_emb[self.UNK_SLOT], self.val_emb[self.UNK_VALUE]] \
-                  * (self.length // 3 - len(da))
+            pad = [unk_ack_emb, unk_slot_emb, unk_val_emb] * (self.length // 3 - len(da))
             embs.append(pad + emb)
         return [e[-self.length:] for e in embs]
 
