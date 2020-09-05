@@ -276,6 +276,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
         results.append(pred_toks)
+        save_final_beam_path_toggle = not save_final_beam_path_toggle
 
         # This is inefficent but means that will cache
         if should_save_beams and (i % 10 == 0 or len(final_beams) == len(das)):
@@ -285,7 +286,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
                 toggledPath = save_final_beam_path
             else:
                 splits = save_final_beam_path.split('.')
-                toggledPath = splits[0] + '_1' + splits[1]
+                toggledPath = splits[0] + '_1.' + splits[1]
 
             pickle.dump(final_beams, open(toggledPath, "wb+"))
     print("*** Time to generate text =", time() - start)
