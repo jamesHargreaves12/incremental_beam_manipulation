@@ -214,6 +214,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
     global recorded_sections
     recorded_sections = []
 
+    save_final_beam_path_toggle = False
     if save_progress_path is not None:
         save_progress_file = open(save_progress_path.format(beam_size), 'w+')
     else:
@@ -279,7 +280,14 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         # This is inefficent but means that will cache
         if should_save_beams:
             # print("Saving final beam states at ", save_final_beam_path)
-            pickle.dump(final_beams, open(save_final_beam_path, "wb+"))
+
+            if save_final_beam_path_toggle:
+                toggledPath = save_final_beam_path
+            else:
+                splits = save_final_beam_path.split('.')
+                toggledPath = splits[0] + '_1' + splits[1]
+
+            pickle.dump(final_beams, open(toggledPath, "wb+"))
     print("*** Time to generate text =", time() - start)
 
     if recorded_sections:
