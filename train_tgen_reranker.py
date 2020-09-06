@@ -17,7 +17,7 @@ reranker = TGEN_Reranker(da_embedder, text_embedder, cfg_path)
 if os.path.exists(cfg["reranker_loc"]) and cfg["load_reranker"]:
     reranker.load_model()
 
-# reranker.train(das_inclusions, train_text, cfg["epoch"], cfg["valid_size"])
+reranker.train(das_inclusions, train_text, cfg["epoch"], cfg["valid_size"])
 if cfg["plot_reranker_stats"]:
     das = get_test_das()
     texts = [x[0] for x in get_true_sents()]
