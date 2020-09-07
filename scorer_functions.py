@@ -98,7 +98,7 @@ def get_learned_score_func(trainable_reranker, select_max=False, reverse_order=F
             logprob_val = [path[0]]
 
         pred = trainable_reranker.predict_bleu_score(
-            np.array([pads + text_emb]),
+            np.array([pads + text_emb][:trainable_reranker.text_embedder.length]),
             np.array([da_emb]),
             np.array(logprob_val))
 
