@@ -313,14 +313,14 @@ class PairwiseReranker(object):
     def predict_order(self, da_emb, text_1, text_2, lp_1, lp_2):
         result = self.model.predict([da_emb, text_1, text_2, lp_1, lp_2])
         if not self.have_printed_data:
-            print("Predicting the following")
-            print("DA:", da_emb[0])
-            print("Text_1:", text_1[0])
-            print("Text_2:", text_2[0])
-            print("LP_1:", lp_1[0])
-            print("LP_2:", lp_2[0])
-            print("Score:", ' '.join([str(x[0]) for x in result][:10]))
-            print("*******************************")
+            # print("Predicting the following")
+            # print("DA:", da_emb[0])
+            # print("Text_1:", text_1[0])
+            # print("Text_2:", text_2[0])
+            # print("LP_1:", lp_1[0])
+            # print("LP_2:", lp_2[0])
+            # print("Score:", ' '.join([str(x[0]) for x in result][:10]))
+            # print("*******************************")
             self.have_printed_data = True
         return result
 
