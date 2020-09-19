@@ -54,7 +54,8 @@ def do_beam_search(beam_size, cfg, models, das_test, da_embedder, text_embedder,
                                               save_progress_path=cfg.get('save_progress_file', None),
                                               also_rerank_final=cfg.get('also_rerank_final', False),
                                               cfg=cfg,
-                                              non_greedy_rescorer=non_greedy_score_func)
+                                              non_greedy_rescorer=non_greedy_score_func,
+                                              length_norm_alpha=cfg.get('length_norm_alpha', None))
         preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
         if "res_save_format" in cfg:
             save_filename = cfg["res_save_format"].format(beam_size)

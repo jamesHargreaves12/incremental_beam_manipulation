@@ -811,7 +811,7 @@ class TGEN_Model(object):
         self.encoder_model.save(os.path.join(self.save_location, "enc.h5"), save_format='h5')
         self.decoder_model.save(os.path.join(self.save_location, "dec.h5"), save_format='h5')
 
-    def beam_search_exapand(self, paths, enc_outs, beam_size, beam_search=True, top_p=None):
+    def beam_search_exapand(self, paths, enc_outs, beam_size, beam_search=True, top_p=None, length_norm_alpha=None):
         # Either nucleus sampling (top_p) or beam search
         assert not beam_search or top_p is None
         assert beam_search or top_p is not None
@@ -843,6 +843,8 @@ class TGEN_Model(object):
                 new_paths.append((lp, toks, ds))
                 continue
             if beam_search:
+                if length_norm_alpha:
+                    dec_out[0][self.text_embedder.tok_to_embed['<E>']] *= pow(len(toks)/len(toks)+1, length_norm_alpha)
                 expansions = np.argsort(dec_out, axis=-1)[0][-beam_size:]
             else:
                 sorted_probs = np.sort(dec_out, axis=-1)[0][::-1]
