@@ -280,7 +280,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
         save_final_beam_path_toggle = not save_final_beam_path_toggle
 
         # This is inefficent but means that will cache
-        if should_save_beams and (i % 10 == 0 or len(final_beams) == len(das)):
+        if should_save_beams and (i % 100 == 0 or len(final_beams) == len(das)):
             # print("Saving final beam states at ", save_final_beam_path)
 
             if save_final_beam_path_toggle:
