@@ -844,7 +844,7 @@ class TGEN_Model(object):
                 continue
             if beam_search:
                 if length_norm_alpha:
-                    dec_out[0][self.text_embedder.tok_to_embed['<E>']] *= pow(len(toks)/len(toks)+1, length_norm_alpha)
+                    dec_out[0][self.text_embedder.tok_to_embed['<E>']] *= pow(len(toks)/(len(toks)+1), length_norm_alpha)
                 expansions = np.argsort(dec_out, axis=-1)[0][-beam_size:]
             else:
                 sorted_probs = np.sort(dec_out, axis=-1)[0][::-1]

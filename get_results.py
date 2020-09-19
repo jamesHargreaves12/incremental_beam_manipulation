@@ -27,10 +27,10 @@ def do_beam_search(beam_size, cfg, models, das_test, da_embedder, text_embedder,
         os.makedirs(parent)
 
     # This is a horrible hack
+    alpha = 0.65 if 'alpha' not in cfg else cfg['alpha'][beam_size]
     if "train_reranker" in cfg and cfg["train_reranker"]["output_type"] in ["pair"]:
         scorer_func = PairwiseReranker(da_embedder, text_embedder, cfg["trainable_reranker_config"])
     else:
-        alpha = 0.65 if 'alpha' not in cfg else cfg['alpha'][beam_size]
         scorer_func = get_score_function(cfg['scorer'], cfg, models, true_vals, beam_size, alpha)
     max_pred_len = 60
 
@@ -55,7 +55,7 @@ def do_beam_search(beam_size, cfg, models, das_test, da_embedder, text_embedder,
                                               also_rerank_final=cfg.get('also_rerank_final', False),
                                               cfg=cfg,
                                               non_greedy_rescorer=non_greedy_score_func,
-                                              length_norm_alpha=cfg.get('length_norm_alpha', None))
+                                              length_norm_alpha=alpha if cfg['non_greedy_scorer'] == 'length_normalised' else None)
         preds = [[x for x in pred if x not in [START_TOK, END_TOK, PAD_TOK]] for pred in preds]
         if "res_save_format" in cfg:
             save_filename = cfg["res_save_format"].format(beam_size)
