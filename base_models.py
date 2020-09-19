@@ -530,12 +530,12 @@ class TrainableReranker(object):
 
         result = self.model.predict([text_seqs, da_seqs, logprob_seqs])
         if self.have_printed_data_count < 3:
-            print("Predicting the following")
-            print("Text:", text_seqs[0])
-            print("DA:", da_seqs[0])
-            print("LP:", logprob_seqs[0])
-            print("Score:", result)
-            print("*******************************")
+            # print("Predicting the following")
+            # print("Text:", text_seqs[0])
+            # print("DA:", da_seqs[0])
+            # print("LP:", logprob_seqs[0])
+            # print("Score:", result)
+            # print("*******************************")
             self.have_printed_data_count += 1
         return result
 
