@@ -799,7 +799,7 @@ class TGEN_Model(object):
             load_model_from_gpu(self.full_model, os.path.join(self.save_location, "full.h5"))
             load_model_from_gpu(self.encoder_model, os.path.join(self.save_location, "enc.h5"))
             load_model_from_gpu(self.decoder_model, os.path.join(self.save_location, "dec.h5"))
-            self.full_model.summary()
+            # self.full_model.summary()
         else:
             print("No existing models found")
 
