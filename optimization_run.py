@@ -11,7 +11,7 @@ for fp in filepaths:
     cfg = yaml.safe_load(open(fp, 'r'))
     if cfg['state'] == 'created':
         break
-if not cfg:
+if not cfg or cfg['state'] != 'created':
     print('No remaining Configs')
     exit(0)
 else:
