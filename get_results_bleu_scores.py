@@ -36,6 +36,7 @@ def test_res_official(pred_file_name):
     # # return the computed scores
     # if total_bleu_score > 0.6:
     #     print(bleu_scores)
+    #     pass
 
     return total_bleu_score
 
@@ -48,7 +49,10 @@ def print_results():
         if '*' in filename:
             continue
         splits = filename.split('-')
-        beam_size = int(splits[-1].split('.')[0])
+        try:
+            beam_size = int(splits[-1].split('.')[0])
+        except:
+            beam_size = 0
         filter_name = '-'.join(splits[:-1])
         if (len(sys.argv) > 1 and sys.argv[1] == 'all') or os.path.getmtime(
                 os.path.join(RESULTS_DIR, filename)) > time.time() - day_seconds / 2:
