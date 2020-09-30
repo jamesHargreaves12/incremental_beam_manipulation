@@ -275,7 +275,7 @@ def run_beam_search_with_rescorer(scorer, beam_search_model: TGEN_Model, das, be
             #     print("******************************")
         # A hack to handle the what we need right now - this should be updated
         elif non_greedy_rescorer:
-            paths = order_beam_acording_to_rescorer(non_greedy_rescorer, paths, da_emb, i , cfg)
+            paths = order_beam_acording_to_rescorer(non_greedy_rescorer, paths, da_emb, i, cfg, ignore_flags=True)
 
         best_path = paths[0]
         pred_toks = text_embedder.reverse_embedding(best_path[1])
