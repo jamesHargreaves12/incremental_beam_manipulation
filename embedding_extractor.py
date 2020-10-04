@@ -31,7 +31,7 @@ class TokEmbeddingSeq2SeqExtractor(object):
                 embs.append(emb + pad)
             else:
                 embs.append(pad + emb)
-        return [e[:self.length + 1] for e in embs]
+        return [e[:self.length] for e in embs]
 
     def add_pad_to_embed(self, emb, to_start=False):
         pad = [self.tok_to_embed[PAD_TOK] for _ in range(self.length - len(emb))]
