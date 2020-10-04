@@ -138,7 +138,8 @@ class DAEmbeddingSeq2SeqExtractor(object):
     def get_inclusion(self, das):
         included = set()
         for dai in das:
-            included.add(self.inclusion_map[(dai.da_type, dai.slot, dai.value)])
+            if (dai.da_type, dai.slot, dai.value) in self.inclusion_map:
+                included.add(self.inclusion_map[(dai.da_type, dai.slot, dai.value)])
         return [(1 if x in included else 0) for x in range(self.inclusion_length)]
 
     def reverse_inclusion(self, inclusion):
