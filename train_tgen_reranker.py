@@ -1,3 +1,4 @@
+import argparse
 import os
 import yaml
 import numpy as np
@@ -6,7 +7,13 @@ import matplotlib.pyplot as plt
 from base_models import TGEN_Reranker
 from embedding_extractor import TokEmbeddingSeq2SeqExtractor, DAEmbeddingSeq2SeqExtractor
 from utils import get_training_variables, get_hamming_distance, get_true_sents, get_test_das
-cfg_path = "new_configs/model_configs/tgen-reranker.yaml"
+parser = argparse.ArgumentParser()
+parser.add_argument('-c', default=None)
+args = parser.parse_args()
+
+cfg_path = args.c
+
+
 cfg = yaml.load(open(cfg_path, "r"))
 texts, das = get_training_variables()
 text_embedder = TokEmbeddingSeq2SeqExtractor(texts)
