@@ -21,8 +21,8 @@ def get_tgen_rerank_score_func(tgen_reranker):
         text_emb = path[1]
         pads = [tgen_reranker.text_embedder.tok_to_embed[PAD_TOK]] * \
                (tgen_reranker.text_embedder.length - len(text_emb))
-        text_seqs = pads + text_emb
-        text_seqs = text_seqs[:tgen_reranker.text_embedder.length]
+        text_emb = pads + text_emb
+        text_emb = text_emb[:tgen_reranker.text_embedder.length]
         reranker_score = tgen_reranker.get_pred_hamming_dist(text_emb, da_emb)
         return path[0] - 100 * reranker_score
 
