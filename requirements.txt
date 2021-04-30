@@ -64,7 +64,7 @@ regex==2020.1.8
 requests==2.22.0
 roman==3.2
 rpyc==4.1.4
-rsa==4.0
+rsa==4.7
 s3transfer==0.3.3
 scikit-image==0.16.2
 scikit-learn==0.22.1
